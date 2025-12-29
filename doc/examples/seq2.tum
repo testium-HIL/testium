@@ -1,0 +1,16 @@
+
+- sleep:
+    name: Sleep {{ sleep_timeout }} sec
+    timeout: {{ sleep_timeout }}
+    dialog: {{ is_dialog }}
+
+- dialog_message:
+    name: dialog_message item
+    question: value is {{ sleep_timeout }}
+
+- py_func:
+    name: function test item
+    file: utils.py
+    func_name: funcToBeExecuted
+    param:
+        - {{ func_param }}

@@ -1,0 +1,12 @@
+- group:
+    name : Results
+    steps:
+        - !include results/test.tum
+- group:
+    name : Conditional
+    steps:
+        - !include conditional/test.tum
+- group:
+    name : Various syntax robustness
+    steps:
+        - !include syntax_robustness/test.tum

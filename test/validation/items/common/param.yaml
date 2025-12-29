@@ -1,0 +1,5 @@
+dict_example: {nbr: 42, msg: "The Answer is 42"}
+list_example: [42, msg: "The Answer is 42"]
+str_example: "The Answer is 42"
+nbr_example: 42
+no_param: Null

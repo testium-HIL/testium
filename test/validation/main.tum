@@ -1,0 +1,51 @@
+config_file:
+    - param.yaml
+{% for item in items %}
+    - "items/{{ item }}/param.yaml"
+{% endfor %}
+
+main:
+    name: Testium validation suite
+    steps:
+        - group:
+            name: Test preparation
+            steps:
+
+                - let:
+                    name: Set test variables for Linux
+                    condition: "'$(os)' == 'Linux'"
+                    values:
+                        - terminal_prompt: $(linux_prompt)
+                        - psep: "/"
+
+                - let:
+                    name: Set test variables for Windows
+                    condition: "'$(os)' == 'Windows'"
+                    values:
+                        - terminal_prompt: $(windows_prompt)
+                        - psep: "\\"
+
+        - group:
+            name: Group of tests
+            steps:
+
+{% for item in items %}
+                # item test
+                - let: {name: {{ item }} test constants, values: {test: {{ item }}, test_path: items/$(test)}}
+                - group:
+                    name: {{ item }} test
+                    steps:
+                        - !include items/{{ item }}/test.tum
+                        - !include items/report.tum
+{% endfor %}
+
+report:
+    enabled: True
+    log_stored: True
+    export:
+        junit:
+          path: $(validation_report_path)
+          file_name: $(validation_report_file).junit
+        sqlite:
+          file_name: $(validation_report_file).sqlite
+          path: $(validation_report_path)

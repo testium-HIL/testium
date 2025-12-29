@@ -1,0 +1,40 @@
+main:
+    name: Test ssh
+    version: 0.1
+    stop_on_failure: False
+    steps:
+
+        - console:
+            name: Console creation
+            console_name: consname
+            doc: Opening the console
+            steps:
+                - open:
+                    protocol: ssh
+                    ssh_host: "my_hostname"
+                    ssh_user: "francois"
+
+        - console:
+            name: Console read
+            console_name: consname
+            doc: Opening the console
+            steps:
+                - writeln: rm -f /tmp/toto.txt && echo done
+                - read_until: {expected: "done", timeout: 10}
+                - read_until: {expected: "$ ", timeout: 1}
+                - writeln: touch /tmp/toto.txt && echo done
+                - read_until: {expected: "done", timeout: 10}
+                - read_until: {expected: "$ ", timeout: 1}
+                - writeln: echo "blablabla" >> /tmp/toto.txt && echo done
+                - read_until: {expected: "done", timeout: 10}
+                - read_until: {expected: "$ ", timeout: 1}
+                - writeln: cat /tmp/toto.txt  && echo done
+                - read_until: {expected: "done", timeout: 10}
+                - read_until: {expected: "$ ", timeout: 1}
+
+        - console:
+            name: Console deletion
+            console_name: consname
+            doc: Closing the console
+            steps:
+                - close: consname

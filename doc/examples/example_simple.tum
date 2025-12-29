@@ -1,0 +1,18 @@
+main:
+    name: Test conditionals
+    version: 0.1
+    stop_on_failure: False
+    steps:
+
+      - py_func:
+          name: function test item
+          doc: The purpose of this step is to demonstrate func test item
+          file: utils.py
+          func_name: funcToBeExecuted
+          param:
+              - 123
+
+      - sleep:
+          name: sleep item
+          dialog: True
+          timeout: 3600

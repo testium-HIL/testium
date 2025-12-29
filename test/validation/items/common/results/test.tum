@@ -1,0 +1,155 @@
+- group:
+    name : Expected Result
+    steps:
+        - py_func:
+            name: Return True expect True
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ True ]
+            expected_result: True
+        - py_func:
+            name: Return True expect False (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ True ]
+            expected_result: False
+        - py_func:
+            name: Return None expect None
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: return_none
+            expected_result: None
+        - py_func:
+            name: Return None expect PASS
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: return_none
+            expected_result: PASS
+        - py_func:
+            name: Return None expect 14 (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: return_none
+            expected_result: 14
+
+- group:
+    name : Expected Result Last test result
+    steps:
+        - py_func:
+            name: result is 28
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 28 ]
+        - py_func:
+            name: check that the last test result is 28
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 28 ]
+            expected_result: "$(last_test_result)"
+
+- group:
+    name : Expected result Failure raised issue
+    steps:
+        - py_func:
+            name: Raise an issue (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: raise_issue
+            param: [ $(str_example) ]
+        - py_func:
+            name: Raise an issue and expected the test to be FAIL
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: raise_issue
+            param: [ $(str_example) ]
+            expected_result: "FAIL"
+        - py_func:
+            name: Return a String expect a FAILURE (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            expected_result: "FAIL"
+
+- group:
+    name : process result
+    steps:
+        - py_func:
+            name: Process result equal String
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            process_result: "'$(str_example)' == '$(result)'"
+        - py_func:
+            name: Process result string in the result (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            process_result: "'44' in '$(result)'"
+        - py_func:
+            name: Save the result in a global variable
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 44 ]
+            process_result: "tm.setgd('process_result_value', $(result))"
+        - py_func:
+            name: Check the saved global variable
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 44 ]
+            expected_result: $(process_result_value)
+
+        - py_func:
+            name: Process result when result is None (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: return_none
+            process_result: "$(result) is None"
+
+- group:
+    name : no_fail result
+    steps:
+
+        - py_func:
+            name: Return True expect False but no_fail=True
+            no_fail: True
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ True ]
+            expected_result: False
+
+        - py_func:
+            name: Return True expect False but no_fail=False (must fail)
+            no_fail: False
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ True ]
+            expected_result: False
+
+        - py_func:
+            name: Return True expect False but no_fail expansed
+            no_fail: <@ bool(0) == False @>
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ True ]
+            expected_result: False
+
+        - py_func:
+            name: Return True expect False but no_fail expansed (must fail)
+            no_fail: <@ bool(1) == False @>
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ True ]
+            expected_result: False

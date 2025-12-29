@@ -1,0 +1,16 @@
+
+# No name declared
+- sleep: {timeout: 0.2, key: $(test)_PASS}
+
+# Empty name declared
+- sleep:
+    name:
+    timeout: 0.2
+    key: $(test)_PASS
+
+# Empty doc declared
+- sleep:
+    name: Empty "doc:" declared (must PASS)
+    doc:
+    timeout: 0.2
+    key: $(test)_PASS

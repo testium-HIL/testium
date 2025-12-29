@@ -1,0 +1,10 @@
+
+#****************************************************************************
+#    Test configuration
+#**************************************************************************** -->
+# loops parameters
+global_loop_param_txt: ['one', 'two', 'three']
+global_loop_param_num: [1, 2, 3]
+
+# Plot parameters
+plot_log_path: /tmp/testium_plot/$(testrun_date)/$(testrun_time)/

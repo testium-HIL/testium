@@ -1,0 +1,14 @@
+
+# This loop is an example of simple iterator.
+- loop:
+    doc: This loop is an example of simple iterator.
+    name: Simple iterator
+    iterator: 25
+    steps:
+      - py_func:
+          name: function test item
+          file: utils.py
+          func_name: funcToBeExecuted
+          param:
+            - $(loop_param)
+          expected_result: $(loop_param)

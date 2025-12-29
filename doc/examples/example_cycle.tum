@@ -1,0 +1,278 @@
+#This suite make the simplest call to each item.
+#
+
+main:
+  name: Test Sample number one
+  version: 0.1
+  stop_on_failure: False
+  steps:
+
+# This loop contains a failing step and exits.
+    - loop:
+        doc: This loop contains a failing step and exits.
+        name: Infine loop step fails
+        key: report-key-2
+        stop_on_failure: True
+        steps:
+          - unittest_file:
+              name: unittest item
+              doc: |
+                The purpose of this unittest test item is to demonstrate
+                its various features.
+              test_file: dummy/dummy.py
+              test_method: test_01_pass
+
+          - py_func:
+              name: function test item
+              doc: The purpose of this step is to demonstrate func test item
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                  - 123
+
+          - py_func:
+              name: function test item
+              doc: |
+                The purpose of this step is to demonstrate func test item
+                and the report key feature.
+              key: report-key-1
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                  - 123
+
+          - unittest_file:
+              name: Unittest item
+              test_file: dummy/dummy.py
+              test_method:
+                  - test_04_disabled
+                  - test_03_fail
+
+        exit_condition:
+            file: utils.py
+            func_name: dummy_exit
+
+# This loop contains a crashing function and exits.
+    - loop:
+        doc: This loop contains a crashing function and exits.
+        name: Infinite loop func crashes
+        stop_on_failure: True
+        steps:
+          - py_func:
+              name: function crash
+              file: utils.py
+              func_name: funcToBeExecuted2
+              param:
+                - 123
+
+# This function crashes and does not fail because of expected result.
+
+    - py_func:
+        name: function crash but no fail
+        file: utils.py
+        func_name: funcToBeExecuted2
+        expected_result: FAIL
+        param:
+        - 123
+
+    - report:
+        name: Intermediate report
+        doc: |
+          The purpose of this step is to demonstrate the report test item
+          and its various export features.
+        export:
+          - junit:
+              path: $(home)/reports/report-key-1.junit
+              pattern:
+                - Unittest%
+              key: report-key-1
+          - text:
+              file_name: report-key-1.txt
+              path: $(home)/reports
+              key:
+                - report-key-1
+
+# This loop contains a crashing unittest step and exits.
+    - loop:
+        doc: This loop contains a crashing unittest step and exits.
+        name: Infine loop unittest step crashes
+        stop_on_failure: True
+        steps:
+          - unittest_file:
+              name: Unittest item
+              test_file: dummy/dummy.py
+              test_method:
+                - test_05_crash
+
+# This loop is an example of simple iterator.
+    - !include seq_cycle.tum
+
+# This loop is an example of time exit condition.
+    - loop:
+        doc: This loop is an example of time exit condition.
+        name: Elapsed time exit condition
+        steps:
+          - py_func:
+              name: function test item
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                - $(loop_param)
+          - sleep:
+              name: Sleep
+              timeout: 0.2
+              dialog: false
+        exit_condition:
+            time: 0.2
+
+# This loop is an example of value exit condition.
+    - loop:
+        doc: This loop is an example of value exit condition
+        name: Loop exits on a condition
+        steps:
+          - let:
+              name: Set a variable to the loop index
+              values:
+                - variable: $(loop_index)
+          - sleep:
+              name: Sleep
+              timeout: 0.2
+              dialog: false
+        exit_condition:
+            value: "$(variable) >= 10"
+
+# This loop must fail du to an exception in exit condition.
+    - loop:
+        doc: This loop must fail du to an exception in exit condition.
+        name: Loop exit_condition crash
+        steps:
+          - py_func:
+              name: function test item
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                - 123
+
+        exit_condition:
+            file: utils.py
+            func_name: exit_exc
+
+# This loops include complex iterator composed by global variables
+    - loop:
+        doc: This loop includes a complex iterator composed by global variables
+        name: Loop complex iterator
+        iterator:
+          - $(global_loop_param_txt)
+          - $(global_loop_param_num)
+          - $(global_loop_param_list)
+        steps:
+            - loop:
+                doc: Loop which print the iterators
+                name: Simple loop
+                iterator: $(loop_param)
+                steps:
+                  - py_func:
+                      name: function test item
+                      file: utils.py
+                      func_name: funcToBeExecuted
+                      param:
+                        - $(loop_param)
+                  - sleep:
+                      name: Sleep be
+                      timeout: 0.5
+                      dialog: false
+
+# Loop with function having a number element of a list as expected result
+    - loop:
+        doc: Loop with function having a number element of a list as expected result
+        name: num list loop
+        iterator: $(global_loop_param_num)
+        steps:
+          - py_func:
+              name: function test item
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                  - $(loop_param)
+              expected_result: ($(global_loop_param_num))[$(loop_index)]
+          - sleep:
+              name: Sleep be
+              timeout: 0.5
+              dialog: false
+
+# Loop with function having a text element of a list as expected result
+    - loop:
+        doc: Loop with function having a text element of a list as expected result
+        name: text list loop
+        iterator: $(global_loop_param_txt)
+        steps:
+          - py_func:
+              name: function test item
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                  - $(loop_param)
+              expected_result: ($(global_loop_param_txt))[$(loop_index)]
+          - sleep:
+              name: Sleep be
+              timeout: 0.5
+              dialog: false
+
+# Loop with function having a list element of a list as expected result
+    - loop:
+        doc: Loop with function having a list element of a list as expected result
+        name: list of list loop
+        iterator: $(global_loop_param_list)
+        steps:
+          - py_func:
+              name: function test item
+              file: utils.py
+              func_name: funcToBeExecuted
+              param:
+                - $(loop_param)
+              expected_result: ($(global_loop_param_list))[$(loop_index)]
+          - sleep:
+              name: Sleep be
+              key: report-key-3
+              timeout: 0.5
+              dialog: false
+
+# This is an infinite loop to be stopped manually
+    - loop:
+        doc: This is an infinite loop to be stopped manually
+        name: Infinite loop
+        skipped: True
+        steps:
+          - unittest_file:
+              name: Unittest item
+              test_file: dummy/dummy.py
+              test_method: test_01_pass
+
+          - sleep:
+              name: Sleep between one and two
+              timeout: 0.5
+              dialog: false
+
+report:
+  enabled: True
+  # log_stored: True
+  export:
+    - sqlite:
+        file_name: $(test_name).sqlite
+        path: $(home)/reports
+
+  #   - junit:
+  #       file_name: $(test_name)_report-key-1.junit
+  #       path: $(home)/reports
+  #       pattern:
+  #         - function%
+  #         - Unittest%
+  #       key: report-key-1
+
+  #   - text:
+  #       file_name: $(test_name)_report-key-2_3.txt
+  #       path: $(home)/reports
+  #       pattern: function%
+  #       key:
+  #         - report-key-2
+  #         - report-key-3

@@ -1,0 +1,31 @@
+# All sub directory in items are evaluated as a list
+items: <@ [os.path.basename(f.path) for f in os.scandir(os.path.join(r"$(test_directory)", "items")) if f.is_dir()] @>
+  # - common
+  # - check
+  # - console
+  # - cycle
+  # - dialogs
+  # - expanse
+  # - func
+  # - git
+  # - plot
+  # - include
+  # - jsonrpc
+  # - let
+  # - sleep
+  # - unittest
+
+# Parameters of the validation execution
+validation_report_path: $(test_directory)/../tmp/
+validation_report_file: validation
+
+# parameter to enable validation of plotical items
+validation_dialogs: true
+
+# various parameters
+windows_prompt: ">"
+linux_prompt: "$ "
+
+#Added param to show handling of the include with statically loaded parameter
+inc_no_template: "inc no template"
+inc_with_template: "inc with template"

@@ -1,0 +1,7 @@
+
+- let: {name: Test param inclusion 1, values: [inclusion: $({{ dd }}_inc)]}
+# note the Jinja comments : {# #}
+# The following construction is not allowed and will fail to load:
+# {#
+# - let: {name: Test param inclusion 2, values: [inclusion: {{ $(inc)_inc }}]}
+# #}

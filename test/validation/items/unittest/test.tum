@@ -1,0 +1,13 @@
+- unittest_file:
+    name: Unittest item
+    test_file:  {{include_directory}}/unittest.py
+    key: $(test)_PASS
+    test_method: test_01_pass
+
+- unittest_file:
+    name: Unittest item
+    test_file: {{include_directory}}/unittest.py
+    key: $(test)_FAIL
+    test_method:
+        - test_04_disabled
+        - test_03_fail

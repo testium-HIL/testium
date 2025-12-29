@@ -1,0 +1,17 @@
+- sleep:
+    name: Sleep timeout with dialogs
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    timeout: 3
+    dialog: true
+
+- sleep:
+    name: Sleep timeout without dialog
+    key: $(test)_PASS
+    timeout: 3.0
+
+- sleep:
+    name: Sleep timeout in textual format
+    skipped: true
+    key: $(test)_PASS
+    timeout: 1h 3m 2s

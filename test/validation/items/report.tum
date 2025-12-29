@@ -1,0 +1,25 @@
+- report:
+    name: Expected PASS $(test) test
+    export:
+        - text:
+            path: $(validation_report_path)$(psep)$(test)_PASS.txt
+            key: $(test)_PASS
+        - html:
+            path: $(validation_report_path)$(psep)$(test)_PASS.html
+            key: $(test)_PASS
+        - junit:
+            path: $(validation_report_path)$(psep)$(test)_PASS.junit
+            key: $(test)_PASS
+
+- report:
+    name: Expected FAIL $(test) test
+    export:
+        - text:
+            path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+            key: $(test)_FAIL
+        - html:
+            path: $(validation_report_path)$(psep)$(test)_FAIL.html
+            key: $(test)_FAIL
+        - junit:
+            path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+            key: $(test)_FAIL

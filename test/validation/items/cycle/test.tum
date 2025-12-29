@@ -1,0 +1,34 @@
+- loop:
+    name: Cycle number of loops
+    iterator: 10
+    key: $(test)_PASS
+    steps:
+      - py_func:
+          name: do nothing
+          file: $(test_path)$(psep)cycle.py
+          func_name: donothing
+
+- loop:
+    name: Cycle iterating on list
+    iterator: [12, 20, 30]
+    key: $(test)_PASS
+    steps:
+      - py_func:
+          name: check loop param
+          file: $(test_path)$(psep)cycle.py
+          func_name: checkloopparam
+          param:
+              - $(loop_param)
+
+- loop:
+    name: Infinite loop with exit condition
+    key: $(test)_PASS
+    steps:
+      - py_func:
+          name: do nothing
+          file: $(test_path)$(psep)cycle.py
+          func_name: donothing
+
+    exit_condition:
+        file: $(test_path)$(psep)cycle.py
+        func_name: exitcondition

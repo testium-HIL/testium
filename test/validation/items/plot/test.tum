@@ -1,0 +1,74 @@
+- plot:
+    name: Open the plot
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    plot_name: Mon Plot
+    steps:
+        - open:
+            log_path: $(validation_report_path)
+
+- plot:
+    name: Add periodic to the plot
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    plot_name: Mon Plot
+    steps:
+        - periodic:
+            period:         1
+            file:           $(test_path)$(psep)plot.py
+            func_name:      random_value
+            eval:           '{"periodic": $(result)}'
+
+- sleep:
+    name: sleep
+    condition: $(validation_dialogs)
+    dialog: true
+    timeout: 3
+
+- loop:
+    name: Add of other data in the plot
+    condition: $(validation_dialogs)
+    iterator: 10
+    steps:
+
+        - plot:
+            name: Add to the plot
+            key: $(test)_PASS
+            plot_name: Mon Plot
+            steps:
+                - add:
+                    value1: $(loop_index)
+                    value2: $(loop_index)+2
+
+        - sleep:
+            name: sleep between values
+            timeout: 1
+
+        - py_func:
+            name: last plot values
+            key: $(test)_PASS
+            file: $(test_path)$(psep)plot.py
+            func_name: LastValues
+            param:
+                - Mon Plot
+
+- plot:
+    name: Export
+    execute_on_stop: True
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    plot_name: Mon Plot
+    steps:
+        - export: $(validation_report_path)/plot_export.pdf
+        - export: $(validation_report_path)/plot_export.csv
+
+- plot:
+    name: Close the plot
+    execute_on_stop: True
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    plot_name: Mon Plot
+    steps:
+        - close:
+            wait_dialog_exit: True
+            timeout: 60

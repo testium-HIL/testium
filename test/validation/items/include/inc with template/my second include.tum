@@ -1,0 +1,7 @@
+- py_func:
+    name: {{ func_title }}
+    file: $(test_path)$(psep)include.py
+    func_name: ValidationTest
+    key: $(test)_PASS
+    param:
+        - {{ func_param }}

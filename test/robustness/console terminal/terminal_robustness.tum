@@ -1,0 +1,50 @@
+# Main
+################################################################################
+main:
+  name:                               Terminal bug reproducer
+  version:                            0.1
+  steps:
+    - group:
+        name:                         Test preparation
+        steps:
+          - console:
+              name:                   Open the EUT console
+              console_name:           cons_target
+              doc:                    Initiates the console of the target in order
+                                      to be ready to capture its traces.
+              stop_on_failure:        True
+              steps:
+                - open:
+                    protocol: terminal
+
+    - loop:
+        name:                         Qualification loop
+        stop_on_failure:              False
+        steps:
+          - console:
+              name:                   write random data
+              console_name:           cons_target
+              steps:
+                  - writeln: bash $(test_directory)/generate_char.sh
+
+          - py_func:
+              name:                   Capture the terminal output
+              file:                   $(test_directory)/terminal_bug_reproducer.py
+              func_name:              RetreiveData
+              param:
+                - cons_target
+
+          - sleep: {timeout: 1}
+
+# Cleanup sequence
+#-------------------------------------------------------------------------------
+    - group:
+        name:                         Cleanup
+        execute_on_stop:              True
+        steps:
+          - console:
+              name:                   Close the target console
+              console_name:           cons_target
+              execute_on_stop:        True
+              steps:
+                - close:

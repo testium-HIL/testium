@@ -1,0 +1,8 @@
+
+- py_func:
+    name: My first include test
+    file: $(test_path)$(psep)include.py
+    func_name: ValidationTest
+    key: $(test)_PASS
+    param:
+        - $(test parameter)

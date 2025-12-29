@@ -1,0 +1,61 @@
+- dialog_image:
+    name: dialog image PASS
+    condition: $(validation_dialogs)
+    question: click ok if you see the image
+    key: $(test)_PASS
+    filename: $(test_path)$(psep)IMG_20140213_171455.jpg
+
+- dialog_image:
+    name: dialog image FAIL
+    condition: $(validation_dialogs)
+    question: click cancel
+    key: $(test)_FAIL
+    filename: $(test_path)$(psep)IMG_20140213_171455.jpg
+
+- dialog_references:
+    name: dialog_reference PASS
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    question: click ok
+
+- dialog_references:
+    name: dialog_reference FAIL
+    condition: $(validation_dialogs)
+    key: $(test)_FAIL
+    question: click cancel
+
+- dialog_value:
+    name: dialog_value PASS
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    question: enter 123 and click ok
+
+- dialog_value:
+    name: dialog_value empty FAIL
+    condition: $(validation_dialogs)
+    key: $(test)_FAIL
+    question: enter nothing and click ok
+
+- dialog_value:
+    name: dialog_value canceled FAIL
+    condition: $(validation_dialogs)
+    key: $(test)_FAIL
+    question: enter nothing and click cancel
+
+- dialog_message:
+    name: dialog_message PASS
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    question: click ok
+
+- dialog_question:
+    name: dialog_question PASS
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    question: click yes
+
+- dialog_question:
+    name: dialog_question FAIL
+    condition: $(validation_dialogs)
+    key: $(test)_FAIL
+    question: click no

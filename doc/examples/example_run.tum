@@ -1,0 +1,11 @@
+main:
+    name: Test run Item
+    steps:
+
+        - run:
+            name: Execute TUM
+            tum_file: example_cycle.tum
+            python_path: python3
+            testium_path: /home/francois/Projets/testium/src/testium
+            log_file: $(home)/reports/test.log
+            report_file: $(home)/reports/test.rep

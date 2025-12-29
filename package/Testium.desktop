@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Testium
+Exec=testium
+Icon=testium
+Terminal=false
+Categories=Utility;Automated test

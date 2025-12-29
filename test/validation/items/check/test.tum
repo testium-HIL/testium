@@ -1,0 +1,28 @@
+
+- py_func:
+    name: Dummy_int
+    file: $(test_path)$(psep)check.py
+    func_name: echo
+    key: $(test)_PASS
+    param:
+        - 2
+
+- py_func:
+    name: Dummy_str
+    file: $(test_path)$(psep)check.py
+    func_name: echo
+    key: $(test)_PASS
+    param:
+        - my taylor is rich
+
+- check:
+    name: Check condition on existing variable (PASS)
+    key: $(test)_PASS
+    values:
+        - $(fn_Dummy_int) > 1
+
+- check:
+    name: Check condition on existing variable (FAIL)
+    key: $(test)_FAIL
+    values:
+        - '"tailor" in "$(fn_Dummy_str)"'

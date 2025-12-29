@@ -1,0 +1,12 @@
+
+- !include inc no template/my first include.tum
+- !include $(inc_no_template)/my first include.tum
+
+- !include {file: inc with template/my second include.tum, func_title: My second include test, func_param: My second include test parameter}
+- !include
+    file: $(inc_with_template)/my second include.tum
+    func_title: My second include test
+    func_param: My second include test parameter
+
+- let: {name: Declare param for inclusion, values: [inc: Dali, Dali_inc: Dalida]}
+- !include {file: $(inc_with_template)/my_3d_include.tum, dd: $(inc)}

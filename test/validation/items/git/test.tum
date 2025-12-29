@@ -1,0 +1,11 @@
+- git:
+    name: Testium repo
+    key: $(test)_PASS
+    repo: $(test_directory)
+
+- git:
+    name: Testium repo
+    key: $(test)_PASS
+    repo:
+        - $(test_directory)
+        - $(test_directory)

@@ -1,0 +1,190 @@
+#This suite make the simplest call to each item.
+#
+
+config_file:
+    - param.xml
+    - param.yaml
+    - param.json
+    - $(test_directory)/dummy/param_func.xml
+
+main:
+    name: Test Sample number one
+    version: 0.1
+    steps:
+        - unittest_file:
+            name: Unittest item
+            test_file: dummy/unittest_str.py
+            doc: Unittest test
+
+        - group:
+            name: Set test variables for Linux
+            condition: "'$(os)' == 'Linux'"
+            steps:
+
+            - let:
+                name: Set test variables for Linux
+                values:
+                    - terminal_prompt: $(linux_prompt)
+
+        - group:
+            name: Set test variables for Windows
+            condition: "'$(os)' == 'Windows'"
+            steps:
+
+            - let:
+                name: Set test variables for Windows
+                values:
+                    - terminal_prompt: $(windows_prompt)
+
+        - group:
+            name: Console test group
+            steps:
+
+            - console:
+                name: Console creation
+                console_name: consname
+                doc: Opening the console
+                steps:
+                    - open:
+                        protocol: terminal
+                        terminal_path: $(test_directory)
+
+            - console:
+                name: Console read_until with timeout
+                console_name: consname
+                steps:
+                    - read_until: {expected: "$(terminal_prompt)", timeout: 10}
+
+            - console:
+                name: Console write
+                console_name: consname
+                steps:
+                    - writeln: echo 0
+
+            - sleep:
+                name: sleep item
+                timeout: 5
+
+            - console:
+                name: Console read_until immediate
+                console_name: consname
+                steps:
+                    - read_until: {expected: "0", timeout: 0}
+
+            - console:
+                name: Console read_until immediate (2)
+                console_name: consname
+                steps:
+                    - read_until: {expected: "$(terminal_prompt)", timeout: 0}
+
+            - console:
+                name: Console closure
+                console_name: consname
+                steps:
+                    - close: consname
+
+        - loop:
+            name: cycle item
+            iterator : 3
+            steps:
+                - unittest_file:
+                    name: Unittest item
+                    test_file: dummy/dummy.py
+                    test_method: test_01_pass
+                - sleep:
+                    name: sleep item
+                    timeout: 1
+                - loop:
+                    name: cycle item
+                    iterator : 3
+                    steps:
+                        - unittest_file:
+                            name: Unittest item
+                            test_file: dummy/dummy.py
+                            test_method: test_01_pass
+                        - sleep:
+                            name: sleep item
+                            timeout: 1
+
+                        - py_func:
+                            name: func item
+                            file: dummy/dummy.py
+                            func_name: donothing
+
+        - dialog_choices:
+            name: Choices
+            question: Select the items you want
+            icon: $(test_directory)/../../src/testium/main_win/resources/black/document.png
+            choices:
+              - name: choice 1
+                description: My first choice description
+                icon: $(test_directory)/../../src/testium/main_win/resources/black/document-save.png
+                choices:
+                  - name: choice 1.1
+                    description: My choice 1 first subchoice description
+                    icon: $(test_directory)/../../src/testium/main_win/resources/black/Label.png
+                  - name: choice 1.2
+                    description: My choice 1 first subchoice description
+              - name: choice 2
+                description: My second choice description
+                icon: $(test_directory)/../../src/testium/main_win/resources/black/image.png
+              - name: choice 3
+                description: My third choice description
+                icon: $(test_directory)/../../src/testium/main_win/resources/black/image.png
+                choices:
+                  - name: choice 3.1
+                    description: My choice 3 first subchoice description
+                  - name: choice 3.2
+                    description: My choice 3 second subchoice description
+                    icon: $(test_directory)/../../src/testium/main_win/resources/black/Label.png
+
+        - dialog_image:
+            name: dialog image item
+            question: click ok if you see the image
+            filename: image.jpg
+
+        - sleep:
+            name: sleep item
+            timeout: 3
+            dialog: true
+
+        - git:
+            name: Testium repo
+            repo: $(test_directory)
+
+        - group:
+            name: group item
+            steps:
+                - sleep:
+                    name: sleep item
+                    timeout: 1
+                - sleep:
+                    name: sleep item
+                    timeout: 1
+
+        - dialog_references:
+            name: dialog_reference item
+            question: click ok
+#            reference:
+#                - ref 1
+#                - ref 2/rev
+#                - ref 3/rev/01
+
+        - dialog_value:
+            name: dialog_value item
+            question: enter something and click ok
+
+        - dialog_message:
+            name: dialog_message item
+            question: click ok
+
+        - dialog_question:
+            name: dialog_question item
+            question: click yes
+
+report:
+    enabled: True
+    file_name: $(test_name).rep
+    path: $(home)/reports
+    pattern: "Console%"
+    log_stored: False

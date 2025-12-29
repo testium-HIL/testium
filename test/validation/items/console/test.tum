@@ -1,0 +1,88 @@
+
+- console:
+    name: Console creation
+    console_name: term
+    doc: Opening the console
+    key: $(test)_PASS
+    steps:
+        - open:
+            protocol: terminal
+            terminal_path: $(test_directory)
+        - writeln: echo "endOfOpen"
+
+- console:
+    name: Console read_until with timeout
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: endOfOpen, timeout: 5}
+
+- console:
+    name: Console write
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo 0
+
+- sleep:
+    name: sleep item
+    timeout: 1
+
+- console:
+    name: Console read_until immediate
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: "0", timeout: 0}
+
+- console:
+    name: Console write
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "HelloConsole"
+
+- console:
+    name: Console read_until fail
+    console_name: term
+    key: $(test)_FAIL
+    steps:
+        - read_until: {expected: "Something never prints", timeout: 1}
+
+- console:
+    name: Console write
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "HelloConsole"
+
+- console:
+    name: Console read_until no_fail
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: "Something never prints", timeout: 1, no_fail: true}
+
+- console:
+    name: Console read_until muted
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "HelloConsole"
+        - read_until: {expected: "HelloConsole", timeout: 1, mute: true}
+
+- console:
+    name: Console read_until muted
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "HelloConsole is PASS" && echo "endOfCmd"
+        - read_until: {expected: endOfCmd, timeout: 1, process_result: "'Hello' in r'''$(result)''' and 'PASS' in r'''$(result)''' "}
+
+- console:
+    name: Console closure
+    execute_on_stop: true
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - close: term

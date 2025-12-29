@@ -1,0 +1,87 @@
+config_file:
+    - param.yaml
+
+main:
+    name: Example of plot item usage
+    version: 0.1
+    steps:
+
+      - console:
+          name: Creation of the log dir
+          console_name: console
+          steps:
+              - open:
+                  protocol: terminal
+                  terminal_path: $(test_directory)
+              - writeln: mkdir -p "$(plot_log_path)" && echo Fini
+              - read_until: {expected: Fini, timeout: 5}
+
+      - console:
+          name: Console closure
+          execute_on_stop: true
+          console_name: console
+          steps:
+              - close:
+
+      - plot:
+          name: Open the plot
+          plot_name: Mon Plot
+          steps:
+              - open:
+                  log_path: $(plot_log_path)
+
+      - plot:
+          name: Add periodic to the plot
+          plot_name: Mon Plot
+          steps:
+              - periodic:
+                  period:         1
+                  file:           $(test_directory)/dummy/plot.py
+                  func_name:      random_value
+                  eval:           '{"periodic": $(result)}'
+
+      - sleep:
+          name: sleep
+          dialog: true
+          timeout: 3
+
+      - loop:
+          name: Add of other data in the plot
+          iterator: 10
+          steps:
+
+              - plot:
+                  name: Add to the plot
+                  plot_name: Mon Plot
+                  steps:
+                      - add:
+                          value1: $(loop_index)
+                          value2: $(loop_index)+2
+
+              - sleep:
+                  name: sleep between values
+                  timeout: 1
+
+              - py_func:
+                  name: last plot values
+                  file: $(test_directory)/dummy/plot.py
+                  func_name: LastValues
+                  param:
+                      - Mon Plot
+
+      - plot:
+          name: Export
+          execute_on_stop: True
+          plot_name: Mon Plot
+          steps:
+              - export: $(plot_log_path)/plot_export.pdf
+              - export: $(plot_log_path)/plot_export.csv
+
+      - plot:
+          name: Close the plot
+          execute_on_stop: True
+          plot_name: Mon Plot
+          steps:
+              - close:
+                  wait_dialog_exit: True
+                  timeout: 60

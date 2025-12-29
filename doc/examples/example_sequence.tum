@@ -1,0 +1,27 @@
+#This suite use a sequence as a macro to repeat items
+#
+sequence:    &seq_sleep
+    !include $(sequence)
+
+main:
+    name: Test Sample number one
+    version: 0.1
+    stop_on_failure: False
+    steps:
+
+# This loop is an example of value exit condition.
+        - loop:
+            doc: This loop is an example of value exit condition
+            name: Loop exits on a condition
+            steps:
+                - let:
+                    name: Set a variable to the loop index
+                    values:
+                        - variable: $(loop_index)
+                        - sleep_timeout: $(loop_index)
+                - *seq_sleep
+
+            exit_condition:
+                value: "$(variable) >= 3"
+
+        - !include {file: seq2.tum, is_dialog: True, sleep_timeout: 12, func_para: truc}

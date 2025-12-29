@@ -1,0 +1,12 @@
+expanse_select: blo
+
+expanse_table_bla: ["abcd", 1234, [5, 6, 7, 8]]
+expanse_index_bla: 0
+
+expanse_table_blo: ["efgh", 9012, [3, 4, 5, 6]]
+expanse_index_blo: 1
+
+expanse_index: $(expanse_index_$(expanse_select))
+expanse_table: $(expanse_table_$(expanse_select))
+
+expanse_eval: <@$(expanse_index) == 1@>

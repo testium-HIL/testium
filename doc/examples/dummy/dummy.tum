@@ -1,0 +1,51 @@
+
+sequence: &temperature_step_sequence
+       !include tum/temperature.tum
+
+
+
+main:
+    name: Test Sample number one
+    version: 0.1
+    steps:
+        - dialog_references:
+            name: Ask for reference
+            question: Please give the reference of the product
+            reference:
+                - $(reference_1)
+                - $(reference_2)
+            report_show_success: true
+        - unittest_file:
+              name: Test 1
+              test_file: dummy.py
+              doc: |
+                  Ceci est le test n°1
+                  Voilà...
+        - sleep:
+            {name: Sleep between one and two, timeout: 10, dialog: true}
+        - unittest_file:
+            {name: Test 2, test_file: dummy.py,execute_on_stop: true}
+        - loop:
+            name: Cycle Temperature
+            iterator : [10,20]
+            steps:
+                - py_func:
+                    name: set temperature
+                    file: cycle_temperature.py
+                    func_name: setTemperature
+                    param : $(loop_param)
+                - *temperature_step_sequence
+                - py_func:
+                    name: temperature reached
+                    file: cycle_temperature.py
+                    func_name: temperatureAtteinte
+                    param : $(loop_param)
+
+####### REPORT ######
+
+report:
+    module: test_report_text.py
+    class: TestReportTxt
+    title: My Dummy Tests
+    headers: False
+    banners: False

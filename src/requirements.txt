@@ -1,0 +1,12 @@
+setuptools
+pyside6
+pyserial
+telnetlib3
+pyyaml
+pexpect
+gitpython
+jinja2
+colorama
+matplotlib
+junit-xml
+lxml

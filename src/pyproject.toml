@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name="testium"
+requires-python = ">=3.11"
+authors = [
+  {name = "François Dausseur", email = "francois@beafrancois.fr"},
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Programming Language :: Python"
+]
+dependencies = [
+    "setuptools",
+    "pyside6",
+    "pyyaml",
+    "pyserial",
+    "colorama",
+    "matplotlib",
+    "telnetlib3",
+    "jinja2",
+    "pexpect",
+    "gitpython",
+    "junit-xml",
+    "lxml",
+]
+dynamic = ["version"]
+
+[project.scripts]
+testium = "testium:main"
+
+[tool.setuptools.package-data]
+docpkg = ["*.pdf"]
+
+[tool.setuptools.dynamic]
+version = {file = ["VERSION"]}

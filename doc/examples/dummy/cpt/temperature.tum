@@ -1,0 +1,16 @@
+
+sequence: &endurance_test
+    !include endurance.tum
+
+sequence:
+    - unittest_file:
+        name: Test 3
+        test_file: dummy.py
+        test_method: test_01_pass
+    - loop:
+        iterator: 10
+        steps:
+            *endurance_test
+    - unittest_file:
+        name: Test 4
+        test_file: dummy.py

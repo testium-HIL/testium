@@ -1,0 +1,110 @@
+main:
+    name: Test conditionals
+    version: 0.1
+    stop_on_failure: False
+    steps:
+
+        - group:
+            name: Set test variables depending on the OS
+            steps:
+
+            - let:
+                name: Set test variables for Linux
+                condition: "'$(os)' == 'Linux'"
+                values:
+                    - terminal_prompt: $(linux_prompt)
+            - let:
+                name: Set test variables for Windows
+                condition: "'$(os)' == 'Windows'"
+                values:
+                    - terminal_prompt: $(windows_prompt)
+
+# This loop illustrate the way to exit the loop upon operator answer
+        - loop:
+            doc: This loop illustrate the way to exit the loop upon operator answer.
+            name: Infine loop with conditional exit
+            stop_on_failure: False
+            steps:
+                - sleep:
+                    name: sleep item
+                    timeout: 5
+
+                - dialog_question:
+                    name: Question to continue
+                    question: Answer yes to exit the loop
+                    no_fail: True
+
+            exit_condition:
+                value: "'$(last_test_result)' == 'PASS'"
+
+
+        - let:
+            name: let
+            eval:
+                - conditional_exec: "random.randint(1, 4)"
+
+        - console:
+            name: Console creation
+            condition: "$(conditional_exec) == 1"
+            console_name: consname
+            doc: Opening the console
+            steps:
+                - open:
+                    protocol: terminal
+                    terminal_path: $(test_directory)
+
+        - console:
+            name: Console read_until with timeout
+            condition: "$(conditional_exec) == 1"
+            console_name: consname
+            steps:
+                - read_until: {expected: "$(terminal_prompt)", timeout: 10}
+
+        - console:
+            name: Console write
+            condition: "$(conditional_exec) == 1"
+            console_name: consname
+            steps:
+                - writeln: echo 0
+
+        - sleep:
+            name: sleep item
+            condition: "$(conditional_exec) == 1"
+            timeout: 5
+
+        - console:
+            name: Console read_until immediate
+            condition: "$(conditional_exec) == 1"
+            console_name: consname
+            steps:
+                - read_until: {expected: "0", timeout: 0}
+
+        - console:
+            name: Console read_until immediate (2)
+            condition: "$(conditional_exec) == 1"
+            console_name: consname
+            steps:
+                - read_until: {expected: "$(terminal_prompt)", timeout: 0}
+
+        - console:
+            name: Console closure
+            condition: "$(conditional_exec) == 1"
+            console_name: consname
+            steps:
+                - close: consname
+
+        - sleep:
+            name: sleep item
+            condition: "$(conditional_exec) == 2"
+            timeout: 5
+
+        - dialog_image:
+            name: dialog image item
+            condition: "$(conditional_exec) == 3"
+            question: click ok if you see the image
+            filename: image.jpg
+
+        - dialog_value:
+            name: dialog_value item
+            condition: "$(conditional_exec) == 4"
+            question: enter something and click ok

@@ -1,0 +1,95 @@
+- loop:
+    name: Cycle number of loops
+    iterator: 10
+    key: $(test)_PASS
+    steps:
+        - py_func:
+            name: do nothing
+            file: $(test_path)$(psep)let.py
+            func_name: donothing
+
+        - let:
+            name:  Let it be
+            values:
+                it: $(loop_param)
+            eval:
+                - be: "$(loop_param) == $(it)"
+
+- loop:
+    name: Cycle iterating on list
+    iterator: [12, 20, 30]
+    key: $(test)_PASS
+    steps:
+        - py_func:
+            name: check loop param
+            file: $(test_path)$(psep)let.py
+            func_name: checkloopparam
+            param:
+                - $(loop_param)
+
+        - let:
+            name:  Let it be
+            values:
+                - it: $(loop_param)
+            eval:
+                - be: "$(loop_param) == $(it)"
+
+- let:
+    name:  Get time
+    key: $(test)_PASS
+    values:
+        - loop_t0: $(ts_start_Cycle iterating on list)
+        - loop_t1: $(ts_end_Cycle iterating on list)
+        - loop_duration: $(ts_duration_Cycle iterating on list)
+
+- let:
+    name:  Get parameter file value
+    key: $(test)_PASS
+    eval:
+        - test_overwrite_me: "$(overwrite_me) == True"
+
+- py_func:
+    name: Check global dic pass
+    file: $(test_path)$(psep)let.py
+    func_name: checkGlobalDic
+    param:
+        - test_overwrite_me
+        - True
+
+- let:
+    name:  Overwrite parameter file value
+    key: $(test)_PASS
+    values:
+        - overwrite_me: False
+
+- py_func:
+    name: Check global dic fail
+    file: $(test_path)$(psep)let.py
+    func_name: checkGlobalDic
+    key: $(test)_FAIL
+    param:
+        - overwrite_me
+        - True
+    expected_result: "$(overwrite_me) == False"
+
+- py_func:
+    name: Check global dic fail
+    file: $(test_path)$(psep)let.py
+    func_name: checkGlobalDic
+    key: $(test)_PASS
+    param:
+        - overwrite_me
+        - True
+    expected_result: fail
+
+- let:
+    name:  Evaluate Overwriting parameter file value
+    key: $(test)_PASS
+    eval:
+        - test_overwrite_me: '"$(overwrite_me)" == True'
+
+- check:
+    name: Check Overwriting parameter file value
+    key: $(test)_PASS
+    values:
+        - $(test_overwrite_me) == False

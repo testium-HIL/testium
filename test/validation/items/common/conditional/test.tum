@@ -1,0 +1,86 @@
+
+# This loop illustrate the way to exit the loop upon operator answer
+- loop:
+    doc: This loop illustrate the way to exit on a condition.
+    name: Infine loop with conditional exit
+    stop_on_failure: False
+    key: $(test)_PASS
+    steps:
+        - sleep: {name: small wait, timeout: 0.2}
+        - py_func:
+            name: Echo function
+            key: $(test)_PASS
+            file: $(test_path)$(psep)conditional$(psep)conditional.py
+            func_name: echo
+            param:
+                - $(loop_param)
+
+    exit_condition:
+        value: "$(fn_Echo function) > 3"
+
+- let:
+    name: let
+    key: $(test)_PASS
+    eval:
+        - conditional_exec: "random.randint(1, 2)"
+
+- console:
+    name: Console creation
+    condition: "$(conditional_exec) == 1"
+    console_name: consname
+    doc: Opening the console
+    key: $(test)_PASS
+    steps:
+        - open:
+            protocol: terminal
+            terminal_path: $(test_directory)
+
+- console:
+    name: Console read_until with timeout
+    condition: "$(conditional_exec) == 1"
+    console_name: consname
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: "$(terminal_prompt)", timeout: 10}
+
+- console:
+    name: Console write
+    condition: "$(conditional_exec) == 1"
+    console_name: consname
+    key: $(test)_PASS
+    steps:
+        - writeln: echo 0
+
+- sleep:
+    name: sleep item
+    condition: "$(conditional_exec) == 1"
+    timeout: 1
+
+- console:
+    name: Console read_until immediate
+    condition: "$(conditional_exec) == 1"
+    console_name: consname
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: "0", timeout: 0}
+
+- console:
+    name: Console read_until immediate (2)
+    condition: "$(conditional_exec) == 1"
+    console_name: consname
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: "$(terminal_prompt)", timeout: 0}
+
+- console:
+    name: Console closure
+    condition: "$(conditional_exec) == 1"
+    console_name: consname
+    key: $(test)_PASS
+    steps:
+        - close: consname
+
+- sleep:
+    name: sleep item
+    condition: "$(conditional_exec) == 2"
+    timeout: 1

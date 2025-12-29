@@ -1,0 +1,85 @@
+# appimage-builder recipe see https://appimage-builder.readthedocs.io for details
+version: 1
+
+script:
+    - echo "APP_VERSION={{APP_VERSION}}" >> $BUILDER_ENV
+    - rm -rf AppDir  | true
+    # Make usr and icons dirs
+    - mkdir -p AppDir/usr/lib/python
+    - mkdir -p AppDir/usr/share/icons
+    - mkdir -p AppDir/usr/bin
+    # Copy the icon
+    - cp ../testium.png AppDir/usr/share/icons/
+
+AppDir:
+    path: AppDir/
+
+    app_info:
+        id: testium
+        name: Testium
+        icon: testium
+        version: "{{APP_VERSION}}"
+        exec: usr/bin/python3
+        exec_args: -m testium $@
+
+    runtime:
+        env:
+            SEQUENCER_REV: '{{APP_VERSION}}'
+            PYTHONPATH: $APPDIR/usr/lib/python3.11/site-packages:$APPDIR/usr/lib/python3.11
+            QT_QPA_PLATFORM: xcb
+
+        path_mappings:
+            - /usr/share/matplotlib/mpl-data/matplotlibrc:$APPDIR/etc/matplotlibrc
+
+    apt:
+        arch: [amd64]
+
+        allow_unauthenticated: true
+
+        sources:
+            - sourceline: deb http://ftp.fr.debian.org/debian bookworm main non-free contrib
+            - sourceline: deb http://security.debian.org/debian-security bookworm-security
+                main contrib non-free
+            - sourceline: deb http://ftp.fr.debian.org/debian bookworm-updates main contrib
+                non-free
+
+        include:
+            - libxcb-cursor0
+            - python3
+            - python3-distutils
+            - python3-pkg-resources
+
+        exclude: []
+
+    files:
+        include: []
+
+        exclude:
+            - usr/share/man
+            - usr/share/doc/*/README.*
+            - usr/share/doc/*/changelog.*
+            - usr/share/doc/*/NEWS.*
+            - usr/share/doc/*/TODO.*
+
+    after_bundle: |
+        # Set python 3.11 env
+        export PYTHONHOME=$TARGET_APPDIR/usr
+        export PYTHONPATH=$TARGET_APPDIR/usr/lib/python3.11/site-packages:$TARGET_APPDIR/usr/lib/python3.11
+        export PATH=$TARGET_APPDIR/usr/bin:$PATH
+
+        # Set python 3.11 as default
+        ln -fs python3.11 $TARGET_APPDIR/usr/bin/python3
+        # Install pip
+        if [ ! -f "get-pip.py" ]; then curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py; fi
+        python3.11 get-pip.py --break-system-packages
+
+        # Install application dependencies in AppDir
+        python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr -r requirements.txt
+
+        export PIP_CONFIG_FILE=$HOME/.pip/pip.conf
+        python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr ../../src/dist/testium-{{APP_VERSION}}-py3-none-any.whl
+
+
+AppImage:
+    arch: x86_64
+    update-information: guess

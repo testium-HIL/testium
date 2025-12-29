@@ -1,0 +1,17 @@
+# This sequence uses a parameter defined at the upper level in the file including this sequence
+- sequence:
+    - sleep:
+        name: Sleep
+        timeout: $(sleep_timeout)
+        dialog: false
+
+    - dialog_message:
+        name: dialog_message item
+        question: value is $(sleep_timeout)
+
+    - py_func:
+        name: function test item
+        file: utils.py
+        func_name: funcToBeExecuted
+        param:
+            - $(loop_param)

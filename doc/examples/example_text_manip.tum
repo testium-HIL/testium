@@ -1,0 +1,29 @@
+main:
+    name: Test illustrating string manipulation
+    version: 0.1
+    stop_on_failure: False
+    steps:
+        - let:
+            name: Set string value
+            values:
+                - rand_text: |
+                    Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+                    Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+                    Bus 002 Device 005: ID 0bda:0487 Realtek Semiconductor Corp. Dell dock
+                    Bus 002 Device 006: ID 0bda:0413 Realtek Semiconductor Corp. Dell dock
+                    Bus 002 Device 007: ID 0bda:8153 Realtek Semiconductor Corp. RTL8153 Gigabit Ethernet Adapter
+                    Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+                    Bus 003 Device 003: ID 04f2:b684 Chicony Electronics Co., Ltd Chicony USB2.0 Camera
+                    Bus 003 Device 004: ID 8087:0029 Intel Corp. AX200 Bluetooth
+
+                - text_searched: "0bda:8153"
+
+        - let:
+            name: Extract data
+            eval:
+                - text_extract: "[l for l in '''$(rand_text)'''.splitlines() if '$(text_searched)' in l][0]"
+
+        - dialog_message:
+            condition: len('$(text_extract)') > 0
+            name: dialog value test item
+            question: Tataaaaa !
