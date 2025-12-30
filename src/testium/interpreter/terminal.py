@@ -42,7 +42,8 @@ class Terminal(Cmd):
     SUPPORTED_TESTS = [
         cst.TYPE_SLEEP,
         cst.TYPE_LET,
-        cst.TYPE_FUNCTION,
+        cst.TYPE_PY_FUNCTION,
+        cst.TYPE_LUA_FUNCTION,
         cst.TYPE_CONSOLE,
         cst.TYPE_IMAGE_DLG,
         cst.TYPE_MESSAGE_DLG,

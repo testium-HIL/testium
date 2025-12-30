@@ -18,9 +18,9 @@ class TestItemPyFunc(TestItem):
     """
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
-        self._name = cst.TYPE_FUNCTION.item_name
+        self._name = cst.TYPE_PY_FUNCTION.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
-        self._type = cst.TYPE_FUNCTION
+        self._type = cst.TYPE_PY_FUNCTION
         self.is_container = False
         try:
             self.file_name = self._prms.getParam("file", required=True)

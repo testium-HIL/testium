@@ -21,7 +21,8 @@ from main_win.test_tree_items.test_tree_sleep import QTestTreeItemSleep
 from main_win.test_tree_items.test_tree_cycle import QTestTreeItemCycle
 from main_win.test_tree_items.test_tree_group import QTestTreeItemGroup
 from main_win.test_tree_items.test_tree_git import QTestTreeItemGit
-from main_win.test_tree_items.test_tree_func import QTestTreeItemFunc
+from main_win.test_tree_items.test_tree_py_func import QTestTreeItemPyFunc
+from main_win.test_tree_items.test_tree_lua_func import QTestTreeItemLuaFunc
 from main_win.test_tree_items.test_tree_jsonrpc import QTestTreeItemJSONRPC, QTestTreeItemJSONRPCAction
 from main_win.test_tree_items.test_tree_run import QTestTreeItemRun
 from main_win.test_tree_items.test_tree_runtime_plot import QTestTreePlot, QTestTreePlotAction
@@ -58,7 +59,8 @@ class QTestTree(QTreeWidget):
                     cst.TYPE_GRAPH_ACTION.item_name     : QTestTreePlotAction,
                     cst.TYPE_GROUP.item_name            : QTestTreeItemGroup,
                     cst.TYPE_GIT.item_name              : QTestTreeItemGit,
-                    cst.TYPE_FUNCTION.item_name         : QTestTreeItemFunc,
+                    cst.TYPE_PY_FUNCTION.item_name      : QTestTreeItemPyFunc,
+                    cst.TYPE_LUA_FUNCTION.item_name     : QTestTreeItemLuaFunc,
                     cst.TYPE_LET.item_name              : QTestTreeItemLet,
                     cst.TYPE_CHECK.item_name            : QTestTreeItemCheckValue,
                     cst.TYPE_JSON_RPC.item_name         : QTestTreeItemJSONRPC,

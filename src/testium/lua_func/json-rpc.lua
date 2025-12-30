@@ -1,4 +1,5 @@
 local json = require("cjson")
+local utils = require("utils")
 
 local JSONRPC = {}
 JSONRPC.__index = JSONRPC
@@ -19,6 +20,7 @@ end
 
 --- Handle incoming raw data from the transport layer
 function JSONRPC:handle_message(raw_data)
+    utils.log("received: '%s'", raw_data)
     local ok, msg = pcall(json.decode, raw_data)
     if not ok then return self:_send_error(nil, -32700, "Parse error") end
 
@@ -63,7 +65,7 @@ function JSONRPC:_handle_response(res)
 end
 
 --- Call a method on the client
-function JSONRPC:call(method, params, callback)
+function JSONRPC:_call(method, params, callback)
     local id = self.next_id
     self.next_id = self.next_id + 1
 
@@ -83,7 +85,7 @@ function JSONRPC:call_sync(method, params)
     local callco = coroutine.create(function(m, p)
         local co = coroutine.running()
         -- Call the async version, but use the callback to resume this coroutine
-        self:call(m, p, function(err, res)
+        self:_call(m, p, function(err, res)
             coroutine.resume(co, err, res)
         end)
 
@@ -94,7 +96,9 @@ function JSONRPC:call_sync(method, params)
 end
 
 function JSONRPC:_send(data)
-    self.send_raw(json.encode(data))
+    local j = json.encode(data)
+    utils.log("sending: '%s'", j)
+    self.send_raw(j)
 end
 
 function JSONRPC:_send_error(id, code, message)

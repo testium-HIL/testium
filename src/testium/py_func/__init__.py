@@ -30,7 +30,7 @@ def main():
     outstream = TcpStdOut()
     stdio_redir.redirect(outstream)
     # debug the server
-    thrd_api.dbg_out = stdio_redir.ini_stdout
+    # thrd_api.dbg_out = stdio_redir.ini_stdout
     try:
         while thrd_api.is_alive():
             thrd_api.join(1)

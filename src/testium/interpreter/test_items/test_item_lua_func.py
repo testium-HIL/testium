@@ -18,9 +18,9 @@ class TestItemLuaFunc(TestItem):
     """
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
-        self._name = cst.TYPE_FUNCTION.item_name
+        self._name = cst.TYPE_LUA_FUNCTION.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
-        self._type = cst.TYPE_FUNCTION
+        self._type = cst.TYPE_LUA_FUNCTION
         self.is_container = False
         try:
             self.file_name = self._prms.getParam("file", required=True)
@@ -45,7 +45,7 @@ class TestItemLuaFunc(TestItem):
             if tm.debug_enabled():
                 tm.print_debug("Parameters list:")
                 tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
-            success, ret = func_exec(self.file_name, self.func_name, pl)
+            success, ret = lua_func_exec(self.file_name, self.func_name, pl)
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)

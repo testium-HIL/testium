@@ -5,10 +5,18 @@ main:
     steps:
 
       - py_func:
-          name: function test item
-          doc: The purpose of this step is to demonstrate func test item
+          name: python function call
+          doc: The purpose of this step is to demonstrate the py_func test item
           file: utils.py
           func_name: funcToBeExecuted
+          param:
+              - 123
+
+      - lua_func:
+          name: lua function call
+          doc: The purpose of this step is to demonstrate the lua_func test item
+          file: lua_func.lua
+          func_name: func_to_be_executed
           param:
               - 123
 

@@ -47,15 +47,19 @@ function utils.setup_remote_print(rpc)
 
     -- Define the new local print
     _G.print = function (...)
-        local args = table.pack(...)
+
+        local args = {...}
         local output = {}
 
-        for i = 1, args.n do
-            table.insert(output, tostring(args[i]))
+        for i, v in ipairs(args) do
+            table.insert(output, tostring(v))
         end
 
         local message = table.concat(output, "\t")
-
+        utils.log("Printed value: '%s'", message)
+        if string.sub(message, -1) ~= "\n" then
+            message = message .. "\n"
+        end
         pcall(function()
             rpc:call_sync("print", message )
         end)
