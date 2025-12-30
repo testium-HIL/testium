@@ -19,18 +19,18 @@ function utils.is_absolute_path(path)
     if not path or path == "" then return false end
 
     -- 1. Check for POSIX absolute path (starts with /)
-    if path:sub(1, 1) == "/" then
+    if string.sub(path, 1, 1) == "/" then
         return true
     end
 
     -- 2. Check for Windows drive letter (e.g., C:\ or D:/)
     -- Pattern: %a (letter) followed by : (colon)
-    if path:match("^%a:[/\\]") or path:match("^%a:$") then
+    if string.match(path, "^%a:[/\\]") or string.match(path, "^%a:$") then
         return true
     end
 
     -- 3. Check for Windows UNC/Network paths (starts with \\ or //)
-    if path:match("^[/\\][/\\]") then
+    if string.match(path, "^[/\\][/\\]") then
         return true
     end
 
@@ -61,7 +61,7 @@ function utils.setup_remote_print(rpc)
             message = message .. "\n"
         end
         pcall(function()
-            rpc:call_sync("print", message )
+            rpc:call("print", message )
         end)
         -- Optional: Still print to the server's local console
         -- utils.log("[Remote Log Sent]: " .. message)

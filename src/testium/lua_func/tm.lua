@@ -14,7 +14,7 @@ function tm._init_api(rpc)
 
     local function _api_request(fname, ...)
         local args = {...}
-        return tm._rpc:call_sync(fname, args)
+        return tm._rpc:call(fname, args)
     end
 
     for _, fname in ipairs(SUPPORTED_API) do

@@ -59,6 +59,7 @@ local socket = require("socket")
 local JSONRPC = require("json-rpc") -- The module from the previous response
 local utils = require("utils")
 local tm = require("tm")
+local handle = require("handle")
 
 utils.verbose = config.verbose
 
@@ -75,35 +76,18 @@ if err then
     os.exit(0)
 end
 
-client_sock:settimeout(10) -- Prevents hanging on dead connections
-
 utils.log("Client connected")
 
 -- Initialize the RPC instance for this specific connection
-local rpc = JSONRPC.new(function(data)
-    client_sock:send(data .. "\n") -- Standard JSON-RPC uses newline delimiters over TCP
-end)
+local rpc = JSONRPC.new(client_sock)
 
 tm._init_api(rpc)
 utils.setup_remote_print(rpc)
 
--- Example: Send a request TO the client immediately upon connection
-print("Welcome to the lua server")
-
-local tdir = tm.gd("test_directory")
+rpc:register("func_call", handle.func_call)
 
 -- Communication Loop for this client
-while true do
-    local line, err = client_sock:receive() -- Read until newline
-    if err == "closed" then
-        utils.log("Connection ended: %s", err)
-        break
-    elseif err then
-        socket.sleep(0.01)
-    else
-        rpc:handle_message(line)
-    end
-end
+rpc:loop()
 
 client_sock:close()
 utils.log("Server stopped")

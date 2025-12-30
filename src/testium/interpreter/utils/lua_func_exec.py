@@ -76,7 +76,7 @@ class LuaFuncExecEngine:
         lua_env = tm.gd("lua_env", {})
 
         self._process = subprocess.Popen(
-            [self._lpath, "main.lua", "--host", "localhost", "--port", f"{self._port}"], env=lua_env, cwd=func_proc_path
+            [self._lpath, "main.lua", "--host", "127.0.0.1", "--port", f"{self._port}"], env=lua_env, cwd=func_proc_path
         )
 
         # Port was reserved until the sub-process is started. Now released.

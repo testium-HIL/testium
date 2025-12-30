@@ -33,20 +33,34 @@ local function _get_func_by_path(file_path, func_name)
     return target_func
 end
 
-function handle.func_call(file, fname, params)
+function handle.func_call(params)
+    local file = params.file
+    local fname = params.fname
+    local prms = params.params
+    local res = nil
+    local succ, ret
+
     local pfile = file
     -- 1. modify the file path if it is relative
-    if utils.is_relative_path(file) then
+    if utils.is_relative_path(pfile) then
         local td = tm.gd("test_directory")
         pfile = utils.join_paths(td, file)
     end
+
     -- 2. retrieve the function "fname"
     local func, err = _get_func_by_path(pfile, fname)
 
     -- 3. Execute the function
-    local res = nil
     if err == nil then
-        succ, res = pcall(func, table.unpack(params))
+        utils.log("func_call function found '%s', '%s'", file, fname)
+        succ, ret = pcall(func, table.unpack(prms))
+        utils.log("func_call returned '%s'", tostring(ret))
+
+        if succ then
+            res = ret
+        else
+            err = ret
+        end
     end
 
     -- 4. Returns result
