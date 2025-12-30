@@ -10,9 +10,9 @@ from interpreter.test_items.test_result import TestValue
 function_call_process = None
 
 
-def func_call_init(python_path, request_handler):
+def py_func_call_init(python_path, request_handler):
     global function_call_process
-    function_call_process = FuncExecEngine(python_path, request_handler)
+    function_call_process = PyFuncExecEngine(python_path, request_handler)
     return function_call_process
 
 
@@ -40,7 +40,7 @@ def is_python_interpreter(path: str, timeout=2) -> bool:
         return False
 
 
-class FuncExecEngine:
+class PyFuncExecEngine:
 
     def __init__(self, python_path="", request_handler=None):
         if python_path != "":
@@ -140,7 +140,7 @@ class FuncExecEngine:
             )
 
 
-def func_exec(file: str, func_name: str, params: list, verbose: bool = True):
+def py_func_exec(file: str, func_name: str, params: list, verbose: bool = True):
     """Executes a python function and returns its result and reported values"""
     global function_call_process
 

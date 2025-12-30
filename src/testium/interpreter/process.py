@@ -22,7 +22,8 @@ from interpreter.utils.test_init import (
 from interpreter.test_set import TestSet
 from interpreter.utils.stdout_redirect import stdio_redir
 from interpreter.utils.tum_except import print_exception
-from interpreter.utils.func_exec import func_call_init
+from interpreter.utils.py_func_exec import py_func_call_init
+from interpreter.utils.lua_func_exec import lua_func_call_init
 from interpreter.utils.api_srv import api_request
 
 
@@ -81,8 +82,9 @@ class TestProcess(Process):
 
                 test_set.report_path = locate_report_file(test_set.report_path)
 
-                # Python functions call subprocess initialization
-                fproc = func_call_init(tm.gd("python_path", ""), api_request)
+                # Python & lua functions call subprocess initialization
+                py_fproc = py_func_call_init(tm.gd("python_path", ""), api_request)
+                lua_fproc = lua_func_call_init(tm.gd("lua_path", "/usr/bin/lua"), api_request)
 
                 self.__loaded = True
 
@@ -99,8 +101,10 @@ class TestProcess(Process):
                             try:
                                 test_run_init()
                                 print(test_run_header())
-                                fproc.start()
-                                fproc.wait_ready()
+                                py_fproc.start()
+                                lua_fproc.start()
+                                lua_fproc.wait_ready()
+                                py_fproc.wait_ready()
                                 test_set.execute()
                             finally:
                                 if test_set.success():
@@ -111,8 +115,10 @@ class TestProcess(Process):
                             test_set.run_post_exec()
                         finally:
                             # Stop function execution process
-                            fproc.stop()
-                            fproc.join()
+                            py_fproc.stop()
+                            lua_fproc.stop()
+                            lua_fproc.join()
+                            py_fproc.join()
                             self.__exec = False
                             # Sends signal to the GUI
                             self.send_finished()

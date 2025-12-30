@@ -8,7 +8,7 @@ from interpreter.utils.tum_except import (
 )
 import interpreter.utils.settings as prefs
 from interpreter.test_report.test_report import TestReport
-from interpreter.utils.func_exec import func_exec
+from interpreter.utils.py_func_exec import py_func_exec
 from interpreter.utils.constants import TestItemType as cst_type
 import interpreter.utils.constants as cst
 from interpreter.utils.constants import TEST_TYPE_LIST
@@ -331,13 +331,13 @@ class TestSet:
         tm.print_debug(f'Post-execution from: "{post_exec_file}"')
         if self.rootItem().result.success:
             # tests backup is done here
-            succ, res = func_exec(post_exec_file, "post_exec", [])
+            succ, res = py_func_exec(post_exec_file, "post_exec", [])
             if not succ == TestValue.SUCCESS:
                 tm.print_debug(
                     f"Test success but the \"post_exec\" function failed: {res}"
                 )
         else:
-            succ, res = func_exec(post_exec_file, "post_exec_fail", [])
+            succ, res = py_func_exec(post_exec_file, "post_exec_fail", [])
             if not succ == TestValue.SUCCESS:
                 tm.print_debug(
                     f"Test failed but the \"post_exec_fail\" function failed: {res}"

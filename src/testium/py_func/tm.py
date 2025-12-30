@@ -70,7 +70,7 @@ def _init_api(port):
 
 
 ###############################################################################
-def remote_print(*values):
+def _remote_print(*values):
     """Forward print-like output to the remote handler.
 
     If a ``_func_call_thread`` is available, this function calls the

@@ -7,12 +7,12 @@ import textwrap
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
 import libs.testium as tm
-from interpreter.utils.func_exec import func_exec
+from interpreter.utils.py_func_exec import py_func_exec
 from interpreter.utils.tum_except import ETUMSyntaxError
 from interpreter.utils.constants import TestItemType as cst
 
 
-class TestItemFunc(TestItem):
+class TestItemPyFunc(TestItem):
     """py_func item usage.
     func file: func_file.py, func_name: func, param: [$(variable1), [1, 2, 3], true]
     """
@@ -45,7 +45,7 @@ class TestItemFunc(TestItem):
             if tm.debug_enabled():
                 tm.print_debug("Parameters list:")
                 tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
-            success, ret = func_exec(self.file_name, self.func_name, pl)
+            success, ret = py_func_exec(self.file_name, self.func_name, pl)
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)

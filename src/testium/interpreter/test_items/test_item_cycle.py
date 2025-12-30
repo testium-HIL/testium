@@ -1,7 +1,7 @@
 import traceback
 
 from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
-from interpreter.utils.func_exec import func_exec
+from interpreter.utils.py_func_exec import py_func_exec
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 import libs.testium as tm
@@ -204,7 +204,7 @@ class TestItemCycle(TestItem):
                             pl = self._prms.expanse(param_list)
                         else:
                             pl = [self._currentLoop]
-                        fsucc, res = func_exec(file, func, pl)
+                        fsucc, res = py_func_exec(file, func, pl)
                         if fsucc == TestValue.SUCCESS:
                             fres, _ = res
                             if fres:

@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 from interpreter.test_items.test_result import TestValue
 from interpreter.utils.tum_except import ETUMRuntimeError
-from interpreter.utils.func_exec import func_exec
+from interpreter.utils.py_func_exec import py_func_exec
 from interpreter.utils.eval import post_evaluate
 from interpreter.utils.periodic_timer import PeriodicTimer
 from interpreter.utils.paths import abs_path_from_file, prepare_file_to_save
@@ -272,7 +272,7 @@ class RuntimePlotPeriodic(PeriodicTimer):
         self.on_timer_event()
 
     def on_timer_event(self):
-        succ, ret = func_exec(self.file, self.func_name, self.args)
+        succ, ret = py_func_exec(self.file, self.func_name, self.args)
         if succ == TestValue.SUCCESS:
             res, _ = ret
             res = post_evaluate(self.post_eval, res)

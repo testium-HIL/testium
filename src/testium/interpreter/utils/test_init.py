@@ -32,7 +32,7 @@ from interpreter.test_items.test_item_cycle import TestItemCycle
 from interpreter.test_items.test_item_runtime_plot import TestItemPlot
 from interpreter.test_items.test_item_group import TestItemGroup
 from interpreter.test_items.test_item_git import TestItemGit
-from interpreter.test_items.test_item_func import TestItemFunc
+from interpreter.test_items.test_item_py_func import TestItemPyFunc
 from interpreter.test_items.test_item_let import TestItemLet
 from interpreter.test_items.test_item_check import TestItemCheckValue
 from interpreter.test_items.test_item_json_rpc import TestItemJSON_RPC
@@ -51,7 +51,7 @@ from interpreter.test_items.test_item_report import TestItemReport
 def _constants_init():
     cst.TYPE_CONSOLE.item_class = TestItemConsole
     cst.TYPE_CYCLE.item_class = TestItemCycle
-    cst.TYPE_FUNCTION.item_class = TestItemFunc
+    cst.TYPE_FUNCTION.item_class = TestItemPyFunc
     cst.TYPE_GIT.item_class = TestItemGit
     cst.TYPE_GRAPH.item_class = TestItemPlot
     cst.TYPE_GROUP.item_class = TestItemGroup

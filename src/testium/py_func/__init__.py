@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import multiprocessing
-from py_func.tm import _init_api, remote_print
+from py_func.tm import _init_api, _remote_print
 from interpreter.utils.stdout_redirect import stdio_redir
 
 
@@ -9,7 +9,7 @@ class TcpStdOut:
         pass
 
     def write(self, s: str) -> None:
-        remote_print(s)
+        _remote_print(s)
 
     def flush(self):
         pass
@@ -30,7 +30,7 @@ def main():
     outstream = TcpStdOut()
     stdio_redir.redirect(outstream)
     # debug the server
-    # thrd_api.dbg_out = stdio_redir.ini_stdout
+    thrd_api.dbg_out = stdio_redir.ini_stdout
     try:
         while thrd_api.is_alive():
             thrd_api.join(1)

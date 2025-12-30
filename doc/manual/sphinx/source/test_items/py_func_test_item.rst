@@ -26,7 +26,7 @@ From this class it is possible to define some custom reported values with the fo
 
     import py_func.tm as tm
 
-    class TestItemFunc(tm.FunctionItem)
+    class TestItemPyFunc(tm.FunctionItem)
 
         def exec(param1, param2, param4, param4):
             ...
@@ -42,7 +42,7 @@ The ``exec`` method of the ``FunctionItem`` derived class is executed while runn
     - py_func:
         name: function test item
         file: scriptTestFile.py
-        func_name: TestItemFunc
+        func_name: TestItemPyFunc
         param:
             - 123
             - 0.123

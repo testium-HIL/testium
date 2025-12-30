@@ -231,7 +231,7 @@ step list attributes.
    test_items/dialog_question_test_item.rst
    test_items/dialog_reference_test_item.rst
    test_items/dialog_value_test_item.rst
-   test_items/func_test_item.rst
+   test_items/py_func_test_item.rst
    test_items/git_test_item.rst
    test_items/group_test_item.rst
    test_items/json-rpc_test_item.rst
