@@ -78,15 +78,19 @@ class PyFuncExecEngine:
 
         func_proc_path = tm.gd("testium_path")
 
+        params = [self._ppath, "-m", "py_func", "-p", f"{self._port}"]
+        if tm.debug_enabled():
+            params.append("-v")
+
         self._process = subprocess.Popen(
-            [self._ppath, "-m", "py_func", "-p", f"{self._port}"], cwd=func_proc_path
+            params, cwd=func_proc_path
         )
 
         # Port was reserved until the sub-process is started. Now released.
         if sock is not None:
             sock.close()
 
-        self._rpc = JsonRpcClient(self._port, req_handler=self._req_handler)
+        self._rpc = JsonRpcClient("localhost", self._port, req_handler=self._req_handler)
         self._rpc.start()
 
     def join(self):

@@ -58,7 +58,7 @@ class TestItemPyFunc(TestItem):
                     tm.print_debug(textwrap.indent(pprint.pformat(res), " |"))
 
                 # The result of the func test item is put in global dir and result
-                tm.setgd("fn_" + self._name, res)
+                tm.setgd("pfn_" + self._name, res)
                 self.result.value = res
 
             else:

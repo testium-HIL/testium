@@ -46,7 +46,7 @@ def func_exec(file: str, func_name: str, params: list, verbose: bool=True):
     reported_values = {}
     mod = func_module(file)
     if verbose:
-        print("Function executed from {}".format(
+        print("Function executed from '{}'".format(
             inspect.getabsfile(mod)))
 
     # check of the FunctionItem descendants

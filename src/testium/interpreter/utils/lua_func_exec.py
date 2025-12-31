@@ -75,15 +75,20 @@ class LuaFuncExecEngine:
         func_proc_path = os.path.join(tm.gd("testium_path"),"lua_func")
         lua_env = tm.gd("lua_env", {})
 
+        params = [self._lpath, "main.lua", "--host", "127.0.0.1", "--port", f"{self._port}"]
+
+        if tm.debug_enabled():
+            params.append("--verbose")
+
         self._process = subprocess.Popen(
-            [self._lpath, "main.lua", "--host", "127.0.0.1", "--port", f"{self._port}"], env=lua_env, cwd=func_proc_path
+            params, env=lua_env, cwd=func_proc_path
         )
 
         # Port was reserved until the sub-process is started. Now released.
         if sock is not None:
             sock.close()
 
-        self._rpc = JsonRpcClient(self._port, req_handler=self._req_handler)
+        self._rpc = JsonRpcClient("localhost", self._port, req_handler=self._req_handler)
         self._rpc.start()
 
     def join(self):

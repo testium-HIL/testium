@@ -166,7 +166,7 @@ The test items returning a value are:
 
 * :ref:`dialog_value test items<sec_dialog_value_test_item>`
 
-* :ref:`py_func test item<sec_func_item>`
+* :ref:`py_func test item<sec_py_func_item>`
 
 * :ref:`dialog_choices test item<sec_dialog_choices_test_item>`
 

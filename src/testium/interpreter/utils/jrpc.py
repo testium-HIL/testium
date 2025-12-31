@@ -38,7 +38,7 @@ Usage example (server):
 
 Usage example (client):
 
-        clt = JsonRpcClient(port)
+        clt = JsonRpcClient(host, port)
         clt.start()
         result = clt.call('method_name', {'foo': 'bar'})
 
@@ -236,8 +236,9 @@ class JsonRpcBase(threading.Thread):
       - `call()` raises `ETUMRuntimeError` if no active connection exists.
     """
 
-    def __init__(self, port, req_handler: Callable[[dict], Any]=None, timeout=10, dbg_out=None):
+    def __init__(self, host, port, req_handler: Callable[[dict], Any]=None, timeout=10, dbg_out=None):
         super().__init__()
+        self._host = host
         self._port = port
         self._timeout = timeout
         self._rpc = None
@@ -306,8 +307,8 @@ class JsonRpcSrv(JsonRpcBase):
     The server will raise `ETUMRuntimeError` on accept/connect timeout.
     """
 
-    def __init__(self, port, req_handler = None, timeout=10):
-        super().__init__(port, req_handler, timeout)
+    def __init__(self, host, port, req_handler = None, timeout=10):
+        super().__init__(host, port, req_handler, timeout)
         self.name = f"JsonRpcSvr_{port}"
 
     def run(self):
@@ -318,12 +319,13 @@ class JsonRpcSrv(JsonRpcBase):
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
                 # Link of the socket at the configured port
-                sock.bind(("localhost", self._port))
+                sock.bind((self._host, self._port))
 
                 sock.settimeout(self._timeout)
 
                 # Listens incoming connections
                 sock.listen(1)
+                self.print_info(f"listening on {self._host}:{self._port}")
 
                 self.print_info("awaiting connection")
                 tslice = 0.2
@@ -331,6 +333,7 @@ class JsonRpcSrv(JsonRpcBase):
                 while True:
                     try:
                         conn, addr = sock.accept()
+                        self.print_info("Client connected")
                     except socket.timeout:
                         if t >= 0:
                             sleep(tslice)
@@ -364,13 +367,13 @@ class JsonRpcClient(JsonRpcBase):
 
     Typical usage::
 
-        clt = JsonRpcClient(port)
+        clt = JsonRpcClient(host, port)
         clt.start()
         resp = clt.call('method', {'a': 1})
     """
 
-    def __init__(self, port, req_handler = None, timeout=10):
-        super().__init__(port, req_handler, timeout)
+    def __init__(self, host, port, req_handler = None, timeout=10):
+        super().__init__(host, port, req_handler, timeout)
         self.name = f"JsonRpcClt_{port}"
 
     def run(self):
@@ -383,7 +386,7 @@ class JsonRpcClient(JsonRpcBase):
                 t = self._timeout
                 while True:
                     try:
-                        sock.connect(("localhost", self._port))
+                        sock.connect((self._host, self._port))
                     except OSError:
                         t -= tslice
                         if t >= 0:

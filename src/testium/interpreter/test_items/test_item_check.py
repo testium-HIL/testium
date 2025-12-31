@@ -8,7 +8,7 @@ from interpreter.utils.eval import evaluate
 
 class TestItemCheckValue(TestItem):
     """check item usage.
-    check usage:{check: {name: check my func output, steps: ['$(fn_echo) < 5']}}
+    check usage:{check: {name: check my func output, steps: ['$(pfn_echo) < 5']}}
     """
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_CHECK.item_name

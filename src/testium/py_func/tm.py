@@ -49,7 +49,7 @@ def _make_api(name):
 for k in SUPPORTED_API:
     setattr(thismodule, k, _make_api(k))
 
-def _init_api(port):
+def _init_api(host, port):
     """Start and initialize the remote function handler.
 
     Starts a ``FuncHandler`` bound to ``port``, runs it and blocks until
@@ -63,7 +63,7 @@ def _init_api(port):
         ``_func_call_thread``.
     """
     global _func_call_thread
-    _func_call_thread = FuncHandler(port)
+    _func_call_thread = FuncHandler(host, port)
     _func_call_thread.start()
     _func_call_thread.wait_ready()
     return _func_call_thread

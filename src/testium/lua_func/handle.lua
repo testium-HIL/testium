@@ -27,7 +27,7 @@ local function _get_func_by_path(file_path, func_name)
 
     local target_func = module[func_name]
     if type(target_func) ~= "function" then
-        return nil, "Function '" .. func_name .. "' not found in " .. file_path
+        return nil, "Function '" .. func_name .. "' not found in '" .. file_path .. "'"
     end
 
     return target_func
@@ -52,9 +52,10 @@ function handle.func_call(params)
 
     -- 3. Execute the function
     if err == nil then
+        print(string.format("Function executed from '%s'", pfile))
         utils.log("func_call function found '%s', '%s'", file, fname)
         succ, ret = pcall(func, table.unpack(prms))
-        utils.log("func_call returned '%s'", tostring(ret))
+        utils.log("func_call returned '%s', '%s'", tostring(succ), tostring(ret))
 
         if succ then
             res = ret

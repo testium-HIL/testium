@@ -142,7 +142,8 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 * ``ts_end_<item_name>``: timestamp at the end of test item execution (see :ref:`sec_item_common`),
 * ``ts_duration_<item_name>``: duration of test item execution in seconds (see :ref:`sec_item_common`),
 * ``cn_<test_name>``: console test item result (see section :ref:`sec_console_test_item`),
-* ``fn_<func_name>``: py_func test item result (see section :ref:`sec_func_item`),
+* ``pfn_<func_name>``: py_func test item result (see section :ref:`sec_py_func_item`),
+* ``lfn_<func_name>``: lua_func test item result (see section :ref:`sec_lua_func_item`),
 * ``cs_<test_name>``: dialog_choices test item result (see section :ref:`sec_dialog_choices_test_item`),
 * ``loop_param``: loop iterator (available from within a loop item,
   see :ref:`sec_loop_item`),
@@ -237,6 +238,7 @@ step list attributes.
    test_items/json-rpc_test_item.rst
    test_items/let_test_item.rst
    test_items/loop_test_item.rst
+   test_items/lua_func_test_item.rst
    test_items/plot_test_item.rst
    test_items/report_test_item.rst
    test_items/run_test_item.rst

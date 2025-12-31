@@ -50,6 +50,7 @@ class TestItemLuaFunc(TestItem):
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)
                 res, reported_values = ret
+                print(res)
                 reported_values = {**reported_values, "returned": res}
                 self.result.reported = ret[1]
 
@@ -58,7 +59,7 @@ class TestItemLuaFunc(TestItem):
                     tm.print_debug(textwrap.indent(pprint.pformat(res), " |"))
 
                 # The result of the func test item is put in global dir and result
-                tm.setgd("fn_" + self._name, res)
+                tm.setgd("lfn_" + self._name, res)
                 self.result.value = res
 
             else:

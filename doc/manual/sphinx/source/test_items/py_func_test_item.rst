@@ -1,4 +1,4 @@
-.. _sec_func_item:
+.. _sec_py_func_item:
 
 **py_func** test item
 ============================================================
@@ -99,10 +99,10 @@ Beside common test items attributes, py_func item has specific attribute, some o
             - $(my_param)
 
 The result of the function (after eventual post treatment) is stored in the global
-variable named ``fn_<func_name>``
+variable named ``pfn_<func_name>``
 (See :ref:`global variables<sec_global_variables>` for more detail
 on how to access to global variables from test items and scripts).
 
-In the example above, the global variable ``$(fn_function test item)``
+In the example above, the global variable ``$(pfn_function test item)``
 would be created at the end of the item execution. It would contain the resulting
 value of the funcToBeExecuted python function.

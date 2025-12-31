@@ -22,15 +22,19 @@ def main():
 
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--ip", type=str, help="Ip address or hostname to listen to",
+                        default="localhost")
     parser.add_argument("-p", "--port", type=int, help="port to listen to",
-                        default="/etc/jsonrpc-echo.conf")
+                        default=9000)
+    parser.add_argument("-v", "--verbose", action='store_true', help="port to listen to")
     args = parser.parse_args()
 
-    thrd_api = _init_api(args.port)
+    thrd_api = _init_api(args.ip, args.port)
     outstream = TcpStdOut()
     stdio_redir.redirect(outstream)
     # debug the server
-    # thrd_api.dbg_out = stdio_redir.ini_stdout
+    if args.verbose:
+        thrd_api.dbg_out = stdio_redir.ini_stdout
     try:
         while thrd_api.is_alive():
             thrd_api.join(1)

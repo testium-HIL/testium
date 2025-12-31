@@ -5,7 +5,7 @@ local config = {
     host = "0.0.0.0",
     port = 9000,
     timeout = 60,
-    verbose = true,
+    verbose = false,
 }
 
 local function usage()

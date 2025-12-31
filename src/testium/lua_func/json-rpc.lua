@@ -6,9 +6,9 @@ JSONRPC.__index = JSONRPC
 
 function JSONRPC.new(sock)
     local self = setmetatable({}, JSONRPC)
-    self.sock = sock        -- Function to transmit string data to transport (TCP/Websocket)
-    self.methods = {}       -- Methods the server provides to the client
-    self.pending = {}       -- Requests sent to client waiting for response
+    self.sock = sock  -- Function to transmit string data to transport (TCP/Websocket)
+    self.methods = {} -- Methods the server provides to the client
+    self.pending = {} -- Requests sent to client waiting for response
     self.next_id = 1
 
     self.sock:settimeout(0.2)
@@ -24,7 +24,7 @@ end
 function JSONRPC:handle_message(raw_data)
     utils.log("received: '%s'", raw_data)
     local ok, msg = pcall(json.decode, raw_data)
-    if not ok then return self:_send_error(nil, -32700, "Parse error") end
+    if not ok then return self:_send_error(nil, "received message parse error in lua server") end
 
     -- 1. Check if it's a Response (has 'result' or 'error' and 'id')
     if (msg.id ~= nil) and (msg.result ~= nil or msg.error ~= nil) then
@@ -44,36 +44,26 @@ function JSONRPC:_handle_request(req)
     local ok, ret
     local res, err
     if not method then
-        if req.id then self:_send_error(req.id, -32601, "Method not found") end
+        if req.id then self:_send_error(req.id, string.format("Method '%s' not registered in lua server")) end
         return
     end
-    utils.log("calling '%s'", method)
-    ok, ret = pcall(method, req.params)
-    utils.log("returned '%s', '%s'", tostring(ok), tostring(res))
+    ok, ret, err = pcall(method, req.params)
+    utils.log("Call returned ok='%s', ret='%s'", tostring(ok), tostring(ret))
 
     -- Only send response if it's not a Notification (notifications have no ID)
     if req.id then
         if ok then
-            res, err = ret
+            res = ret
             if res == nil then
-                self:_send_error(req.id, -32603, "Internal error: " .. tostring(err))
+                self:_send_error(req.id, tostring(err))
             else
-                self:_send({ jsonrpc = "2.0", result = {returned = res}, id = req.id })
+                self:_send({ jsonrpc = "2.0", result = { returned_value = res }, id = req.id })
             end
         else
-            self:_send_error(req.id, -32603, "Internal error: " .. tostring(ret))
+            self:_send_error(req.id, tostring(err))
         end
     end
 end
-
---- INTERNAL: Handle responses to requests WE sent
--- function JSONRPC:_handle_response(res)
---     local callback = self.pending[res.id]
---     if callback then
---         callback(res.error, res.result)
---         self.pending[res.id] = nil
---     end
--- end
 
 --- Call a method on the client
 function JSONRPC:call(method, params)
@@ -109,10 +99,10 @@ function JSONRPC:_send(data)
     return self.sock:send(j .. "\n")
 end
 
-function JSONRPC:_send_error(id, code, message)
+function JSONRPC:_send_error(id, message)
     self:_send({
         jsonrpc = "2.0",
-        error = { code = code, message = message },
+        error = message,
         id = id
     })
 end
