@@ -6,7 +6,7 @@ class QTestTreeItemUnittest(QTestTreeItem):
     def __init__(self, parent, test_set_item, cols):
         super().__init__(parent, test_set_item, cols)
 
-        self.setRowIcon(icon_prefix() + "/folder.png", ":/black/folder-open.png")
+        self.setRowIcon(icon_prefix() + "/folder.png", icon_prefix() + "/folder-open.png")
         self.setExpanded(True)
 
 class QTestTreeItemUnittestElement(QTestTreeItem):

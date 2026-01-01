@@ -38,9 +38,6 @@ from main_win.test_tree_items.test_tree_question_dialog import QTestTreeItemQues
 from main_win.test_tree_items.test_tree_tested_references_dialog import QTestTreeItemTestedRefsDialog
 from main_win.test_tree_items.test_tree_choices_dialog import QTestTreeItemChoicesDialog
 from main_win.test_tree_items.test_tree_console import (QTestTreeItemConsole, QTestTreeItemConsoleAction)
-from main_win.test_tree_items.test_tree_status_display import (QTestTreeItemStatusDisplay,
-                                                               QTestTreeItemStatusDisplayDevice,
-                                                               QTestTreeItemStatusDisplayTest)
 
 from interpreter.test_items.test_result import (TestValue)
 import libs.testium as tm
@@ -76,10 +73,9 @@ class QTestTree(QTreeWidget):
                     cst.TYPE_CHOICES_DLG.item_name      : QTestTreeItemChoicesDialog,
                     cst.TYPE_CONSOLE.item_name          : QTestTreeItemConsole,
                     cst.TYPE_CONSOLE_ACTION.item_name   : QTestTreeItemConsoleAction,
-                    'Status Display'                    : QTestTreeItemStatusDisplay,
-                    'Device Status'                     : QTestTreeItemStatusDisplayDevice,
-                    'Test Status'                       : QTestTreeItemStatusDisplayTest,
-                    }
+                }
+
+
     def __init__(self, parent):
 
         super().__init__(parent)

@@ -719,7 +719,7 @@
   <action name="actionStart_test">
    <property name="icon">
     <iconset resource="resources/testium_core_win.qrc">
-     <normaloff>:/black/media-playback-start.png</normaloff>:/black/media-playback-start.png</iconset>
+     <normaloff>:/black/start.png</normaloff>:/black/start.png</iconset>
    </property>
    <property name="text">
     <string>Start test</string>
@@ -731,7 +731,7 @@
    </property>
    <property name="icon">
     <iconset resource="resources/testium_core_win.qrc">
-     <normaloff>:/black/media-playback-stop.png</normaloff>:/black/media-playback-stop.png</iconset>
+     <normaloff>:/black/stop.png</normaloff>:/black/stop.png</iconset>
    </property>
    <property name="text">
     <string>Stop test</string>
@@ -740,7 +740,7 @@
   <action name="actionAbout_testium">
    <property name="icon">
     <iconset resource="resources/testium_core_win.qrc">
-     <normaloff>:/black/nespresso.png</normaloff>:/black/nespresso.png</iconset>
+     <normaloff>:/black/about.png</normaloff>:/black/about.png</iconset>
    </property>
    <property name="text">
     <string>About testium</string>
@@ -749,7 +749,7 @@
   <action name="actionExit">
    <property name="icon">
     <iconset resource="resources/testium_core_win.qrc">
-     <normaloff>:/black/system-log-out.png</normaloff>:/black/system-log-out.png</iconset>
+     <normaloff>:/black/exit.png</normaloff>:/black/exit.png</iconset>
    </property>
    <property name="text">
     <string>Exit</string>
@@ -791,7 +791,7 @@
   <action name="actionPreferences">
    <property name="icon">
     <iconset resource="resources/testium_core_win.qrc">
-     <normaloff>:/black/gnome-settings.png</normaloff>:/black/gnome-settings.png</iconset>
+     <normaloff>:/black/settings.png</normaloff>:/black/settings.png</iconset>
    </property>
    <property name="text">
     <string>Preferences</string>

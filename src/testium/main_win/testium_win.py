@@ -104,28 +104,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionSave_report.setIcon(icon5)
         icon6 = QtGui.QIcon()
         icon6.addPixmap(
-            QtGui.QPixmap(icon_prefix() + "/media-playback-start.png"),
+            QtGui.QPixmap(icon_prefix() + "/start.png"),
             QtGui.QIcon.Normal,
             QtGui.QIcon.Off,
         )
         self.actionStart_test.setIcon(icon6)
         icon7 = QtGui.QIcon()
         icon7.addPixmap(
-            QtGui.QPixmap(icon_prefix() + "/media-playback-stop.png"),
+            QtGui.QPixmap(icon_prefix() + "/stop.png"),
             QtGui.QIcon.Normal,
             QtGui.QIcon.Off,
         )
         self.actionStop_test.setIcon(icon7)
         icon8 = QtGui.QIcon()
         icon8.addPixmap(
-            QtGui.QPixmap(icon_prefix() + "/nespresso.png"),
+            QtGui.QPixmap(icon_prefix() + "/about.png"),
             QtGui.QIcon.Normal,
             QtGui.QIcon.Off,
         )
         self.actionAbout_testium.setIcon(icon8)
         icon9 = QtGui.QIcon()
         icon9.addPixmap(
-            QtGui.QPixmap(icon_prefix() + "/system-log-out.png"),
+            QtGui.QPixmap(icon_prefix() + "/exit.png"),
             QtGui.QIcon.Normal,
             QtGui.QIcon.Off,
         )
@@ -153,7 +153,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionHelp.setIcon(icon12)
         icon13 = QtGui.QIcon()
         icon13.addPixmap(
-            QtGui.QPixmap(icon_prefix() + "/gnome-settings.png"),
+            QtGui.QPixmap(icon_prefix() + "/settings.png"),
             QtGui.QIcon.Normal,
             QtGui.QIcon.Off,
         )
@@ -1087,7 +1087,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.actionExit.setEnabled(True)
             icon = QtGui.QIcon()
             icon.addPixmap(
-                QtGui.QPixmap(icon_prefix() + "/media-playback-start.png"),
+                QtGui.QPixmap(icon_prefix() + "/start.png"),
                 QtGui.QIcon.Normal,
                 QtGui.QIcon.Off,
             )
@@ -1143,7 +1143,6 @@ def MainWin(
     debug=False,
 ):
     app = QApplication(sys.argv)
-    app.setDesktopFileName("Testium")
     ui = MainWindow(
         test_file,
         config_files,
