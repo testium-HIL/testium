@@ -236,7 +236,7 @@ class TestSet:
 
         i = 0
         while (res is None) and (i < parent.childCount()):
-            res = self.__findItemByIdRecursively(item_id, parent.child(i))
+            res = self.__findItemById(item_id, parent.child(i))
             i = i + 1
 
         return res
