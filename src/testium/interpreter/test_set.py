@@ -224,7 +224,9 @@ class TestSet:
 
         return res
 
-    def __findItemByIdRecursively(self, item_id, parent):
+    def __findItemById(self, item_id, parent=None):
+        if parent is None:
+            parent = self._rootItem
         res = None
         i = 0
         while (res is None) and (i < parent.childCount()):
@@ -239,9 +241,21 @@ class TestSet:
 
         return res
 
-    def __findItemById(self, item_id):
-        item = self.__findItemByIdRecursively(item_id, self._rootItem)
-        return item
+    def isTestTypePresent(self, test_type: cst_type, parent=None):
+        if parent is None:
+            parent = self._rootItem
+        res = False
+        i = 0
+        while (not res) and (i < parent.childCount()):
+            if parent.child(i).type() == test_type.item_name:
+                res = True
+            i = i + 1
+
+        i = 0
+        while (not res) and (i < parent.childCount()):
+            res = self.isTestTypePresent(test_type, parent.child(i))
+            i = i + 1
+        return res
 
     def getEnabledState(self, item_id):
         """Return True if the item is enabled, False otherwise."""

@@ -57,6 +57,7 @@ class PyFuncExecEngine:
 
         else:
             python_path = sys.executable
+            tm.setgd("python_path", python_path)
 
         self._ppath = python_path
         self._req_handler = request_handler

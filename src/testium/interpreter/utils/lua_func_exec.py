@@ -44,15 +44,19 @@ def is_lua_interpreter(path: str, timeout=2) -> bool:
 class LuaFuncExecEngine:
 
     def __init__(self, lua_path="", request_handler=None):
-        if shutil.which(lua_path) is None:
-            raise ETUMRuntimeError(
-                f"The passed lua path is not pointing to an executable: '{lua_path}'"
-            )
+        if lua_path != "":
+            if shutil.which(lua_path) is None:
+                raise ETUMRuntimeError(
+                    f"The passed lua path is not pointing to an executable: '{lua_path}'"
+                )
 
-        if not is_lua_interpreter(lua_path):
-            raise ETUMRuntimeError(
-                f"The passed executable is not a lua interpreter: '{lua_path}'"
-            )
+            if not is_lua_interpreter(lua_path):
+                raise ETUMRuntimeError(
+                    f"The passed executable is not a lua interpreter: '{lua_path}'"
+                )
+        else:
+            lua_path = "/usr/bin/lua"
+            tm.setgd("lua_path", lua_path)
 
         self._lpath = lua_path
         self._req_handler = request_handler

@@ -9,6 +9,7 @@ import traceback
 import libs.testium as tm
 from interpreter.utils.params import expanse
 from interpreter.utils.string_queue import StringQueue
+from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.test_init import (
     env_init,
@@ -19,6 +20,7 @@ from interpreter.utils.test_init import (
     backup_gd,
     restore_gd,
 )
+from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.test_set import TestSet
 from interpreter.utils.stdout_redirect import stdio_redir
 from interpreter.utils.tum_except import print_exception
@@ -62,7 +64,8 @@ class TestProcess(Process):
 
                 # Load the test file
                 test_dict, cfg_files = load_test(
-                    self.__fname, test_dir, self.__cfgf, self.__defs)
+                    self.__fname, test_dir, self.__cfgf, self.__defs
+                )
 
                 # Backup the global dict in case of restart of the test
                 gdict = backup_gd()
@@ -76,15 +79,19 @@ class TestProcess(Process):
                 # Thread for incoming control commands
                 self.init_commands(test_set)
                 self.cmd_th = Thread(
-                    target=self.process_control_commands, args=[self.__tctrl])
-                self.cmd_th.daemon = True
+                    target=self.process_control_commands,
+                    args=[self.__tctrl],
+                    daemon=True,
+                )
                 self.cmd_th.start()
 
                 test_set.report_path = locate_report_file(test_set.report_path)
 
                 # Python & lua functions call subprocess initialization
                 py_fproc = py_func_call_init(tm.gd("python_path", ""), api_request)
-                lua_fproc = lua_func_call_init(tm.gd("lua_path", "/usr/bin/lua"), api_request)
+                lua_fproc = None
+                if test_set.isTestTypePresent(cst_type.TYPE_LUA_FUNCTION):
+                    lua_fproc = lua_func_call_init(tm.gd("lua_path", ""), api_request)
 
                 self.__loaded = True
 
@@ -101,10 +108,22 @@ class TestProcess(Process):
                             try:
                                 test_run_init()
                                 print(test_run_header())
+                                # start the process for executing external python
                                 py_fproc.start()
-                                lua_fproc.start()
-                                lua_fproc.wait_ready()
-                                py_fproc.wait_ready()
+                                if not py_fproc.wait_ready(10):
+                                    raise ETUMRuntimeError(
+                                        f"""Impossible to start the external python execution process.
+Is the python path correct ?
+python_path = {tm.gd("python_path", "no python path defined")}"""
+                                    )
+                                if lua_fproc is not None:
+                                    lua_fproc.start()
+                                    if not lua_fproc.wait_ready(10):
+                                        raise ETUMRuntimeError(
+                                            f"""Impossible to start the external lua execution process.
+Is the lua path correct ?
+lua_path = {tm.gd("lua_path", "no lua path defined")}"""
+                                        )
                                 test_set.execute()
                             finally:
                                 if test_set.success():
@@ -116,9 +135,10 @@ class TestProcess(Process):
                         finally:
                             # Stop function execution process
                             py_fproc.stop()
-                            lua_fproc.stop()
-                            lua_fproc.join()
                             py_fproc.join()
+                            if lua_fproc is not None:
+                                lua_fproc.stop()
+                                lua_fproc.join()
                             self.__exec = False
                             # Sends signal to the GUI
                             self.send_finished()
@@ -162,9 +182,7 @@ class TestProcess(Process):
         stdio_redir.stop()
 
     def send_finished(self):
-        status = {'id': None,
-                  'name': "test_process",
-                  'status': 'finished'}
+        status = {"id": None, "name": "test_process", "status": "finished"}
         self.__squeue.put(status)
 
     def execute(self):
