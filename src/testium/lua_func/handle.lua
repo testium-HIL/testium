@@ -1,6 +1,8 @@
 local utils = require("utils")
 local tm = require("tm")
 
+local unpack = unpack or table.unpack
+
 local handle = {}
 
 local function _get_func_by_path(file_path, func_name)
@@ -54,7 +56,7 @@ function handle.func_call(params)
     if err == nil then
         print(string.format("Function executed from '%s'", pfile))
         utils.log("func_call function found '%s', '%s'", file, fname)
-        succ, ret = pcall(func, table.unpack(prms))
+        succ, ret = pcall(func, unpack(prms))
         utils.log("func_call returned '%s', '%s'", tostring(succ), tostring(ret))
 
         if succ then
