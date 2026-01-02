@@ -1,4 +1,4 @@
-:: @echo off
+@echo off
 SETLOCAL EnableExtensions
 
 SET "BASE_DIR=%~dp0"
@@ -35,6 +35,7 @@ exit /b
 
 :PYTHON_FOUND
 
+set "IS_VENV=false"
 :: --- VENV creation ---
 if not exist "%VENV_DIR%" (
     echo [2/4] Virtual environment creation...
@@ -45,6 +46,7 @@ if not exist "%VENV_DIR%" (
         exit /b
     )
 ) else (
+    set "IS_VENV=true"
     echo [2/4] Virtual environment already here.
 )
 
@@ -52,11 +54,13 @@ if not exist "%VENV_DIR%" (
 echo [3/4] Activation of the venv and installation of dependencies...
 call "%VENV_DIR%\Scripts\activate"
 
-if exist "%BASE_DIR%%REQUIREMENTS%" (
-    pip install --upgrade pip
-    pip install -r "%BASE_DIR%%REQUIREMENTS%"
-) else (
-    echo Info : No '%REQUIREMENTS%' file found, dependencies ignored.
+if "%IS_VENV%"=="false" (
+    if exist "%BASE_DIR%%REQUIREMENTS%" (
+        pip install --upgrade pip
+        pip install -r "%BASE_DIR%%REQUIREMENTS%"
+    ) else (
+        echo Info : No '%REQUIREMENTS%' file found, dependencies ignored.
+    )
 )
 
 :: --- Application launching ---
