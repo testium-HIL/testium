@@ -36,60 +36,52 @@ The example below shows a basic implementation of the TUM description file:
 Configuration files
 --------------------
 
-A configuration file can be specified in the .tum file or by the command line.
-This configuration file is optional.
+A configuration file can be specified in the `.tum` file or by the command line.
+This configuration file is optional and must be a YAML file.
 
-It can be of three different syntax:
-
-* XML
-* YAML
-* JSON
-
-The type of file is recognized by the file name extension (.xml, .yaml, .json).
+The type of file is recognized by the file name extension `.yaml`.
 
 During the test script loading process, the values defined in these configuration files
 are added to the global variables and are then accessible from the test items and scripts
 (cf. :ref:`global variables<sec_global_variables>`).
 
-The parameter file can be specified in the .tum file root:
+The parameter file can be specified in the `.tum` file root:
 
 .. code-block:: yaml
-    :caption: configuration files definition
+    :caption: configuration files definition in the main `.tum` test file
 
     config_file:
-        - myparam.xml
-        - config1.json
-        - config2.yaml
+        config1.yaml
+        config2.yaml
 
     main:
         name: Test example
         [...]
 
-If nothing is specified, the ``param.xml``, ``param.yaml`` and ``param.json``
-are automatically loaded, if present in the test directory.
+.. code-block:: yaml
+    :caption: example of configuration file: param.yaml
+
+    parameter1: value1
+    parameter2: 1234
+    parameter3: <@ 12.34 * 2 @>
+    parameter4:
+        - $(parameter1)
+        - $(parameter3)
+    parameter5:
+        sub_param1: sub_value1
+        sub_param2: $(parameter4)
+
+If nothing is specified, the ``param.yaml``
+is automatically loaded, if present in the test directory.
 
 Files loading
 ^^^^^^^^^^^^^^^^^^
 
-The ``JSON`` and ``YAML`` configuration files variables are evaluated directly.
+The ``YAML`` configuration files variables are evaluated directly and accessible from TUM
+tests description files and also from :ref:`python<sec_py_func_item>`
+and :ref:`lua<sec_py_func_item>` function test items.
 
-The XML files content is evaluated as follows.
-
-.. code-block:: xml
-    :name: param.xml
-
-    <?xml version="1.0" ?>
-    <root>
-        <parameter name="param1" value="['abc', 'bcd']"/>
-        <parameter name="param2" value="0x123454"/>
-        <parameter name="param3" str="def"/>
-    </root>
-
-If the ``parameter`` XML item defines:
-
-* ``value`` argument: its content is parsed for variable substitution
-  (see :ref:`variables expansion<sec_variable_expansion>`) and then evaluated as a python statement,
-* ``str`` argument: its content is not evaluated and is kept as a string.
+See more details :ref:`below<sec_global_variables>`.
 
 .. _sec_global_variables:
 
@@ -153,11 +145,32 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
   :ref:`sec_loop_item`). If the loop number its value is the python constant
   ``inf``.
 
+Debug mode
+^^^^^^^^^^^^^^^^^^^
+
+Debug mode can be enabled by defining the global variable `test_debug`.
+
+For example, it can be defined in the configuration file as:
+
+.. code-block:: yaml
+    :caption: example of configuration file: param.yaml
+
+    [...]
+    test_debug: True
+    [.]
+
+It can also be defined from the command line with the option
+``-d test_debug``.
+
+When debug mode is enabled, additional information are displayed in the log window.
+
+Some :ref:`helper library functions<sec_python_helper_library>` are availabe
+to give the state of the debug mode.
 
 Test items entries
 ^^^^^^^^^^^^^^^^^^^^
 
-All test items attributes can be global variable entry;
+All test items attributes can be global variable entries;
 when using the entry ``$(<global>)`` before a key value, the corresponding
 key entry is searched within the global variables dataset.
 

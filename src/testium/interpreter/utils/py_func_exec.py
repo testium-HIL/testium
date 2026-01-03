@@ -76,7 +76,8 @@ class PyFuncExecEngine:
         func_proc_path = tm.gd("testium_path")
 
         params = [self._ppath, "-m", "py_func", "-p", f"{self._port}", "-t", f"{self._timeout}"]
-        if tm.debug_enabled():
+        
+        if tm.debug_enabled() and tm.gd("debug_rpc", False):
             params.append("-v")
 
         self._process = subprocess.Popen(
@@ -88,6 +89,8 @@ class PyFuncExecEngine:
             sock.close()
 
         self._rpc = JsonRpcClient("localhost", self._port, req_handler=self._req_handler)
+        if tm.debug_enabled():
+            self._rpc.dbg_out = sys.stdout
         self._rpc.start()
 
     def join(self):

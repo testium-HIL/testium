@@ -106,3 +106,11 @@ on how to access to global variables from test items and scripts).
 In the example above, the global variable ``$(pfn_function test item)``
 would be created at the end of the item execution. It would contain the resulting
 value of the funcToBeExecuted python function.
+
+**Global variables**
+
+Some global variables have an impact on the ``py_func`` test item behavior:
+    
+* ``python_path``: This optional global variable can be used to define
+  the python executable path. If not defined, the python interpreter is
+  searched in at the default places in the system.

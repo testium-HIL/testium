@@ -5,6 +5,7 @@ import threading
 import itertools
 from time import sleep
 from typing import Callable, Any
+import libs.testium as tm
 
 from interpreter.utils.tum_except import ETUMRuntimeError
 
@@ -53,8 +54,14 @@ Notes:
 
 class JsonRpcConnection:
 
-    def __init__(self, name, conn: socket.socket, req_handler: Callable[..., Any], timeout=0.2, dbg_out=None):
-
+    def __init__(
+        self,
+        name,
+        conn: socket.socket,
+        req_handler: Callable[..., Any],
+        timeout=0.2,
+        dbg_out=None,
+    ):
         self.name = name
         self.conn = conn
         if not callable(req_handler):
@@ -120,9 +127,9 @@ class JsonRpcConnection:
     def _dispatch(self, msg):
         if "method" in msg:
             # request to be sent
-            meth=msg["method"]
-            params=msg.get("params", None)
-            rid=msg.get("id", None)
+            meth = msg["method"]
+            params = msg.get("params", None)
+            rid = msg.get("id", None)
 
             threading.Thread(
                 target=self._handle_request, args=(meth, params, rid), daemon=True
@@ -168,10 +175,9 @@ class JsonRpcConnection:
         The send operation is protected by a lock to avoid interleaving when
         multiple threads attempt to write to the underlying socket.
         """
-
         msg = json.dumps(obj) + "\n"
         data = (msg).encode()
-        self.print_info("sending : " + msg)
+        self.print_info(f"sending : " + msg)
         with self.send_lock:
             self.conn.sendall(data)
 
@@ -217,6 +223,7 @@ class JsonRpcConnection:
     def join(self):
         self.recv_thread.join()
 
+
 class JsonRpcBase(threading.Thread):
     """Threaded base class for simple JSON-RPC server/client helpers.
 
@@ -236,7 +243,14 @@ class JsonRpcBase(threading.Thread):
       - `call()` raises `ETUMRuntimeError` if no active connection exists.
     """
 
-    def __init__(self, host, port, req_handler: Callable[[dict], Any]=None, timeout=10, dbg_out=None):
+    def __init__(
+        self,
+        host,
+        port,
+        req_handler: Callable[[dict], Any] = None,
+        timeout=10,
+        dbg_out=None,
+    ):
         super().__init__()
         self._host = host
         self._port = port
@@ -276,7 +290,9 @@ class JsonRpcBase(threading.Thread):
             self._rpc.stop()
 
     def connect(self, sock):
-        self._rpc = JsonRpcConnection(self.name, sock, self.handle_request, dbg_out=self.dbg_out)
+        self._rpc = JsonRpcConnection(
+            self.name, sock, self.handle_request, dbg_out=self.dbg_out
+        )
         self._event_ready.set()
 
     def wait_ready(self, timeout=None):
@@ -291,6 +307,7 @@ class JsonRpcBase(threading.Thread):
         self._dbg_out = dbg_out
         if self._rpc is not None:
             self._rpc.dbg_out = dbg_out
+
 
 class JsonRpcSrv(JsonRpcBase):
     """Single-connection JSON-RPC server.
@@ -307,7 +324,7 @@ class JsonRpcSrv(JsonRpcBase):
     The server will raise `ETUMRuntimeError` on accept/connect timeout.
     """
 
-    def __init__(self, host, port, req_handler = None, timeout=10):
+    def __init__(self, host, port, req_handler=None, timeout=10):
         super().__init__(host, port, req_handler, timeout)
         self.name = f"JsonRpcSvr_{port}"
 
@@ -332,7 +349,6 @@ class JsonRpcSrv(JsonRpcBase):
                 while True:
                     try:
                         conn, addr = sock.accept()
-                        self.print_info("Client connected")
                         break
                     except socket.timeout:
                         t -= tslice
@@ -369,11 +385,58 @@ class JsonRpcClient(JsonRpcBase):
         resp = clt.call('method', {'a': 1})
     """
 
-    def __init__(self, host, port, req_handler = None, timeout=10):
+    def __init__(self, host, port, req_handler=None, timeout=10):
         super().__init__(host, port, req_handler, timeout)
         self.name = f"JsonRpcClt_{port}"
 
     def run(self):
+        if tm.OS() == "Windows":
+            self.run_win()
+        else:
+            self.run_lin()
+
+    def run_win(self):
+        # TCP/IP socket creation
+        tslice = 1
+        t = self._timeout
+        sock = None
+        try:
+            while t >= 0:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(tslice)
+                # Link of the socket at the configured port
+                try:
+                    sock.connect((self._host, self._port))
+                    break
+                except socket.timeout:
+                    sock.close()
+                    t -= tslice
+                    if t < 0:
+                        raise ETUMRuntimeError(
+                            f"{self.name}: failed to connect : timeout"
+                        )
+                    else:
+                        sleep(tslice)
+                except socket.error as e:
+                    raise ETUMRuntimeError(f"{self.name}: failed to connect : {e}")
+
+            self.print_info("Connected to server")
+            self.connect(sock)
+
+            while self._rpc.running:
+                # Sleep a short time to avoid a busy loop and allow
+                # the receiver thread to process messages.
+                sleep(0.1)
+
+        finally:
+            if sock is not None:
+                sock.close()
+            if self._rpc is not None:
+                self._rpc.stop()
+                self._rpc.join()
+            self.print_info("closed")
+
+    def run_lin(self):
         # TCP/IP socket creation
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -385,10 +448,12 @@ class JsonRpcClient(JsonRpcBase):
                     try:
                         sock.connect((self._host, self._port))
                         break
-                    except OSError as e:
+                    except Exception as e:
                         t -= tslice
                         if t < 0:
-                            raise ETUMRuntimeError(f"{self.name}: failed to connect : {e}")
+                            raise ETUMRuntimeError(
+                                f"{self.name}: failed to connect : {e}"
+                            )
                         else:
                             sleep(tslice)
 

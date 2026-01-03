@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import subprocess
 import socket
@@ -12,12 +13,36 @@ function_call_process = None
 
 
 def lua_func_call_init(lua_path, request_handler, timeout):
+    """
+    Initializes the global Lua function execution process.
+
+    Args:
+        lua_path (str): Path to the Lua interpreter executable. If empty, uses system default.
+        request_handler: Handler for JSON-RPC requests.
+        timeout (int): Timeout for operations in seconds.
+
+    Returns:
+        LuaFuncExecEngine: The initialized engine instance.
+
+    Raises:
+        ETUMRuntimeError: If the Lua path is invalid or no interpreter is found.
+    """
     global function_call_process
     function_call_process = LuaFuncExecEngine(lua_path, request_handler, timeout)
     return function_call_process
 
 
 def is_lua_interpreter(path: str, timeout=2) -> bool:
+    """
+    Checks if the given path points to a valid Lua interpreter.
+
+    Args:
+        path (str): Path to the executable to check.
+        timeout (int, optional): Timeout for the subprocess in seconds. Defaults to 2.
+
+    Returns:
+        bool: True if the path is a Lua interpreter, False otherwise.
+    """
     try:
         result = subprocess.run(
             [path, "-v"],
@@ -32,8 +57,25 @@ def is_lua_interpreter(path: str, timeout=2) -> bool:
 
 
 class LuaFuncExecEngine:
+    """
+    Engine for executing Lua functions via a subprocess and JSON-RPC communication.
+
+    This class manages a Lua interpreter subprocess, handles RPC communication,
+    and executes specified functions with parameters.
+    """
 
     def __init__(self, lua_path="", request_handler=None, timeout=10):
+        """
+        Initializes the Lua function execution engine.
+
+        Args:
+            lua_path (str, optional): Path to the Lua interpreter. Defaults to system path.
+            request_handler: Handler for JSON-RPC requests.
+            timeout (int, optional): Timeout for operations in seconds. Defaults to 10.
+
+        Raises:
+            ETUMRuntimeError: If the Lua path is invalid or no interpreter is found.
+        """
         if lua_path != "":
             if shutil.which(lua_path) is None:
                 raise ETUMRuntimeError(
@@ -61,27 +103,49 @@ class LuaFuncExecEngine:
 
     def start(self):
         """
-        run the subprocess to execute the python functions of the test.
+        Starts the Lua subprocess for function execution.
+
+        Sets up environment variables, binds a socket for communication,
+        and initializes the JSON-RPC client.
+
+        Raises:
+            ETUMRuntimeError: If the subprocess is already started.
         """
         # This thread is not closed until new test is loaded
         if self._process is not None:
             raise ETUMRuntimeError("The function subprocess has already been started.")
 
+        func_proc_path = os.path.join(tm.gd("testium_path"),"lua_func")
+
+        # POpen config
+        CUST_ENV = {
+            "PATH": {"replace": False},
+            "LUA_PATH": {"replace": True},
+            "LUA_CPATH": {"replace": True},
+        }
+
+        lua_env = tm.gd("lua_env", {})
+        env = os.environ.copy()
+        for k, v in CUST_ENV.items():
+            e = lua_env.get(k, "")
+            if e != "":
+                if v["replace"]:
+                    env[k] = e
+                else:
+                    env[k] = e + ";" + env.get(k, "")
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(("localhost", 0))
         self._port = sock.getsockname()[1]
 
-        func_proc_path = os.path.join(tm.gd("testium_path"),"lua_func")
-        lua_env = tm.gd("lua_env", {})
-        tm.print_debug(f"lua_env : {lua_env}")
-
+        # POpen params
         params = [self._lpath, "main.lua", "--timeout", f"{self._timeout}", "--host", "127.0.0.1", "--port", f"{self._port}"]
 
-        if tm.debug_enabled():
+        if tm.debug_enabled()  and tm.gd("debug_rpc", False):
             params.append("--verbose")
 
         self._process = subprocess.Popen(
-            params, env=lua_env, cwd=func_proc_path
+            params, env=env, cwd=func_proc_path
         )
 
         # Port was reserved until the sub-process is started. Now released.
@@ -89,24 +153,57 @@ class LuaFuncExecEngine:
             sock.close()
 
         self._rpc = JsonRpcClient("localhost", self._port, req_handler=self._req_handler)
+        if tm.debug_enabled():
+            self._rpc.dbg_out = sys.stdout
         self._rpc.start()
 
     def join(self):
+        """
+        Joins the RPC thread and resets the process state.
+        """
         if self._rpc is not None:
             self._rpc.join()
             self._rpc = None
         self._process = None
 
     def wait_ready(self, timeout=None):
+        """
+        Waits for the RPC client to be ready.
+
+        Args:
+            timeout (float, optional): Timeout in seconds. Defaults to None.
+
+        Returns:
+            bool: True if ready, False otherwise.
+        """
         if self._rpc is not None and self._rpc.is_alive():
             return self._rpc.wait_ready(timeout)
         return False
 
     def stop(self):
+        """
+        Stops the RPC client.
+        """
         if self._rpc is not None:
             self._rpc.stop()
 
     def func_call(self, file: str, func_name: str, params: list, verbose: bool = True):
+        """
+        Calls a Lua function via RPC and returns the result.
+
+        Args:
+            file (str): Path to the Lua file containing the function.
+            func_name (str): Name of the function to call.
+            params (list): List of parameters to pass to the function.
+            verbose (bool, optional): Whether to enable verbose output. Defaults to True.
+
+        Returns:
+            tuple: (TestValue.SUCCESS, (result, reported_values)) on success,
+                   (TestValue.FAILURE, error_message) on failure.
+
+        Raises:
+            ETUMRuntimeError: If the RPC call fails or no process is active.
+        """
         if (self._rpc is not None) and self._rpc.is_alive():
             answer = self._rpc.call(
                 "func_call",
@@ -143,7 +240,21 @@ class LuaFuncExecEngine:
 
 
 def lua_func_exec(file: str, func_name: str, params: list, verbose: bool = True):
-    """Executes a python function and returns its result and reported values"""
+    """
+    Executes a Lua function using the global function call process.
+
+    Args:
+        file (str): Path to the Lua file containing the function.
+        func_name (str): Name of the function to call.
+        params (list): List of parameters to pass to the function.
+        verbose (bool, optional): Whether to enable verbose output. Defaults to True.
+
+    Returns:
+        tuple: (success_status, result_or_error) where success_status is TestValue.SUCCESS or FAILURE.
+
+    Raises:
+        ETUMRuntimeError: If no function execution process is active.
+    """
     global function_call_process
 
     if function_call_process is not None:

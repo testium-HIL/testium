@@ -119,7 +119,6 @@ def _sys_app_path_win(app_name):
     except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
         data = ""
     sys_python_path = data.splitlines()
-    tm.print_debug("data = ", data)
     for l in sys_python_path:
         if f"{app_name}.exe" in l:
             return l

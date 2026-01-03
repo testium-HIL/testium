@@ -13,7 +13,7 @@ Tests reports generation and customization are also in this tool's scope.
 Its main features are:
 
 * YAML test description,
-* Test configuration files in YAML, JSON or XML,
+* Test configuration files in YAML,
 * Full range of pre-existing Test items,
 * Test steps, loops,
 * Dynamic variables expansion at test runtime,
