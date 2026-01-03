@@ -48,10 +48,10 @@ def _python_version(path: str):
     cmd = f'"{path}" -c "import sys; print(sys.version_info[:3])"'
     try:
         result = subprocess.run(
-            cmd, 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
             encoding=sys_encoding(),
             timeout=10
         )
@@ -63,13 +63,13 @@ def _python_version(path: str):
 
 
 def _lua_version(path: str):
-    cmd = f'"{path}" -v"'
+    cmd = f'"{path}" -v'
     try:
         result = subprocess.run(
             cmd,
             shell=True,
-            capture_output=True, 
-            text=True, 
+            capture_output=True,
+            text=True,
             encoding=sys_encoding(),
             timeout=10
         )
@@ -79,9 +79,11 @@ def _lua_version(path: str):
         data = ""
     try:
         vers = ((data.split(" "))[1]).split(".")
+        if len(vers) != 3:
+            vers = (0,0,0)
     except:
-        vers = (0, 0, 0)
-    return (vers[0], vers[1], vers[2])
+        vers = (0,0,0)
+    return tuple(vers)
 
 
 def is_python3(python_path):
@@ -91,7 +93,7 @@ def is_python3(python_path):
             res = True
     except:
         res = False
-    
+
     return res
 
 
@@ -106,10 +108,10 @@ def is_lua51(lua_path):
 def _sys_app_path_win(app_name):
     try:
         result = subprocess.run(
-            f"where {app_name}", 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
+            f"where {app_name}",
+            shell=True,
+            capture_output=True,
+            text=True,
             encoding="oem",
             timeout=10
         )
@@ -127,10 +129,10 @@ def _sys_app_path_win(app_name):
 def _sys_app_path_lin(app_name):
     try:
         result = subprocess.run(
-            f"which {app_name}", 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
+            f"which {app_name}",
+            shell=True,
+            capture_output=True,
+            text=True,
             timeout=10
         )
         data = result.stdout

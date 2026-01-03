@@ -26,15 +26,19 @@ def main():
                         default="localhost")
     parser.add_argument("-p", "--port", type=int, help="port to listen to",
                         default=9000)
+    parser.add_argument("-t", "--timeout", type=float, help="Timeout waiting for connection",
+                        default=10)
     parser.add_argument("-v", "--verbose", action='store_true', help="port to listen to")
     args = parser.parse_args()
 
-    thrd_api = _init_api(args.ip, args.port)
+    thrd_api = _init_api(args.ip, args.port, args.timeout)
+    # redirect I/O
     outstream = TcpStdOut()
     stdio_redir.redirect(outstream)
     # debug the server
     if args.verbose:
         thrd_api.dbg_out = stdio_redir.ini_stdout
+    thrd_api.start()
     try:
         while thrd_api.is_alive():
             thrd_api.join(1)

@@ -321,26 +321,23 @@ class JsonRpcSrv(JsonRpcBase):
                 # Link of the socket at the configured port
                 sock.bind((self._host, self._port))
 
-                sock.settimeout(self._timeout)
-
                 # Listens incoming connections
                 sock.listen(1)
                 self.print_info(f"listening on {self._host}:{self._port}")
 
-                self.print_info("awaiting connection")
+                self.print_info(f"awaiting connection for {self._timeout} secs")
                 tslice = 0.2
+                sock.settimeout(tslice)
                 t = self._timeout
                 while True:
                     try:
                         conn, addr = sock.accept()
                         self.print_info("Client connected")
+                        break
                     except socket.timeout:
-                        if t >= 0:
-                            sleep(tslice)
-                            continue
-                        else:
+                        t -= tslice
+                        if t < 0:
                             raise ETUMRuntimeError(f"{self.name}: Timeout")
-                    break
 
                 self.print_info("Client connected")
                 with conn:
@@ -380,13 +377,21 @@ class JsonRpcClient(JsonRpcBase):
         # TCP/IP socket creation
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(self._timeout)
+                tslice = 0.5
+                t = self._timeout
+                sock.settimeout(tslice)
                 # Link of the socket at the configured port
-                try:
-                    sock.connect((self._host, self._port))
-                except OSError:
-                    raise ETUMRuntimeError(f"{self.name}: failed to connect")
-                
+                while True:
+                    try:
+                        sock.connect((self._host, self._port))
+                        break
+                    except OSError as e:
+                        t -= tslice
+                        if t < 0:
+                            raise ETUMRuntimeError(f"{self.name}: failed to connect : {e}")
+                        else:
+                            sleep(tslice)
+
                 self.print_info("Connected to server")
                 self.connect(sock)
 

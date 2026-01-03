@@ -11,9 +11,9 @@ from interpreter.test_items.test_result import TestValue
 function_call_process = None
 
 
-def lua_func_call_init(lua_path, request_handler):
+def lua_func_call_init(lua_path, request_handler, timeout):
     global function_call_process
-    function_call_process = LuaFuncExecEngine(lua_path, request_handler)
+    function_call_process = LuaFuncExecEngine(lua_path, request_handler, timeout)
     return function_call_process
 
 
@@ -33,7 +33,7 @@ def is_lua_interpreter(path: str, timeout=2) -> bool:
 
 class LuaFuncExecEngine:
 
-    def __init__(self, lua_path="", request_handler=None):
+    def __init__(self, lua_path="", request_handler=None, timeout=10):
         if lua_path != "":
             if shutil.which(lua_path) is None:
                 raise ETUMRuntimeError(
@@ -56,6 +56,7 @@ class LuaFuncExecEngine:
         self._req_handler = request_handler
         self._process = None
         self._port = 0
+        self._timeout = timeout
         self._rpc = None
 
     def start(self):
@@ -74,7 +75,7 @@ class LuaFuncExecEngine:
         lua_env = tm.gd("lua_env", {})
         tm.print_debug(f"lua_env : {lua_env}")
 
-        params = [self._lpath, "main.lua", "--timeout", "10", "--host", "127.0.0.1", "--port", f"{self._port}"]
+        params = [self._lpath, "main.lua", "--timeout", f"{self._timeout}", "--host", "127.0.0.1", "--port", f"{self._port}"]
 
         if tm.debug_enabled():
             params.append("--verbose")

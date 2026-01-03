@@ -88,10 +88,10 @@ class TestProcess(Process):
                 test_set.report_path = locate_report_file(test_set.report_path)
 
                 # Python & lua functions call subprocess initialization
-                py_fproc = py_func_call_init(tm.gd("python_path", ""), api_request)
+                py_fproc = py_func_call_init(tm.gd("python_path", ""), api_request, 10)
                 lua_fproc = None
                 if test_set.isTestTypePresent(cst_type.TYPE_LUA_FUNCTION):
-                    lua_fproc = lua_func_call_init(tm.gd("lua_path", ""), api_request)
+                    lua_fproc = lua_func_call_init(tm.gd("lua_path", ""), api_request, 10)
 
                 self.__loaded = True
 

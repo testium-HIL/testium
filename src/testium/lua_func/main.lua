@@ -74,7 +74,7 @@ end
 
 server_sock:listen(1)
 local ip, port = server_sock:getsockname()
-utils.log("listening on %s:%d", ip, port)
+utils.log("listening on %s:%d for %.1f secs", ip, port, config.timeout)
 
 server_sock:settimeout(config.timeout) -- Prevents hanging on dead connections
 

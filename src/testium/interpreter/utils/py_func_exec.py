@@ -11,9 +11,9 @@ from interpreter.test_items.test_result import TestValue
 function_call_process = None
 
 
-def py_func_call_init(python_path, request_handler):
+def py_func_call_init(python_path, request_handler, timeout):
     global function_call_process
-    function_call_process = PyFuncExecEngine(python_path, request_handler)
+    function_call_process = PyFuncExecEngine(python_path, request_handler, timeout)
     return function_call_process
 
 
@@ -33,7 +33,7 @@ def is_python_interpreter(path: str, timeout=2) -> bool:
 
 class PyFuncExecEngine:
 
-    def __init__(self, python_path="", request_handler=None):
+    def __init__(self, python_path="", request_handler=None, timeout=10):
         if python_path != "":
 
             if shutil.which(python_path) is None:
@@ -58,6 +58,7 @@ class PyFuncExecEngine:
         self._req_handler = request_handler
         self._process = None
         self._port = 0
+        self._timeout = timeout
         self._rpc = None
 
     def start(self):
@@ -74,7 +75,7 @@ class PyFuncExecEngine:
 
         func_proc_path = tm.gd("testium_path")
 
-        params = [self._ppath, "-m", "py_func", "-p", f"{self._port}"]
+        params = [self._ppath, "-m", "py_func", "-p", f"{self._port}", "-t", f"{self._timeout}"]
         if tm.debug_enabled():
             params.append("-v")
 
