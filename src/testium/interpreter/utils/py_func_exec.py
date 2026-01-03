@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import socket
 import libs.testium as tm
+from interpreter.utils.paths import sys_python_path
 from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.jrpc import JsonRpcClient
 from interpreter.test_items.test_result import TestValue
@@ -14,16 +15,6 @@ def py_func_call_init(python_path, request_handler):
     global function_call_process
     function_call_process = PyFuncExecEngine(python_path, request_handler)
     return function_call_process
-
-
-def python_version(path: str):
-    result = subprocess.run(
-        [path, "-c", "import sys; print(sys.version_info[:3])"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    return eval(result.stdout.strip())
 
 
 def is_python_interpreter(path: str, timeout=2) -> bool:
@@ -56,7 +47,11 @@ class PyFuncExecEngine:
                 )
 
         else:
-            python_path = sys.executable
+            python_path = sys_python_path()
+            if python_path == "":
+                raise ETUMRuntimeError(
+                    f"No valid python interpreter found"
+                )
             tm.setgd("python_path", python_path)
 
         self._ppath = python_path

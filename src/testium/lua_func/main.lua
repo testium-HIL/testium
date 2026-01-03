@@ -64,8 +64,17 @@ local handle = require("handle")
 utils.verbose = config.verbose
 
 -- Create the master socket
-local server_sock = assert(socket.bind(config.host, config.port))
-utils.log("listening on %s:%d", config.host, config.port)
+local server_sock = socket.tcp()
+
+local ok, err = server_sock:bind(config.host, config.port)
+if not ok then
+    utils.log("error : %s", err)
+    os.exit(1)
+end
+
+server_sock:listen(1)
+local ip, port = server_sock:getsockname()
+utils.log("listening on %s:%d", ip, port)
 
 server_sock:settimeout(config.timeout) -- Prevents hanging on dead connections
 

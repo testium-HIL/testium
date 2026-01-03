@@ -56,6 +56,7 @@ class Console(object):
     def __init__(self, name, echoOn=False, write_delay=0):
         self.stream = sys.stdout
         self.name = name
+        self.encoding = "utf-8"
         self.echo_on = echoOn
         self.write_delay = write_delay
         self.string_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+' '+self.name+']'
@@ -117,9 +118,9 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         return True
 
     def _compute_char(self, data):
-        c = data.decode('utf-8', errors='replace')
-        if not self._is_valid_character(c):
-            c = ''
+        c = data.decode(self.encoding, errors='replace')
+        # if not self._is_valid_character(c):
+        #    c = ''
         return c
 
     def read_until(self, match, timeout=None, return_data=False, mute=False):
@@ -234,11 +235,11 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
             print(('[>' + self.name + '] : ' + characters), end=ech)
         if self.write_delay != 0:
             for char in characters:
-                self.port.write(char.encode('utf-8'))
+                self.port.write(char.encode(self.encoding))
                 sleep(self.write_delay)
             return len(characters)
         else:
-            return self.port.write(characters.encode('utf-8'))
+            return self.port.write(characters.encode(self.encoding))
 
 
 if not sys.platform.startswith('win'):
@@ -296,7 +297,7 @@ class TelnetConsole(Console):
         return self.read_until('\n', return_data=True)[1]
 
     def read_nowait(self, mute=False):
-        st = self.port.read_very_eager().decode('utf-8', errors='replace')
+        st = self.port.read_very_eager().decode(self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]
             self.stream.write('[{} {}]'.format(date_str, self.name)+st)
@@ -455,13 +456,13 @@ class SerialConsole(Console):
             if not self._thd.is_alive() and not self.stop.isSet():
                 raise RuntimeError(
                     "Impossible to read the serial console, it may be already openned")
-            st = self.rx_queue.getAll().decode('utf-8', errors='replace')
+            st = self.rx_queue.getAll().decode(self.encoding, errors='replace')
             if not mute:
                 date_str = str(datetime.now()).split('.')[0].split(' ')[1]
                 self.stream.write('[{} {}]'.format(date_str, self.name)+st)
             return st
 
-        st = self.port.read(self.port.inWaiting()).decode('utf-8', errors='replace')
+        st = self.port.read(self.port.inWaiting()).decode(self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]
             self.stream.write('[{} {}]'.format(date_str, self.name)+st)
@@ -540,7 +541,7 @@ class LoggedConsole(Console):
                 self.rx_queue.put(data)
             else:
                 continue
-            data = data.decode('utf-8', errors='replace')
+            data = data.decode(self.encoding, errors='replace')
             # if valid char, write into the file
             if self._is_valid_character(data):
                 # replace '\r' by '\n' and '\r\n' by '\n'
@@ -583,7 +584,7 @@ class LoggedConsole(Console):
             raise ConnectionAbortedError
         chars = ''
         for _ in range(self.rx_queue.qsize()):
-            chars = chars + self.rx_queue.get().decode('utf-8', errors='replace')
+            chars = chars + self.rx_queue.get().decode(self.encoding, errors='replace')
 
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]

@@ -1,5 +1,6 @@
 from datetime import datetime
 import sys
+import locale
 if sys.platform.startswith('win'):
     import subprocess
 else:
@@ -16,6 +17,9 @@ class TermConsole(Console):
 
     def __init__(self, name, project_path=None, cust_shell=None, echoOn=False, write_delay=0):
         Console.__init__(self, name, echoOn, write_delay)
+        if sys.platform.startswith('win'):
+            self.encoding = 'cp850'
+        
         if not project_path:
             self.ppath = os.getcwd()
         else:
@@ -111,7 +115,7 @@ class TermConsole(Console):
 
         s += self.q.getAll()
 
-        st = s.decode('utf-8', errors='replace')
+        st = s.decode(self.encoding, errors='replace')
 
         ls = st.splitlines()
         if (len(st) > 0) and (st[-1] != '\r') and (st[-1] !='\n'):
@@ -129,7 +133,7 @@ class TermConsole(Console):
             ech = '' if s.strip(' ').endswith('\n') else '\n'
             print(('[>' + self.name + '] : ' + s), end=ech)
         if sys.platform.startswith('win'):
-            res = self.term.stdin.write(s.encode('utf-8'))
+            res = self.term.stdin.write(s.encode(self.encoding))
         else:
             res = self.term.send(s)
 

@@ -122,7 +122,9 @@ python_path = {tm.gd("python_path", "no python path defined")}"""
                                         raise ETUMRuntimeError(
                                             f"""Impossible to start the external lua execution process.
 Is the lua path correct ?
-lua_path = {tm.gd("lua_path", "no lua path defined")}"""
+  lua_path = {tm.gd("lua_path", "no lua path defined")}
+Are "lua-sockets" and "lua-cjson" installed ?
+Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables ?"""
                                         )
                                 test_set.execute()
                             finally:

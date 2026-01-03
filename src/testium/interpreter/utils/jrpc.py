@@ -380,23 +380,14 @@ class JsonRpcClient(JsonRpcBase):
         # TCP/IP socket creation
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-
+                sock.settimeout(self._timeout)
                 # Link of the socket at the configured port
-                tslice = 0.2
-                t = self._timeout
-                while True:
-                    try:
-                        sock.connect((self._host, self._port))
-                    except OSError:
-                        t -= tslice
-                        if t >= 0:
-                            sleep(tslice)
-                            continue
-                        else:
-                            raise ETUMRuntimeError(f"{self.name}: failed to connect")
-                    break
+                try:
+                    sock.connect((self._host, self._port))
+                except OSError:
+                    raise ETUMRuntimeError(f"{self.name}: failed to connect")
+                
                 self.print_info("Connected to server")
-
                 self.connect(sock)
 
                 while self._rpc.running:

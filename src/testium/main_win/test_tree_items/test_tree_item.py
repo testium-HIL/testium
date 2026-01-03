@@ -56,7 +56,7 @@ class QTestTreeItem(QTreeWidgetItem):
         self._display_pause = False
         self.icon_pause = QIcon()
         self.icon_fake = QIcon()
-        self.icon_pause.addPixmap(QPixmap(icon_prefix() + "/stop.png"))
+        self.icon_pause.addPixmap(QPixmap(icon_prefix() + "/break.png"))
         self.nfailure = 0
         self._timestamp = -1
         self._is_skipped = False

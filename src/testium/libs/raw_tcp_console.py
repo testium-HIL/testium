@@ -59,7 +59,7 @@ class RawTCPConsole(Console):
         self.sock.settimeout(0)
         self.stimeout = 0
         s = self.sock.recv(4096)
-        st = s.decode('utf-8', errors='replace')
+        st = s.decode(self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]
             self.stream.write('[{} {}]'.format(date_str, self.name)+st)
@@ -69,5 +69,5 @@ class RawTCPConsole(Console):
         if self.echo_on and not mute:
             ech = '' if s.strip(' ').endswith('\n') else '\n'
             print(('[>' + self.name + '] : ' + s), end=ech)
-        res = self.sock.sendall(s.encode('utf-8'))
+        res = self.sock.sendall(s.encode(self.encoding))
         return res

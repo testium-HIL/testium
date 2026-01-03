@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import socket
 import libs.testium as tm
+from interpreter.utils.paths import sys_lua_path
 from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.jrpc import JsonRpcClient
 from interpreter.test_items.test_result import TestValue
@@ -14,17 +15,6 @@ def lua_func_call_init(lua_path, request_handler):
     global function_call_process
     function_call_process = LuaFuncExecEngine(lua_path, request_handler)
     return function_call_process
-
-
-def lua_version(path: str):
-    result = subprocess.run(
-        [path, "-v"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    vers = ((result.stdout.split(" "))[1]).split(".")
-    return (vers[0], vers[1], vers[2])
 
 
 def is_lua_interpreter(path: str, timeout=2) -> bool:
@@ -55,7 +45,11 @@ class LuaFuncExecEngine:
                     f"The passed executable is not a lua interpreter: '{lua_path}'"
                 )
         else:
-            lua_path = "/usr/bin/lua"
+            lua_path = sys_lua_path()
+            if lua_path == "":
+                raise ETUMRuntimeError(
+                    f"No valid lua interpreter found"
+                )
             tm.setgd("lua_path", lua_path)
 
         self._lpath = lua_path
@@ -78,8 +72,9 @@ class LuaFuncExecEngine:
 
         func_proc_path = os.path.join(tm.gd("testium_path"),"lua_func")
         lua_env = tm.gd("lua_env", {})
+        tm.print_debug(f"lua_env : {lua_env}")
 
-        params = [self._lpath, "main.lua", "--host", "127.0.0.1", "--port", f"{self._port}"]
+        params = [self._lpath, "main.lua", "--timeout", "10", "--host", "127.0.0.1", "--port", f"{self._port}"]
 
         if tm.debug_enabled():
             params.append("--verbose")

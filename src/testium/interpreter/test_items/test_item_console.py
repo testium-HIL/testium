@@ -3,7 +3,7 @@ import os
 import importlib
 import traceback
 
-from libs import testium as tm
+import libs.testium as tm
 from interpreter.utils.tum_except import ETUMSyntaxError
 from interpreter.utils.stdout_redirect import stdio_redir
 from interpreter.test_items.test_item import test_run
@@ -58,7 +58,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             telnet_port = self._prms.getParam("telnet_port", default=69)
 
         elif self._protocol == "ssh":
-            if sys.platform.startswith("win"):
+            if tm.OS() == "Windows":
                 self.result.set(
                     TestValue.FAILURE, "SSH protocol not supported on Windows"
                 )
@@ -112,7 +112,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
                     )
 
             elif self._protocol == "ssh":
-                if sys.platform.startswith("win"):
+                if tm.OS() == "Windows":
                     raise ETUMSyntaxError(
                         f"The '{self.cmd()}' test item named '{self.name()}' does not support SSH protocol on Windows",
                         self.seqFilename()
