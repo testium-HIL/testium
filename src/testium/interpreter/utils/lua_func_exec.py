@@ -141,7 +141,7 @@ class LuaFuncExecEngine:
         # POpen params
         params = [self._lpath, "main.lua", "--timeout", f"{self._timeout}", "--host", "127.0.0.1", "--port", f"{self._port}"]
 
-        if tm.debug_enabled()  and tm.gd("debug_rpc", False):
+        if tm.debug_enabled() and tm.gd("debug_rpc", False):
             params.append("--verbose")
 
         self._process = subprocess.Popen(
@@ -153,7 +153,7 @@ class LuaFuncExecEngine:
             sock.close()
 
         self._rpc = JsonRpcClient("localhost", self._port, req_handler=self._req_handler)
-        if tm.debug_enabled():
+        if tm.debug_enabled() and tm.gd("debug_rpc", False):
             self._rpc.dbg_out = sys.stdout
         self._rpc.start()
 
