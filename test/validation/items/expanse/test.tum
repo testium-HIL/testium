@@ -10,10 +10,10 @@
     name: Dynamic variables expansion
     key: $(test)_PASS
     values:
-      - expanse_select: <@"$(expanse_select)".replace("o", "a")@>
+      - expanse_select: @|"$(expanse_select)".replace("o", "a")|
       - expanse_index: $(expanse_index_$(expanse_select))
       - expanse_table: $(expanse_table_$(expanse_select))
-      - expanse_eval: <@$(expanse_index) == 1@>
+      - expanse_eval: @|$(expanse_index) == 1|
 
 - check:
     name: Check variables expansion is correct (PASS)
@@ -33,7 +33,7 @@
       - var4: blo
       - expanse_var_bla: 3
       - expanse_blo_var: 5
-      - expanse_complex: <@<@$(expanse_$(var2)_$(var3))*6@> + <@4*$($(var1)_$(var4)_$(var2))@>@>
+      - expanse_complex: @|@|$(expanse_$(var2)_$(var3))*6| + @|4*$($(var1)_$(var4)_$(var2))||
 
 - check:
     name: Check complex variables expansion is correct (PASS)
@@ -50,10 +50,10 @@
       - expanse_var_2: 6
       - expanse_object:
           [
-            { a: $(expanse_var_2), $(expanse_key): <@2**3@> },
+            { a: $(expanse_var_2), $(expanse_key): @|2**3| },
             {
-              '<@"bla".replace("a", "o")@>':
-                [<@$(expanse_var)*$(expanse_var_2)@>, 25],
+              '@|"bla".replace("a", "o")|':
+                [@|$(expanse_var)*$(expanse_var_2)|, 25],
             },
           ]
 

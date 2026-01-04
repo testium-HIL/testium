@@ -63,7 +63,7 @@ The parameter file can be specified in the `.tum` file root:
 
     parameter1: value1
     parameter2: 1234
-    parameter3: <@ 12.34 * 2 @>
+    parameter3: @| 12.34 * 2 |
     parameter4:
         - $(parameter1)
         - $(parameter3)
@@ -202,7 +202,7 @@ The variable substitution is recursive and checks all the occurrences of the
 ``$(x)`` pattern in a string.
 
 It is also possible to perform evaluation of python substrings during parameters passing.
-It is done by using the ``<@ expr @>`` pattern in a string.
+It is done by using the ``@| expr |`` pattern in a string.
 `expr` may then be a correct python expression.
 
 Below are illustrated simple and more complicated cases of expansion and evaluation depending on
@@ -215,10 +215,10 @@ their pattern.
         name: Dynamic variables expansion
         key: $(test)_PASS
         values:
-            - expanse_select: <@"$(expanse_select)".replace("o", "a")@>
+            - expanse_select: @|"$(expanse_select)".replace("o", "a")|
             - expanse_index: $(expanse_index_$(expanse_select))
             - expanse_table: $(expanse_table_$(expanse_select))
-            - expanse_eval: <@$(expanse_index) == 1@>
+            - expanse_eval: @|$(expanse_index) == 1|
 
 Test Items
 --------------------

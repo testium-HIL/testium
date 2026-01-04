@@ -1,5 +1,5 @@
 # All sub directory in items are evaluated as a list
-items: <@ [os.path.basename(f.path) for f in os.scandir(os.path.join(r"$(test_directory)", "items")) if f.is_dir()] @>
+items: @| [os.path.basename(f.path) for f in os.scandir(os.path.join(r"$(test_directory)", "items")) if f.is_dir()] |
   # - common
   # - check
   # - console
