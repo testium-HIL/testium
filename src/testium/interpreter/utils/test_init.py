@@ -163,7 +163,7 @@ def _load_test_dict(test_file, variables: dict, no_include: bool = False, raw_in
     return d
 
 
-def load_test(test_file, test_dir, cmdline_pfs, cmdline_defs):
+def load_test(test_file, test_dir, cmdline_pfs, cmdline_defs, gui_defaults):
     # First step: populate config files without includes considered
     test_dict = _load_test_dict(test_file, {}, no_include=True)
     _check_test_dict(test_dict)
@@ -177,7 +177,7 @@ def load_test(test_file, test_dir, cmdline_pfs, cmdline_defs):
     old_pfs = _config_files_from_test(test_dict, cmdline_pfs)
 
     # Variables updated
-    gd = update_global(old_pfs, cmdline_defs, silent=True)
+    gd = update_global(old_pfs, cmdline_defs, gui_defaults, silent=True)
 
     while True:
         # Loop to check param files until all param files are identified
@@ -201,7 +201,7 @@ def load_test(test_file, test_dir, cmdline_pfs, cmdline_defs):
             break
 
         # Variables updated
-        gd = update_global(new_pfs, cmdline_defs, silent=False)
+        gd = update_global(new_pfs, cmdline_defs, gui_defaults, silent=False)
         old_pfs = copy.copy(new_pfs)
 
     # Processing (with includes) for complete file loading
@@ -297,11 +297,19 @@ def _check_test_dict(test_dict):
             "The tum file has a major problem. The 'main' section could not be found.")
 
 
-def update_global(config_files, defines, silent=False):
+def update_global(config_files, defines, gui_defaults, silent=False):
     '''Global dict updated with the content of the config file and a dict provided.
     this function returns the resulting dict.
     '''
-    # command line defines are applied first
+    # GUI preferences applied first
+    for k, v in gui_defaults.items():
+        try:
+            val = ast.literal_eval(v)
+        except:
+            val = v
+        tm.setgd(k, val)
+
+    # Then command line defines
     for k, v in defines.items():
         try:
             val = ast.literal_eval(v)

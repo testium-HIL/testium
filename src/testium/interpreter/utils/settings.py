@@ -35,6 +35,8 @@ class TestiumSettings():
     SettingsLogFont = SettingsItem('logFont', str)
     SettingsLogFontSize = SettingsItem('logFontSize', int)
     SettingsGitSupported = SettingsItem('logGitSupported', bool)
+    SettingsPythonPath = SettingsItem('pythonPath', str)
+    SettingsLuaPath = SettingsItem('luaPath', str)
 
     def __init__(self):
         if 'windows' in platform.system().lower():
@@ -256,3 +258,23 @@ class TestiumSettings():
     @git_supported.setter
     def git_supported(self, value):
         self.set_value(self.SettingsGitSupported, value)
+
+# SettingsPythonPath = 'pythonPath'
+    @property
+    def python_path(self):
+        r = self.value(self.SettingsPythonPath, "")
+        return r
+
+    @python_path.setter
+    def python_path(self, value):
+        self.set_value(self.SettingsPythonPath, value)
+
+# SettingsLuaPath = 'luaPath'
+    @property
+    def lua_path(self):
+        r = self.value(self.SettingsLuaPath, "")
+        return r
+
+    @lua_path.setter
+    def lua_path(self, value):
+        self.set_value(self.SettingsLuaPath, value)

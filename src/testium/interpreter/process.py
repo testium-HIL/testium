@@ -37,6 +37,7 @@ class TestProcess(Process):
         tst_control: TestSetController,
         config_files,
         defines,
+        gui_defaults={},
     ) -> None:
         super().__init__()
         self.__fname = file_name
@@ -44,6 +45,7 @@ class TestProcess(Process):
         self.__tctrl = tst_control
         self.__cfgf = config_files
         self.__defs = defines
+        self.__gui_defaults = gui_defaults  # default values coming from GUI prefs
         self.__exec = False
         self.__loaded = False
         self.__closed = False
@@ -64,7 +66,11 @@ class TestProcess(Process):
 
                 # Load the test file
                 test_dict, cfg_files = load_test(
-                    self.__fname, test_dir, self.__cfgf, self.__defs
+                    self.__fname,
+                    test_dir,
+                    self.__cfgf,
+                    self.__defs,
+                    self.__gui_defaults,
                 )
 
                 # Backup the global dict in case of restart of the test
@@ -89,6 +95,8 @@ class TestProcess(Process):
 
                 # Python & lua functions call subprocess initialization
                 py_fproc = py_func_call_init(tm.gd("python_path", ""), api_request, 10)
+
+                # Lua functions call subprocess initialization
                 lua_fproc = None
                 if test_set.isTestTypePresent(cst_type.TYPE_LUA_FUNCTION):
                     lua_fproc = lua_func_call_init(tm.gd("lua_path", ""), api_request, 10)

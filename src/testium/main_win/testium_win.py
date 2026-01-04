@@ -974,6 +974,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             return fullFileName
 
+    def defaults_for_process(self):
+        d = {}
+
+        pp = prefs.settings.python_path
+        if pp != "":
+            d["python_path"] = pp
+
+        pp = prefs.settings.lua_path
+        if pp != "":
+            d["lua_path"] = pp
+
+        return d
+
     def loadTestSetFile(self, file_name):
         """Load the tests:
         return True if it succeeds, False otherwise.
@@ -998,6 +1011,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.ts_controller,
                 self.config_files,
                 self.defines,
+                self.defaults_for_process(),
             )
             self.test_proc.start()
             while self.test_proc.is_alive():
