@@ -34,7 +34,7 @@ sequences of tests can be called interactively.
     :caption: call a test in terminal mode
 
     $ testium -m
-    Configuration file loaded: /my/execution/path/param.xml
+    Configuration file loaded: /my/execution/path/param.yaml
     [...]
     ================================================================================
     ====== Test configuration

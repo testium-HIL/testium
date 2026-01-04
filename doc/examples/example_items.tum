@@ -2,10 +2,8 @@
 #
 
 config_file:
-    - param.xml
     - param.yaml
-    - param.json
-    - $(test_directory)/dummy/param_func.xml
+    - $(test_directory)/dummy/param_func.yaml
 
 main:
     name: Test Sample number one

@@ -1,9 +1,0 @@
-<?xml version="1.0" ?>
-<root>
-<!-- ****************************************************************************
-    Test configuration
-**************************************************************************** -->
-    <parameter name="windows_prompt" value=">"/>
-    <parameter name="linux_prompt" value="$"/>
-    <parameter name="sequence" value="tm.tum"/>
-</root>

@@ -5,7 +5,6 @@ from socket import gethostname
 import ast
 import json
 import yaml
-import xml.etree.ElementTree as ET
 import copy
 
 import yaml
@@ -78,7 +77,7 @@ def _locate_config_files(test_dir, config_files, silent=False):
     ret = []
     pf = []
     if len(config_files) == 0:
-        for p in ['param.xml', 'param.yaml', 'param.json']:
+        for p in ['param.yaml', 'param.yml']:
             param_filename = os.path.join(test_dir, p)
             if os.path.exists(param_filename):
                 pf.append(param_filename)
@@ -210,55 +209,6 @@ def load_test(test_file, test_dir, cmdline_pfs, cmdline_defs):
     return test_dict, new_pfs
 
 
-def xmltodict(xml_param_file, silent=True):
-    """ return a dictionnarie of parameter from xml file.
-    """
-    tag = 'parameter'
-    returned_dict = {}
-    returned_str_dict = {}
-    xml_tree = ET.parse(xml_param_file)
-    xml_root = xml_tree.getroot()
-    xml_params = xml_root.findall(tag)
-
-    for param in xml_params:
-        name = param.get('name', '')
-        if name != '':
-            v = param.get('value', None)
-            if v is None:
-                v = param.get('str', '')
-                v = v.replace("\\n", "\n")
-                v = v.replace("\\r", "\r")
-                v = v.replace("\\t", "\t")
-                returned_str_dict[name] = v
-            else:
-                v = v.replace("\\n", "\n")
-                v = v.replace("\\r", "\r")
-                v = v.replace("\\t", "\t")
-                returned_dict[name] = v
-
-    # reinitializes the global dict values with the xml file content
-    globdict.global_dict.update(returned_str_dict)
-    globdict.global_dict.update(returned_dict)
-
-    for i in range(10):
-        for key, val in returned_dict.items():
-            val = expanse(val)
-            returned_dict.update({key: val})
-
-    globdict.global_dict.update(returned_dict)
-
-    if not silent:
-        if not tm.debug_enabled():
-            tm.print_info(f"\"{xml_param_file}\" loaded.")
-        else:
-            tm.print_debug(f"\"{xml_param_file}\" loading:")
-            for k, v in returned_str_dict.items():
-                tm.print_debug(f"  {k}: {v}")
-            for k, v in returned_dict.items():
-                tm.print_debug(f"  {k}: {v}")
-            tm.print_debug(f"done.")
-
-
 def yamltodict(param_file, silent=True):
     # load of the file
     with open(param_file, 'r') as fd:
@@ -267,33 +217,6 @@ def yamltodict(param_file, silent=True):
     if dp is None:
         tm.print_info(f"The YAML file '{param_file}' is empty.")
         return
-
-    # update the global dict with raw data
-    globdict.global_dict.update(dp)
-
-    # Apply variables expansion
-    for i in range(10):
-        for key, val in dp.items():
-            val = expanse(val)
-            dp.update({key: val})
-
-    if not silent:
-        if not tm.debug_enabled():
-            tm.print_info(f"\"{param_file}\" loaded.")
-        else:
-            tm.print_debug(f"\"{param_file}\" loading:")
-            for k, v in dp.items():
-                tm.print_debug(f"  {k}: {v}")
-            tm.print_debug(f"done.")
-
-    # Finalize the global dict update
-    globdict.global_dict.update(dp)
-
-
-def jsontodict(param_file, silent=True):
-    with open(param_file, 'r') as fd:
-        s = fd.read()
-    dp = json.loads(s)
 
     # update the global dict with raw data
     globdict.global_dict.update(dp)
@@ -340,15 +263,11 @@ def _feed_gd_with_params(param_file, silent=True):
             raise ETUMSyntaxError(f'Parameter file "{pf}" not found')
 
         ext = os.path.splitext(pf)[1]
-        if ext == '.xml':
-            xmltodict(pf, silent)
-        elif ext == '.json':
-            jsontodict(pf, silent)
-        elif ext == '.yaml':
+        if (ext == '.yaml') or (ext == '.yml'):
             yamltodict(pf, silent)
         else:
             raise ETUMSyntaxError(
-                'config files must be "*.xml", "*.yaml" or "*.json"')
+                'config files must be "*.yaml" or "*.yml"')
 
 
 def set_standard_gd_keys(test_name, test_dir, test_file, config_files):

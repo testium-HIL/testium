@@ -195,8 +195,8 @@ Export attribute
         key:
             - GID-1510554_step_1
         report:
-            reported_list: @| random.sample(range(0,20), k=10) |
-            reported_float: @| math.sqrt(float(1)) |
+            reported_list: $| random.sample(range(0,20), k=10) |
+            reported_float: $| math.sqrt(float(1)) |
             reported_str: This is my reported sentence
 
 

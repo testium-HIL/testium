@@ -143,7 +143,7 @@ class TestItem:
                             f"'{self.cmd()}' test item named '{self.name()}':\nskipped expresion can only be a static expression as it is evaluated during loading of TUM : {s}",
                             self.seqFilename(),
                         )
-                # This allow disabling test item directly by using its name inside param.xml file
+                # This allow disabling test item directly by using its name inside param.yaml file
                 elif self._name in tm.gd("skipped_test_item", []):
                     self.skipped = True
                 else:

@@ -39,7 +39,7 @@ Configuration files
 A configuration file can be specified in the `.tum` file or by the command line.
 This configuration file is optional and must be a YAML file.
 
-The type of file is recognized by the file name extension `.yaml`.
+The configuration files must have the `.yaml` or `.yml` file name extension.
 
 During the test script loading process, the values defined in these configuration files
 are added to the global variables and are then accessible from the test items and scripts
@@ -63,7 +63,7 @@ The parameter file can be specified in the `.tum` file root:
 
     parameter1: value1
     parameter2: 1234
-    parameter3: @| 12.34 * 2 |
+    parameter3: $| 12.34 * 2 |
     parameter4:
         - $(parameter1)
         - $(parameter3)
@@ -106,8 +106,11 @@ Another possible usage of the global variables is to share persistent data betwe
 A library allowing python functions to access global variables is available from the
 python scripts. See details in section :ref:`helper library<sec_python_helper_library>`.
 
-Apart from the value obtained from the param.xml file, the global varibles entries
-contains also built-in specific value, and test item specific values.
+Apart from the value obtained from the default `param.yaml` or defined configuration files,
+the global variables entries contains also
+
+* built-in specific value (see :ref:`below<sec_global_variables_builtin>`),
+* values returned by test items.
 
 .. _sec_global_variables_builtin:
 
@@ -202,7 +205,7 @@ The variable substitution is recursive and checks all the occurrences of the
 ``$(x)`` pattern in a string.
 
 It is also possible to perform evaluation of python substrings during parameters passing.
-It is done by using the ``@| expr |`` pattern in a string.
+It is done by using the ``$| expr |`` pattern in a string.
 `expr` may then be a correct python expression.
 
 Below are illustrated simple and more complicated cases of expansion and evaluation depending on
@@ -215,10 +218,10 @@ their pattern.
         name: Dynamic variables expansion
         key: $(test)_PASS
         values:
-            - expanse_select: @|"$(expanse_select)".replace("o", "a")|
+            - expanse_select: $|"$(expanse_select)".replace("o", "a")|
             - expanse_index: $(expanse_index_$(expanse_select))
             - expanse_table: $(expanse_table_$(expanse_select))
-            - expanse_eval: @|$(expanse_index) == 1|
+            - expanse_eval: $|$(expanse_index) == 1|
 
 Test Items
 --------------------

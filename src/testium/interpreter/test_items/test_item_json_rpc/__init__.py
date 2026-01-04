@@ -1,6 +1,5 @@
 import sys
 import traceback
-from functools import wraps
 from random import randint
 
 from interpreter.utils.tum_except import ETUMSyntaxError

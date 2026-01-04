@@ -2,7 +2,12 @@
 #****************************************************************************
 #    Test configuration
 #**************************************************************************** -->
+windows_prompt: >
+linux_prompt: $
+sequence: tm.tum
+
 # loops parameters
+global_loop_param_list: [["one", "two", "three"], [1, 2, 3]]
 global_loop_param_txt: ['one', 'two', 'three']
 global_loop_param_num: [1, 2, 3]
 
