@@ -131,6 +131,7 @@ class Ui_preferenceWindow(object):
         self.choiceIconsTheme = QComboBox(self.scrollAreaWidgetContents)
         self.choiceIconsTheme.addItem("")
         self.choiceIconsTheme.addItem("")
+        self.choiceIconsTheme.addItem("")
         self.choiceIconsTheme.setObjectName(u"choiceIconsTheme")
 
         self.formLayout.setWidget(5, QFormLayout.ItemRole.FieldRole, self.choiceIconsTheme)
@@ -371,6 +372,7 @@ class Ui_preferenceWindow(object):
         self.checkDblClick.setText("")
         self.choiceIconsTheme.setItemText(0, QCoreApplication.translate("preferenceWindow", u"Colored icons", None))
         self.choiceIconsTheme.setItemText(1, QCoreApplication.translate("preferenceWindow", u"Black icons", None))
+        self.choiceIconsTheme.setItemText(2, QCoreApplication.translate("preferenceWindow", u"White icons", None))
 
         self.label_10.setText(QCoreApplication.translate("preferenceWindow", u"Icons theme", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInterfaceParams), QCoreApplication.translate("preferenceWindow", u"Interface parameters", None))

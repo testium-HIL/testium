@@ -128,7 +128,8 @@ DB_TEST_FIELDS = [
 
 ICON_THEMES_PREFIX = [
     ":/color",
-    ":/black"
+    ":/black",
+    ":/white",
 ]
 
 FOLDED_CHAR         = "."

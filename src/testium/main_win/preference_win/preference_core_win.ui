@@ -199,6 +199,11 @@
                <string>Black icons</string>
               </property>
              </item>
+             <item>
+              <property name="text">
+               <string>White icons</string>
+              </property>
+             </item>
             </widget>
            </item>
            <item row="5" column="0">
