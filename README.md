@@ -2,56 +2,29 @@
 
 [See here](doc/manual/testium_manual.pdf).
 
-# Installation
+# run testium
 
-## Installation from local pypi repository
+From the root path, on windows `cmd`:
 
-### Virtualenv
+    run.bat
 
-It is strongly recommended to create a python virtual environment to be able to install testium with pip.
+On windows powershell:
 
-This method is also required for git sources install and debug.
+    run.ps1
 
-#### Virtualenv setup
+On linux:
 
-Creation of the python virtual environment:
+    ./run.sh
 
-    python3 -m venv <my_venv_dir>/<my_python_venv>
+The virtual environment is created if needed and *testium* is started.
 
-Each time it is needed to enter the virtual environment, just execute:
+# Manual setup
 
-    source <my_venv_dir>/<my_python_venv>/bin/activate
+A python virtual environment should be created:
 
-this line can also be inserted in the `.bashrc` to be automatically called in a linux terminal.
+    python3 -m venv <testium_venv>
 
-It is possible to configure the *code* IDE to use this virtual environment by setting it
-in the preferences: "File->Settings", search "venv", then setup the virtual env.
-
-And when properly set, you can select the interpreter from your newly created venv.
-
-### install testium
-
-From the python virtual environment run:
-
-    pip install testium
-
-all the dependencies are automatically installed in the virtual env.
-
-### run testium
-
-From the python virtual environment just run:
-
-    python -m testium
-
-or simply
-
-    testium
-
-## Installation from sources
-
-The python virtual environment should be installed first (see above).
-
-### Requirements
+## Requirements
 
 In the virtual environment, the following modules must be installed:
 
@@ -68,50 +41,14 @@ In the virtual environment, the following modules must be installed:
 
 A `requirements.txt` file is also available in the git repository in the path `testium/src/`.
 
-### Git repository
 
-Clone testium from the company's git repository.
+## run testium
 
-### Tagged version
+from the testium path, execute
 
-In the case testium must be executed at a given release, the tagged version
-is expected.
+    python3 -m src/testium
 
-To know the tags which exist for the software, just execute the following command in the `testium` directory:
-
-    $ git tag --list
-
-Then the list of tags is displayed.
-
-To switch to the considered tag, execute the following commands:
-
-    $ git checkout <tag_name>
-
-If you want to be sure that you're on the right tag, just execute:
-    $ git status
-
-And the console may return:
-
-    HEAD detached at <tag_name>
-    nothing to commit, working tree clean
-    $
-
-### Execution from sources
-
-**Windows**
-
-    $ python.exe <path_to_testium>\src\testium
-
-**Linux**
-
-    $ python <path_to_testium>/src/testium
-
-# Documentation generation
-
-This section describes how to generate the documentation.
-
-The testium's user's manual is genearted with the help of the sphinx
-framework.
+# Doc generation
 
 ## Install sphinx
 
@@ -163,7 +100,7 @@ This is the prefered method :
 2. Install debugpy module in python
 
    python -m pip install debugpy
-3. Then got to the "RUN AND DEBUG" tab and press the play button.
+3. Then get to the "RUN AND DEBUG" tab and press the play button.
 4. A testium window will pops up ; start execution of your tum.
 5. Do not forget to put breakpoints where you want to investigate.
 
@@ -177,10 +114,6 @@ Icons are coming from the following site: https://github.com/free-icons/free-ico
 
 A `python` virtual environment must have been set as described above.
 
-### Install appimage-builder
-
-Install `appimage-builder` package using pip.
-
 ### Install pyinstaller
 
 Install `pyinstaller` package using pip.
@@ -193,16 +126,9 @@ The procedure for a binary release is as follows:
 2. modify the version in `src/VERSION` file
 3. be sure that the documentation is up to date, and if not execute `doc/manual/sphinx/build_doc.sh` script
 4. push modifications and create a tag with the new version on the git repository
-5. generate an appimage by calling `package/appimage/./build.sh`
-6. generate an executable file by calling `package/pyinstaller/./build.sh`
-7. run the complete validation test for each generated binary
-8. check that all the validation results are OK
-9. On artifactory add the following files to a new testium version:
-
-    * release note
-    * testium binary(ies)
-    * testium user's manual
-    * validation results
+5. generate an executable file by calling `package/pyinstaller/./build.sh`
+6. run the complete validation test for each generated binary
+7. check that all the validation results are OK
 
 # Troubleshooting
 
