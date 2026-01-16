@@ -107,10 +107,22 @@ In the example above, the global variable ``$(pfn_function test item)``
 would be created at the end of the item execution. It would contain the resulting
 value of the funcToBeExecuted python function.
 
-**Global variables**
+**Python Interpreter environment setup**
 
 Some global variables have an impact on the ``py_func`` test item behavior:
     
 * ``python_path``: This optional global variable can be used to define
   the python executable path. If not defined, the python interpreter is
   searched in at the default places in the system.
+* ``python_env``: This global variable can be used to define
+  environment variables for the lua script execution environment.
+  Only `PATH`, `LUA_PATH`, and `LUA_CPATH` are supported.
+
+  .. code-block:: yaml
+      :caption: example of configuration file: param.yaml
+
+      [...]
+      python_env:
+        PATH: "/my/path/"
+        PYTHONPATH: "/my/python/modules/"
+      [...]

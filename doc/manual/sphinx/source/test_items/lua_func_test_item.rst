@@ -64,7 +64,7 @@ In the example above, the global variable ``$(lfn_activity)``
 would be created at the end of the item execution. It would contain the resulting
 value of the funcToBeExecuted python function.
 
-**Global variables**
+**Lua Interpreter environment setup**
 
 Some global variables have an impact on the ``lua_func`` test item behavior:
 

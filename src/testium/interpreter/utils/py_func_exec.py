@@ -1,3 +1,4 @@
+import os
 import sys
 import shutil
 import subprocess
@@ -69,6 +70,22 @@ class PyFuncExecEngine:
         if self._process is not None:
             raise ETUMRuntimeError("The function subprocess has already been started.")
 
+        # POpen config
+        CUST_ENV = {
+            "PATH": {"replace": False},
+            "PYTHONPATH": {"replace": True},
+        }
+
+        py_env = tm.gd("python_env", {})
+        env = os.environ.copy()
+        for k, v in CUST_ENV.items():
+            e = py_env.get(k, "")
+            if e != "":
+                if v["replace"]:
+                    env[k] = e
+                else:
+                    env[k] = e + ";" + env.get(k, "")
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(("localhost", 0))
         self._port = sock.getsockname()[1]
@@ -81,7 +98,7 @@ class PyFuncExecEngine:
             params.append("-v")
 
         self._process = subprocess.Popen(
-            params, cwd=func_proc_path
+            params, env=env, cwd=func_proc_path
         )
 
         # Port was reserved until the sub-process is started. Now released.
