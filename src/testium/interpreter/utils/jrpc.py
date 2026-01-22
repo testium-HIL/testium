@@ -182,7 +182,7 @@ class JsonRpcConnection:
             self.conn.sendall(data)
 
     # ---------- Outgoing request ----------
-    def call(self, method, params=None, timeout=5.0):
+    def call(self, method, params=None, timeout=3600.0):
         """Send a request and wait for its response.
 
         Args:
