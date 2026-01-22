@@ -25,9 +25,7 @@ a = Analysis(
                    "colorama",
                    "matplotlib",
                    "junit_xml",
-                   "lxml",
-                   "tables",
-                   "pandas",],
+                   "lxml"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -55,4 +53,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    ico='../testium.png'
 )
