@@ -33,7 +33,7 @@ class TestItemLuaFunc(TestItem):
                 self.seqFilename(),
             )
         # Lua functions call subprocess initialization
-        self._proc = lua_func_call_init(tm.gd("lua_path", ""), api_request, 10)
+        self._proc = lua_func_call_init(tm.gd("lua_bin", ""), api_request, 10)
 
 
     @test_run
@@ -56,7 +56,7 @@ class TestItemLuaFunc(TestItem):
                     raise ETUMRuntimeError(
                         f"""Impossible to start the external lua execution process.
 Is the lua path correct ?
-lua_path = {tm.gd("lua_path", "no lua path defined")}
+lua_bin = {tm.gd("lua_bin", "no lua path defined")}
 Are "lua-sockets" and "lua-cjson" installed ?
 Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables ?"""
                     )

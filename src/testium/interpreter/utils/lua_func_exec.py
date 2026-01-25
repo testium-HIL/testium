@@ -36,18 +36,18 @@ def _lua_version(path: str):
 
 
 
-def _is_lua51(lua_path):
+def _is_lua51(lua_bin):
     res = False
-    v = _lua_version(lua_path)
+    v = _lua_version(lua_bin)
     if (v[0] == "5") and (v[1] >= "1"):
         res = True
     return res
 
 
-def _sys_lua_path():
-    sys_lua_path = tm.gd("_sys_lua_path", "")
-    if sys_lua_path != "":
-        return sys_lua_path
+def _sys_lua_bin():
+    sys_lua_bin = tm.gd("_sys_lua_bin", "")
+    if sys_lua_bin != "":
+        return sys_lua_bin
 
     cur_os = tm.OS()
     if cur_os == "Windows":
@@ -55,22 +55,22 @@ def _sys_lua_path():
     else:
         func = sys_app_path_lin
 
-    sys_lua_path = func("lua")
-    if (sys_lua_path != "") and not _is_lua51(sys_lua_path):
-        tm.print_debug(f"'{sys_lua_path}' not a lua 5.1 min.")
-        sys_lua_path = ""
+    sys_lua_bin = func("lua")
+    if (sys_lua_bin != "") and not _is_lua51(sys_lua_bin):
+        tm.print_debug(f"'{sys_lua_bin}' not a lua 5.1 min.")
+        sys_lua_bin = ""
 
-    tm.setgd("_sys_lua_path", sys_lua_path)
-    return sys_lua_path
+    tm.setgd("_sys_lua_bin", sys_lua_bin)
+    return sys_lua_bin
 
 
 
-def lua_func_call_init(lua_path, request_handler, timeout):
+def lua_func_call_init(lua_bin, request_handler, timeout):
     """
     Initializes the global Lua function execution process.
 
     Args:
-        lua_path (str): Path to the Lua interpreter executable. If empty, uses system default.
+        lua_bin (str): Path to the Lua interpreter executable. If empty, uses system default.
         request_handler: Handler for JSON-RPC requests.
         timeout (int): Timeout for operations in seconds.
 
@@ -81,7 +81,7 @@ def lua_func_call_init(lua_path, request_handler, timeout):
         ETUMRuntimeError: If the Lua path is invalid or no interpreter is found.
     """
     global function_call_process
-    function_call_process = LuaFuncExecEngine(lua_path, request_handler, timeout)
+    function_call_process = LuaFuncExecEngine(lua_bin, request_handler, timeout)
     return function_call_process
 
 
@@ -117,37 +117,37 @@ class LuaFuncExecEngine:
     and executes specified functions with parameters.
     """
 
-    def __init__(self, lua_path="", request_handler=None, timeout=10):
+    def __init__(self, lua_bin="", request_handler=None, timeout=10):
         """
         Initializes the Lua function execution engine.
 
         Args:
-            lua_path (str, optional): Path to the Lua interpreter. Defaults to system path.
+            lua_bin (str, optional): Path to the Lua interpreter. Defaults to system path.
             request_handler: Handler for JSON-RPC requests.
             timeout (int, optional): Timeout for operations in seconds. Defaults to 10.
 
         Raises:
             ETUMRuntimeError: If the Lua path is invalid or no interpreter is found.
         """
-        if lua_path != "":
-            if shutil.which(lua_path) is None:
+        if lua_bin != "":
+            if shutil.which(lua_bin) is None:
                 raise ETUMRuntimeError(
-                    f"The passed lua path is not pointing to an executable: '{lua_path}'"
+                    f"The passed lua path is not pointing to an executable: '{lua_bin}'"
                 )
 
-            if not is_lua_interpreter(lua_path):
+            if not is_lua_interpreter(lua_bin):
                 raise ETUMRuntimeError(
-                    f"The passed executable is not a lua interpreter: '{lua_path}'"
+                    f"The passed executable is not a lua interpreter: '{lua_bin}'"
                 )
         else:
-            lua_path = _sys_lua_path()
-            if lua_path == "":
+            lua_bin = _sys_lua_bin()
+            if lua_bin == "":
                 raise ETUMRuntimeError(
                     f"No valid lua interpreter found"
                 )
-            tm.setgd("lua_path", lua_path)
+            tm.setgd("lua_bin", lua_bin)
 
-        self._lpath = lua_path
+        self._lpath = lua_bin
         self._req_handler = request_handler
         self._process = None
         self._port = 0

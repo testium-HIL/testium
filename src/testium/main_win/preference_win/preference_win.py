@@ -108,7 +108,7 @@ class PrefWindow(QDialog):
             prefs.settings.SettingsLuaPath: {
                 "type": "text",
                 "widget": self.ui.editLuaPath,
-                "value": prefs.settings.lua_path,
+                "value": prefs.settings.lua_bin,
                 "default": "",
                 "changed": False,
             },

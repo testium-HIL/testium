@@ -68,7 +68,7 @@ value of the funcToBeExecuted python function.
 
 Some global variables have an impact on the ``lua_func`` test item behavior:
 
-* ``lua_path``: This optional global variable can be used to define
+* ``lua_bin``: This optional global variable can be used to define
   the lua executable path. If not defined, the lua interpreter is
   searched in at the default place in the system.
 * ``lua_env``: This global variable can be used to define

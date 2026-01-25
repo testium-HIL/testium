@@ -271,10 +271,10 @@ class TestiumSettings():
 
 # SettingsLuaPath = 'luaPath'
     @property
-    def lua_path(self):
+    def lua_bin(self):
         r = self.value(self.SettingsLuaPath, "")
         return r
 
-    @lua_path.setter
-    def lua_path(self, value):
+    @lua_bin.setter
+    def lua_bin(self, value):
         self.set_value(self.SettingsLuaPath, value)

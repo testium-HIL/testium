@@ -981,9 +981,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if pp != "":
             d["python_bin"] = pp
 
-        pp = prefs.settings.lua_path
+        pp = prefs.settings.lua_bin
         if pp != "":
-            d["lua_path"] = pp
+            d["lua_bin"] = pp
 
         return d
 
