@@ -7,7 +7,6 @@ from pathlib import Path
 ourpath = Path(__file__)
 ourpath = ourpath.resolve()
 sys.path.append(os.path.abspath(ourpath.parent))
-from interpreter.utils.eval import evaluate
 
 import interpreter.utils.constants as cst
 
@@ -71,8 +70,7 @@ def main():
         d = define.split('=', 1)
         if d[0].strip() != '':
             if len(d) > 1:
-                _, edef = evaluate(d[1])
-                defines.update({d[0].strip(): edef})
+                defines.update({d[0].strip(): d[1]})
             else:
                 defines.update({d[0].strip(): True})
 

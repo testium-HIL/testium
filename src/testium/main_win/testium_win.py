@@ -977,9 +977,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def defaults_for_process(self):
         d = {}
 
-        pp = prefs.settings.python_path
+        pp = prefs.settings.python_bin
         if pp != "":
-            d["python_path"] = pp
+            d["python_bin"] = pp
 
         pp = prefs.settings.lua_path
         if pp != "":

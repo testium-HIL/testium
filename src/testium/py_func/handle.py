@@ -1,4 +1,10 @@
+import random
+import os
 import sys
+import time
+import platform
+import math
+import json
 import traceback
 from interpreter.utils.jrpc import JsonRpcSrv
 from interpreter.utils.tum_except import ETUMRuntimeError, print_exception
@@ -34,6 +40,22 @@ class FuncHandler(JsonRpcSrv):
                     tb = traceback.format_exc()
                     return {
                         "error": f"bad jrpc req handler 'func_call' arguments ({"\n".join(tb.splitlines())}). To be reported to testium support team."
+                    }
+            if method == "eval":
+                try:
+                    value = params["value"]
+                    try:
+                        res = eval(value)
+                        return {"result": res}
+                    except Exception as e:
+                        # eval can crash
+                        return {
+                            "error": f"Evaluation of '{value}' failed with message:\n  "+str(e)
+                        }
+                except Exception as e:
+                    tb = traceback.format_exc()
+                    return {
+                        "error": f"bad jrpc req handler 'eval' arguments ({"\n".join(tb.splitlines())}). To be reported to testium support team."
                     }
             else:
                 return {

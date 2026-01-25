@@ -33,21 +33,13 @@ def test_run(f):
                     c = self._prms.expanse(raw_condition)
                     if isinstance(c, bool):
                         condition = c
-                    elif isinstance(c, (str, bytes)):
-                        is_evaluated, condition = evaluate(c)
-                        if not is_evaluated:
-                            print("eval with c: {}".format(c))
-                            raise ETUMSyntaxError(
-                                f"The '{self.cmd()}' test item named '{self.name()}' has a 'condition' impossible to evaluate",
-                                self.seqFilename(),
-                            )
                     else:
-                        raise ETUMSyntaxError(
-                            f"The '{self.cmd()}' test item named '{self.name()}' has a 'condition' result ({c}) which is not string or bool",
-                            self.seqFilename(),
-                        )
+                        c = False
 
-                    msg = '"{}" --> "{}"'.format(raw_condition, c)
+                    if raw_condition == c:
+                        msg = f'"{c}"'
+                    else:
+                        msg = f'"{raw_condition}" --> "{c}"'
 
                 # Do we have to skip the test because of a true condition ?
                 if condition:

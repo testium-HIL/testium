@@ -7,8 +7,9 @@ import textwrap
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
 import libs.testium as tm
-from interpreter.utils.lua_func_exec import lua_func_exec
-from interpreter.utils.tum_except import ETUMSyntaxError
+from interpreter.utils.lua_func_exec import lua_func_call_init, lua_func_exec
+from interpreter.utils.api_srv import api_request
+from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst
 
 
@@ -31,6 +32,9 @@ class TestItemLuaFunc(TestItem):
                 f"The '{self.cmd()}' test item named '{self.name()}' (child of '{self.parent.name()}') has a missing or wrong parameter",
                 self.seqFilename(),
             )
+        # Lua functions call subprocess initialization
+        self._proc = lua_func_call_init(tm.gd("lua_path", ""), api_request, 10)
+
 
     @test_run
     def execute(self):
@@ -45,7 +49,24 @@ class TestItemLuaFunc(TestItem):
             if tm.debug_enabled():
                 tm.print_debug("Parameters list:")
                 tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
-            success, ret = lua_func_exec(self.file_name, self.func_name, pl)
+
+            if self._proc is not None:
+                self._proc.start()
+                if not self._proc.wait_ready(10):
+                    raise ETUMRuntimeError(
+                        f"""Impossible to start the external lua execution process.
+Is the lua path correct ?
+lua_path = {tm.gd("lua_path", "no lua path defined")}
+Are "lua-sockets" and "lua-cjson" installed ?
+Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables ?"""
+                    )
+
+            try:
+                success, ret = lua_func_exec(self.file_name, self.func_name, pl)
+            finally:
+                # Stops lua function execution process
+                self._proc.stop()
+                self._proc.join()
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)

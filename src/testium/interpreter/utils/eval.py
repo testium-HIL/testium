@@ -1,12 +1,7 @@
-import random
-import os
-import sys
-import time
-import platform
-import math
-import json
 import libs.testium as tm
-from interpreter.utils.tum_except import (ETUMSyntaxError, ETUMRuntimeError)
+from interpreter.utils.py_eval import eval_exec
+from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
+
 
 def evaluate(val, **replacement_dict):
     v2 = val
@@ -16,36 +11,51 @@ def evaluate(val, **replacement_dict):
         for key, replacement in replacement_dict.items():
             val = val.replace(f"$({key})", str(replacement))
         try:
-            v2 = eval(val)
+            v2 = eval_exec(val)
         except Exception as e:
             # eval can crash
             if tm.debug_enabled():
-                s=f"Evaluation of '{val}' failed with message:\n  "+str(e)
+                s = f"Evaluation of '{val}' failed with message:\n  " + str(e)
                 tm.print_debug(s)
             v2 = val
-        evaluated = (val != v2)
+        evaluated = val != v2
     return evaluated, v2
+
 
 def eval_to_boolean(c):
     if isinstance(c, bool):
         condition = c
     elif isinstance(c, (str, bytes)):
-        if c.lower() in ['true', 't', 'y', 'yes', 'ok', ]:
+        if c.lower() in [
+            "true",
+            "t",
+            "y",
+            "yes",
+            "ok",
+        ]:
             condition = True
-        elif c.lower() in ['f', 'n', 'nok', 'ko', 'false', 'no',]:
+        elif c.lower() in [
+            "f",
+            "n",
+            "nok",
+            "ko",
+            "false",
+            "no",
+        ]:
             condition = False
         else:
             try:
-                cond = eval(c)
+                cond = eval_exec(c)
                 condition = eval_to_boolean(cond)
             except Exception as e:
                 print("eval with c: {}".format(c))
                 raise e
     elif type(c) is int:
-        condition = (c > 0)
+        condition = c > 0
     else:
-        raise ETUMSyntaxError('c : {} not string, int or bool'.format(c))
+        raise ETUMSyntaxError("c : {} not string, int or bool".format(c))
     return condition
+
 
 def post_evaluate(post_eval, res):
     """This function is evaluating the result of a test,

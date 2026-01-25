@@ -33,7 +33,7 @@ class TestItemRun(TestItem):
         try:
             self.tum_fime = self._prms.getParam('tum_fime', required=True)
             self.param_file = self._prms.getParam('param_file', default='')
-            self.python_path = self._prms.getParam('python_path', default='')
+            self.python_bin = self._prms.getParam('python_bin', default='')
             self.testium_path = self._prms.getParam('testium_path', default='')
             self.log_path = self._prms.getParam('log_file', default='')
             self.report_path = self._prms.getParam('report_file', default='')
@@ -58,7 +58,7 @@ class TestItemRun(TestItem):
                     '"{}" file could not be found'.format(file_path))
             self.tum_fime = file_path
             pf = self._prms.expanse(self.param_file)
-            pp = self._prms.expanse(self.python_path)
+            pp = self._prms.expanse(self.python_bin)
             sp = self._prms.expanse(self.testium_path)
             lp = self._prms.expanse(self.log_path)
             rp = self._prms.expanse(self.report_path)

@@ -16,9 +16,11 @@ import numpy as np
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta, timezone
 
+import libs.testium as tm
 from interpreter.test_items.test_result import TestValue
 from interpreter.utils.tum_except import ETUMRuntimeError
-from interpreter.utils.py_func_exec import py_func_exec
+from interpreter.utils.py_func_exec import PyFuncExecEngine
+from interpreter.utils.api_srv import api_request
 from interpreter.utils.eval import post_evaluate
 from interpreter.utils.periodic_timer import PeriodicTimer
 from interpreter.utils.paths import abs_path_from_file, prepare_file_to_save
@@ -268,17 +270,30 @@ class RuntimePlotPeriodic(PeriodicTimer):
         self.func_name = func_name
         self.args = args
         self.post_eval = post_eval
+        self.proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+        self.proc.start()
+        if not self.proc.wait_ready(10):
+            raise ETUMRuntimeError(
+                f"""Impossible to start the external python execution process.
+Is the python path correct ?
+python_bin = {tm.gd("python_bin", "no python path defined")}"""
+            )
         self.start()
         self.on_timer_event()
 
     def on_timer_event(self):
-        succ, ret = py_func_exec(self.file, self.func_name, self.args)
+        succ, ret = self.proc.func_call(self.file, self.func_name, self.args)
         if succ == TestValue.SUCCESS:
             res, _ = ret
             res = post_evaluate(self.post_eval, res)
             self.msg_queue.put({"command": "add", "values": res})
         else:
             print("Plot periodic timer function ({self.file}/{self.func_name}) failed: \"{ret}\"")
+
+    def stop(self):
+        self.proc.stop()
+        self.proc.join()
+        super().stop()
 
 class RuntimePlot:
     EXPORTS = [".pdf", ".csv"]

@@ -1,7 +1,7 @@
 import os
 from sys import exc_info
 from jinja2 import Template
-from jinja2.exceptions import TemplateError, UndefinedError
+from jinja2.exceptions import TemplateSyntaxError, TemplateError, UndefinedError
 from tempfile import TemporaryFile
 from interpreter.utils.yaml_load import print_yaml
 from interpreter.utils.tum_except import ETUMSyntaxError
@@ -29,17 +29,17 @@ def template_to_test(filename: str, params: list):
         params["include_directory"] = os.path.dirname(os.path.abspath(filename))
         tmpf.write(j2_template.render(params))
     except TemplateSyntaxError as e:
-        raise ECPTSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
+        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
 Syntax error in template: {e.message}""")
     except UndefinedError as e:
-        raise ECPTSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
+        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
 Undefined variable error: {e.message}""")
     except TemplateError as e:
-        raise ECPTSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
+        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
 Template rendering error: {e.message}""")
     except Exception as e:
     # Catch any other unexpected errors
-        raise ECPTSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
+        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
 Unexpected error: {str(e)}""")
 
     # return to begining of the temp file

@@ -13,14 +13,14 @@ main:
 
                 - let:
                     name: Set test variables for Linux
-                    condition: "'$(os)' == 'Linux'"
+                    condition: $| "$(os)" == "Linux" |
                     values:
                         - terminal_prompt: $(linux_prompt)
                         - psep: "/"
 
                 - let:
                     name: Set test variables for Windows
-                    condition: "'$(os)' == 'Windows'"
+                    condition: $| "$(os)" == "Windows" |
                     values:
                         - terminal_prompt: $(windows_prompt)
                         - psep: "\\"

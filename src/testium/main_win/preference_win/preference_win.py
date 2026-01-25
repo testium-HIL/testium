@@ -101,7 +101,7 @@ class PrefWindow(QDialog):
             prefs.settings.SettingsPythonPath: {
                 "type": "text",
                 "widget": self.ui.editPythonPath,
-                "value": prefs.settings.python_path,
+                "value": prefs.settings.python_bin,
                 "default": "",
                 "changed": False,
             },

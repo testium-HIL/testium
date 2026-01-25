@@ -8,7 +8,6 @@ from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.utils.tum_except import ETUMSyntaxError
 import libs.testium as tm
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.eval import evaluate
 
 class TestItemLet(TestItem):
     """let item usage.
@@ -22,10 +21,9 @@ class TestItemLet(TestItem):
         self.is_container = False
         try:
             self._values_list = self._prms.getParamAll('values', default=[], required=False)
-            self._eval_list = self._prms.getParamAll('eval', default=[], required=False)
-            if (len(self._values_list) <= 0) and (len(self._eval_list) <= 0):
+            if len(self._values_list) <= 0:
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' must have a 'values' or 'eval' parameter",
+                    f"The '{self.cmd()}' test item named '{self.name()}' must have a 'values' parameter",
                     self.seqFilename(),
                 )
         except:
@@ -41,28 +39,11 @@ class TestItemLet(TestItem):
             for k in self._values_list.keys():
                 l.append({k: self._values_list[k]})
             self._values_list = l
-        if isinstance(self._eval_list, dict):
-            l = []
-            for k in self._eval_list.keys():
-                l.append({k: self._eval_list[k]})
-            self._eval_list = l
         #test core function
         for i in self._values_list:
             for k, v in i.items():
                 key = self._prms.expanse(k)
                 ev = self._prms.expanse(v)
-                tm.setgd(key, ev)
-                self.result.reported = {key: ev}
-                print('global value "{}" set to "{}"'.format(key, ev))
-
-        for i in self._eval_list:
-            for k, v in i.items():
-                key = self._prms.expanse(k)
-                val = self._prms.expanse(v)
-                is_evaluated, ev = evaluate(val)
-                if not is_evaluated:
-                    self.result.set(TestValue.FAILURE, "Error evaluating: '{}'".format(val))
-                    return
                 tm.setgd(key, ev)
                 self.result.reported = {key: ev}
                 print('global value "{}" set to "{}"'.format(key, ev))

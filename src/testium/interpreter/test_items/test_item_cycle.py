@@ -1,13 +1,13 @@
 import traceback
 
 from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
-from interpreter.utils.py_func_exec import py_func_exec
+from interpreter.utils.py_func_exec import PyFuncExecEngine
+from interpreter.utils.api_srv import api_request
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 import libs.testium as tm
 from interpreter.utils.params import TestItemParams
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.eval import evaluate
 
 
 class TestItemCycle(TestItem):
@@ -97,10 +97,9 @@ class TestItemCycle(TestItem):
                 iter = self._prms.expanse(iter)
 
             if not isinstance(iter, (list, tuple, int)):
-                _, iter = evaluate(iter)
-                if not isinstance(iter, (list, tuple, int)):
-                    self.result.set(TestValue.FAILURE, f"unrecognized type for iterator '{str(iter)}'")
-                    return
+                self.result.set(TestValue.FAILURE, f"unrecognized type for iterator '{str(iter)}'")
+                return
+
             if not isinstance(iter, int):
                 r = []
                 for i in iter:
@@ -174,8 +173,13 @@ class TestItemCycle(TestItem):
                         exit_val = self._prms.expanse(
                             self._exit_condition
                         )
-                        _, exit_val = evaluate(exit_val)
-                        if exit_val:
+                        ev = False
+                        if isinstance(exit_val, bool):
+                            ev = exit_val
+                        else:
+                            tm.print_warn(f"""Loop 'exit_condition' is not a boolean value ({exit_val}),
+then considered as 'False'""")
+                        if ev:
                             # exit condition is True
                             self.result.reported = {
                                 "exit": "condition",
@@ -190,9 +194,7 @@ class TestItemCycle(TestItem):
                             break
                         else:
                             print(
-                                'Continuing. Condition "{}" not met.'.format(
-                                    self._exit_condition
-                                )
+                                f"Continuing. Condition '{self._exit_condition}' not a 'True' boolean."
                             )
 
                     if self._exit_func:
@@ -204,7 +206,21 @@ class TestItemCycle(TestItem):
                             pl = self._prms.expanse(param_list)
                         else:
                             pl = [self._currentLoop]
-                        fsucc, res = py_func_exec(file, func, pl)
+
+                        proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+                        proc.start()
+                        if not proc.wait_ready(10):
+                            raise ETUMRuntimeError(
+                                f"""Impossible to start the external python execution process.
+Is the python path correct ?
+python_bin = {tm.gd("python_bin", "no python path defined")}"""
+                            )
+                        try:
+                            fsucc, res = proc.func_call(file, func, pl)
+                        finally:
+                            proc.stop()
+                            proc.join()
+
                         if fsucc == TestValue.SUCCESS:
                             fres, _ = res
                             if fres:

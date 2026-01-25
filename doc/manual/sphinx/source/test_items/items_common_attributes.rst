@@ -72,9 +72,9 @@ if not provided is given in the table as well.
     |``report``             | /                 | This attribute defines values (a dictionary) which    |
     |                       |                   | will be added in the ``data`` field of the report.    |
     +-----------------------+-------------------+-------------------------------------------------------+
-    | ``condition``         | /                 | The test item is not executed if its                  |
-    |                       |                   | ``condition`` attribute content is                    |
-    |                       |                   | evaluated as ``False``.                               |
+    | ``condition``         | /                 | The test item is executed if its                      |
+    |                       |                   | ``condition`` attribute content is a boolean          |
+    |                       |                   | ``True``.                                             |
     |                       |                   | see :ref:`Conditional                                 |
     |                       |                   | execution<sec_conditional_execution>`.                |
     +-----------------------+-------------------+-------------------------------------------------------+
@@ -133,7 +133,8 @@ or in configuration file (see :ref:`config files<sec_configuration_files>`) as a
 Conditional execution
 -----------------------------------------------
 
-The ``condition`` attribute content is evaluated as a python string.
+The ``condition`` attribute content must be a boolean value (if not ``True``, the condition is considered
+not met).
 
 
 .. _sec_process_result:

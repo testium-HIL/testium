@@ -110,13 +110,13 @@ value of the funcToBeExecuted python function.
 **Python Interpreter environment setup**
 
 Some global variables have an impact on the ``py_func`` test item behavior:
-    
-* ``python_path``: This optional global variable can be used to define
+
+* ``python_bin``: This optional global variable can be used to define
   the python executable path. If not defined, the python interpreter is
   searched in at the default places in the system.
 * ``python_env``: This global variable can be used to define
   environment variables for the lua script execution environment.
-  Only `PATH`, `LUA_PATH`, and `LUA_CPATH` are supported.
+  Only `PATH` and `PYTHONPATH` are supported.
 
   .. code-block:: yaml
       :caption: example of configuration file: param.yaml

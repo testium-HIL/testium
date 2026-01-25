@@ -11,15 +11,12 @@ This element is of the following form:
         values:
             key1: value1
             key2: value2
-        eval:
-            key3: $(variable)[$(loop_index)]
+            key3: $| $(variable)[$(loop_index)] |
 
 The ``let`` element is used to set values in the global directory.
 
 Attributes
 ----------------
 
-* The values list gives the {<key>, <value>} couples to set in the
+* The ``values`` list gives the {<key>, <value>} couples to set in the
   global directory,
-* The eval list gives the strings to evaluate prior to its storage into
-  the <key> of global directory.

@@ -139,7 +139,7 @@ main:
               timeout: 0.2
               dialog: false
         exit_condition:
-            value: "$(variable) >= 10"
+            value: $| $(variable) >= 10 |
 
 # This loop must fail du to an exception in exit condition.
     - loop:

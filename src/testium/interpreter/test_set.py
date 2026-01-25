@@ -8,7 +8,9 @@ from interpreter.utils.tum_except import (
 )
 import interpreter.utils.settings as prefs
 from interpreter.test_report.test_report import TestReport
-from interpreter.utils.py_func_exec import py_func_exec
+from interpreter.utils.py_func_exec import PyFuncExecEngine
+from interpreter.utils.api_srv import api_request
+from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst_type
 import interpreter.utils.constants as cst
 from interpreter.utils.constants import TEST_TYPE_LIST
@@ -342,21 +344,33 @@ class TestSet:
             tm.print_debug(f'  No file: "{post_exec_file}".')
             return
 
-        tm.print_debug(f'Post-execution from: "{post_exec_file}"')
-        if self.rootItem().result.success:
-            # tests backup is done here
-            succ, res = py_func_exec(post_exec_file, "post_exec", [])
-            if not succ == TestValue.SUCCESS:
-                tm.print_debug(
-                    f"Test success but the \"post_exec\" function failed: {res}"
+        proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+        # start the process for executing external python
+        proc.start()
+        try:
+            if not proc.wait_ready(10):
+                raise ETUMRuntimeError(
+                    f"""Impossible to start the external python execution process.
+    Is the python path correct ?
+    python_bin = {tm.gd("python_bin", "no python path defined")}"""
                 )
-        else:
-            succ, res = py_func_exec(post_exec_file, "post_exec_fail", [])
-            if not succ == TestValue.SUCCESS:
-                tm.print_debug(
-                    f"Test failed but the \"post_exec_fail\" function failed: {res}"
-                )
-
+            tm.print_debug(f'Post-execution from: "{post_exec_file}"')
+            if self.rootItem().result.success:
+                # tests backup is done here
+                succ, res = proc.func_call(post_exec_file, "post_exec", [])
+                if not succ == TestValue.SUCCESS:
+                    tm.print_debug(
+                        f"Test success but the \"post_exec\" function failed: {res}"
+                    )
+            else:
+                succ, res = proc.func_call(post_exec_file, "post_exec_fail", [])
+                if not succ == TestValue.SUCCESS:
+                    tm.print_debug(
+                        f"Test failed but the \"post_exec_fail\" function failed: {res}"
+                    )
+        finally:
+            proc.stop()
+            proc.join()
 
     def rootItem(self):
         return self._rootItem

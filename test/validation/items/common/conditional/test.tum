@@ -16,17 +16,17 @@
                 - $(loop_param)
 
     exit_condition:
-        value: "$(fn_Echo function) > 3"
+        value: $| $(pfn_Echo function) > 3 |
 
 - let:
     name: let
     key: $(test)_PASS
-    eval:
-        - conditional_exec: "random.randint(1, 2)"
+    values:
+        - conditional_exec: $| random.randint(1, 2) |
 
 - console:
     name: Console creation
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     console_name: consname
     doc: Opening the console
     key: $(test)_PASS
@@ -37,7 +37,7 @@
 
 - console:
     name: Console read_until with timeout
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     console_name: consname
     key: $(test)_PASS
     steps:
@@ -45,7 +45,7 @@
 
 - console:
     name: Console write
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     console_name: consname
     key: $(test)_PASS
     steps:
@@ -53,12 +53,12 @@
 
 - sleep:
     name: sleep item
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     timeout: 1
 
 - console:
     name: Console read_until immediate
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     console_name: consname
     key: $(test)_PASS
     steps:
@@ -66,7 +66,7 @@
 
 - console:
     name: Console read_until immediate (2)
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     console_name: consname
     key: $(test)_PASS
     steps:
@@ -74,7 +74,7 @@
 
 - console:
     name: Console closure
-    condition: "$(conditional_exec) == 1"
+    condition: $| $(conditional_exec) == 1 |
     console_name: consname
     key: $(test)_PASS
     steps:
@@ -82,5 +82,5 @@
 
 - sleep:
     name: sleep item
-    condition: "$(conditional_exec) == 2"
+    condition: $| $(conditional_exec) == 2 |
     timeout: 1

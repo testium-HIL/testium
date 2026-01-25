@@ -4,16 +4,18 @@ from multiprocessing import Process, Queue, Pipe
 from queue import Empty
 from threading import Thread
 from time import sleep
-import traceback
+import copy
 
 import libs.testium as tm
 from interpreter.utils.params import expanse
 from interpreter.utils.string_queue import StringQueue
-from interpreter.utils.tum_except import ETUMRuntimeError
+from interpreter.utils.tum_except import ETUMRuntimeError, ETUMSyntaxError
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.test_init import (
     env_init,
-    load_test,
+    prepare_global,
+    update_global,
+    set_standard_gd_keys,
     test_run_init,
     test_run_header,
     locate_report_file,
@@ -22,10 +24,12 @@ from interpreter.utils.test_init import (
 )
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.test_set import TestSet
+from interpreter.utils.include import TUMLoader, TUMLoaderNoIncludes, TUMLoaderRawIncludes
 from interpreter.utils.stdout_redirect import stdio_redir
+from interpreter.utils.template import template_to_test
+from interpreter.utils.yaml_load import yaml_load
 from interpreter.utils.tum_except import print_exception
-from interpreter.utils.py_func_exec import py_func_call_init
-from interpreter.utils.lua_func_exec import lua_func_call_init
+from interpreter.utils.py_eval import eval_process_init
 from interpreter.utils.api_srv import api_request
 
 
@@ -51,6 +55,145 @@ class TestProcess(Process):
         self.__closed = False
         self.__pconn = self.redirect_stdout()
 
+
+    def _check_test_dict(self, test_dict):
+        if not isinstance(test_dict, dict):
+            raise ETUMSyntaxError(
+                "The tum file has a major problem. Please check the documentation for syntax.")
+        if not 'main' in test_dict.keys():
+            raise ETUMSyntaxError(
+                "The tum file has a major problem. The 'main' section could not be found.")
+
+    def _locate_config_files(self, test_dir, config_files, silent=False):
+        ret = []
+        pf = []
+        if len(config_files) == 0:
+            for p in ['param.yaml', 'param.yml']:
+                param_filename = os.path.join(test_dir, p)
+                if os.path.exists(param_filename):
+                    pf.append(param_filename)
+                    if not silent:
+                        tm.print_info(f"Configuration file loaded: {p}.")
+                else:
+                    if not silent:
+                        tm.print_info(f"Default param file \"{p}\" does not exist.")
+        else:
+            pf = config_files
+
+        for p in pf:
+            ret.append(p)
+        return ret
+
+
+    def _config_files_from_test(self, test_dict, config_files=None):
+        test_dir = tm.gd('test_directory')
+        pf = []
+        if isinstance(config_files, list) and len(config_files) == 0:
+            param_filename = test_dict.get('config_file', None)
+            if param_filename is None:
+                param_node = test_dict.get('param_file', None)
+                if param_node is not None:
+                    if isinstance(param_node, dict):
+                        p = param_node.get('file_name', None)
+                        if p is not None:
+                            param_filename = p
+                        else:
+                            param_filename = param_node
+                    else:
+                        param_filename = param_node
+            if param_filename is None:
+                pf = self._locate_config_files(test_dir, [])
+            elif isinstance(param_filename, str):
+                pf.append(param_filename)
+            elif isinstance(param_filename, (list)):
+                pf = []
+                for p in param_filename:
+                    if isinstance(p, list):
+                        for pp in p:
+                            pf.append(pp)
+                    elif p is not None:
+                        pf.append(p)
+            else:
+                raise ETUMSyntaxError(
+                    'Unrecognized tum "param_file" : {}'.format(param_filename))
+        elif isinstance(config_files, list):
+            pf = config_files
+        elif isinstance(config_files, str):
+            pf = [config_files]
+        else:
+            raise ETUMSyntaxError(
+                'Unrecognized config_files parameter : {}'.format(config_files))
+        return pf
+
+
+    def _load_test_dict(self, test_file, variables: dict, no_include: bool = False, raw_include: bool = False):
+        loader = TUMLoader
+        loader = TUMLoaderRawIncludes if raw_include else loader
+        loader = TUMLoaderNoIncludes if no_include else loader
+
+        # Jinja template processing
+        tmpf = template_to_test(test_file, variables)
+        try:
+            d = yaml_load(tmpf, test_file, loader)
+        finally:
+            tmpf.close()
+
+        return d
+
+
+    def _load_initial_params(self, test_dir):
+        # First step: populate config files without includes considered
+        test_dict = self._load_test_dict(self.__fname, {}, no_include=True)
+        self._check_test_dict(test_dict)
+        prepare_global()
+
+        # Define the global builtin variables
+        set_standard_gd_keys(test_dict["main"].get(
+            "name", "Unnamed"), test_dir, self.__fname, self.__cfgf)
+
+        # Include the content of the first config files into glob dict
+        old_pfs = self._config_files_from_test(test_dict, self.__cfgf)
+
+        # Variables updated
+        gd = update_global(old_pfs, self.__defs, self.__gui_defaults, silent=True)
+        return old_pfs, gd
+
+
+    def _load_test(self, init_param_files, glob_variables):
+
+        old_pfs = init_param_files
+        gd = glob_variables
+
+        while True:
+            # Loop to check param files until all param files are identified
+            test_dict = self._load_test_dict(self.__fname, gd, raw_include=True)
+            new_pfs = self._config_files_from_test(test_dict, self.__cfgf)
+
+            # Check if things have changed since previous evaluation of
+            # config files
+            new_stuff = False
+            if len(old_pfs) != len(new_pfs):
+                new_stuff = True
+
+            if not new_stuff:
+                for i in range(len(old_pfs)):
+                    if old_pfs[i] != new_pfs[i]:
+                        new_stuff = True
+                        break
+
+            # If the param files are identical, we continue in loading process
+            if not new_stuff:
+                break
+
+            # Variables updated
+            gd = update_global(new_pfs, self.__defs, self.__gui_defaults, silent=False)
+            old_pfs = copy.copy(new_pfs)
+
+        # Processing (with includes) for complete file loading
+        test_dict = self._load_test_dict(self.__fname, gd)
+        return test_dict, new_pfs
+
+
     def run(self):
         try:
             try:
@@ -64,97 +207,75 @@ class TestProcess(Process):
 
                 env_init()
 
-                # Load the test file
-                test_dict, cfg_files = load_test(
-                    self.__fname,
-                    test_dir,
-                    self.__cfgf,
-                    self.__defs,
-                    self.__gui_defaults,
-                )
+                # Creation of the python evaluation process for loading of the complete test
+                eval_proc = eval_process_init("", api_request, 10, test_dir)
+                eval_proc.start()
+                if not eval_proc.wait_ready(10):
+                    raise ETUMRuntimeError(
+                                        f"""Impossible to start the external python execution process.
+Is the python exec path correct ?"""
+                    )
 
-                # Backup the global dict in case of restart of the test
-                gdict = backup_gd()
+                try:
 
-                # The path of the test file is included in PYTHONPATH
-                sys.path.append(os.path.dirname(self.__fname))
+                    # Loading of the param files without inclusions (first level)
+                    init_param_files, glob_variables = self._load_initial_params(test_dir)
 
-                # Now create the test structure and objects
-                test_set = TestSet(self.__fname, test_dict, self.__squeue)
+                    # Load the test file
+                    test_dict, param_files = self._load_test(init_param_files, glob_variables)
 
-                # Thread for incoming control commands
-                self.init_commands(test_set)
-                self.cmd_th = Thread(
-                    target=self.process_control_commands,
-                    args=[self.__tctrl],
-                    daemon=True,
-                )
-                self.cmd_th.start()
+                    # Backup the global dict in case of restart of the test
+                    gdict = backup_gd()
 
-                test_set.report_path = locate_report_file(test_set.report_path)
+                    # Now create the test structure and objects
+                    test_set = TestSet(self.__fname, test_dict, self.__squeue)
 
-                # Python & lua functions call subprocess initialization
-                py_fproc = py_func_call_init(tm.gd("python_path", ""), api_request, 10)
+                    # Thread for incoming control commands
+                    self.init_commands(test_set)
+                    self.cmd_th = Thread(
+                        target=self.process_control_commands,
+                        args=[self.__tctrl],
+                        daemon=True,
+                    )
+                    self.cmd_th.start()
 
-                # Lua functions call subprocess initialization
-                lua_fproc = None
-                if test_set.isTestTypePresent(cst_type.TYPE_LUA_FUNCTION):
-                    lua_fproc = lua_func_call_init(tm.gd("lua_path", ""), api_request, 10)
+                    # Set the report path
+                    test_set.report_path = locate_report_file(test_set.report_path)
+                    self.__loaded = True
 
-                self.__loaded = True
-
-                while True:
-                    # waiting for a control command
-                    while (not self.__exec) and (not self.__closed):
-                        sleep(0.2)
-                    # if close is required
-                    if self.__closed:
-                        break
-                    # Test is started
-                    try:
+                    while True:
+                        # waiting for a control command
+                        while (not self.__exec) and (not self.__closed):
+                            sleep(0.2)
+                        # if close is required
+                        if self.__closed:
+                            break
+                        # Test is started
                         try:
                             try:
-                                test_run_init()
-                                print(test_run_header())
-                                # start the process for executing external python
-                                py_fproc.start()
-                                if not py_fproc.wait_ready(10):
-                                    raise ETUMRuntimeError(
-                                        f"""Impossible to start the external python execution process.
-Is the python path correct ?
-python_path = {tm.gd("python_path", "no python path defined")}"""
-                                    )
-                                if lua_fproc is not None:
-                                    lua_fproc.start()
-                                    if not lua_fproc.wait_ready(10):
-                                        raise ETUMRuntimeError(
-                                            f"""Impossible to start the external lua execution process.
-Is the lua path correct ?
-  lua_path = {tm.gd("lua_path", "no lua path defined")}
-Are "lua-sockets" and "lua-cjson" installed ?
-Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables ?"""
-                                        )
-                                test_set.execute()
-                            finally:
-                                if test_set.success():
-                                    print("Test run success.")
-                                else:
-                                    print("Test run failed.")
+                                try:
+                                    test_run_init()
+                                    print(test_run_header())
+                                    test_set.execute()
+                                finally:
+                                    if test_set.success():
+                                        print("Test run success.")
+                                    else:
+                                        print("Test run failed.")
 
-                            test_set.run_post_exec()
-                        finally:
-                            # Stop function execution process
-                            py_fproc.stop()
-                            py_fproc.join()
-                            if lua_fproc is not None:
-                                lua_fproc.stop()
-                                lua_fproc.join()
-                            self.__exec = False
-                            # Sends signal to the GUI
-                            self.send_finished()
-                            restore_gd(gdict)
-                    except Exception as e:
-                        print_exception(e)
+                                test_set.run_post_exec()
+                            finally:
+                                self.__exec = False
+                                # Sends signal to the GUI
+                                self.send_finished()
+                                restore_gd(gdict)
+                        except Exception as e:
+                            print_exception(e)
+
+                finally:
+                    # Stop python eval execution process
+                    eval_proc.stop()
+                    eval_proc.join()
 
             except Exception as e:
                 print_exception(e)
@@ -238,7 +359,7 @@ Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables
                 continue
 
     def redirect_stdout(self):
-        pipe = pconn, cconn = Pipe()
+        pconn, cconn = Pipe()
         redir = Thread(target=self.capture_stdout, args=(cconn,))
         redir.daemon = True
         redir.start()

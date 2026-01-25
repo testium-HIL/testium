@@ -5,8 +5,9 @@ import libs.testium as tm
 # Fill the api_dict with the function of tm
 api_dict = {k: getattr(tm, k) for k in SUPPORTED_API if hasattr(tm, k)}
 
-
 def api_request(method, params):
+    global api_dict
+
     if method in api_dict.keys():
         if params is None:
             params = []

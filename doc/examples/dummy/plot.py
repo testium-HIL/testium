@@ -1,6 +1,6 @@
 import random
-import libs.testium as tm
-from libs.testium import FunctionItem
+import py_func.tm as tm
+from py_func.tm import FunctionItem
 
 def random_value():
     return random.random()

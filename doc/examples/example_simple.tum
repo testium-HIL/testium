@@ -23,5 +23,5 @@ main:
       - sleep:
           name: sleep item
           dialog: true
-          timeout: 3600
+          timeout: $| 3600 + random.randint(1, 10) |
           no_fail: true

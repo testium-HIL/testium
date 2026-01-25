@@ -39,12 +39,12 @@ Below are described loop test item specific attributes.
 * ``Iterator``: giving the number of loop iteration (see dedicated chapter below).
 * ``steps``: describes the sequence executed at each cycle; it is
   a list of any of the testium test items.
-* ``exit_condition``: allows to exit the loop. If False is returned, loop continues
-  else, it breaks. exit_condition attributes are:
+* ``exit_condition``: allows to exit the loop. If True is returned loop continues
+  otherwise it breaks. exit_condition attributes are:
 
   * ``time``: the loop stops after the time (in minutes) is elapsed (optional)
   * ``value``: the loop stops when the content of the value attribute is
-    evaluated as True (optional)
+    True (optional)
   * ``file``: the loop the script file name that contains a function to be
     executed on each loop. Only python script format is supported (optional
     if another exit_condition attribute is defined)

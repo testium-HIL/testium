@@ -7,8 +7,9 @@ import textwrap
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
 import libs.testium as tm
-from interpreter.utils.py_func_exec import py_func_exec
-from interpreter.utils.tum_except import ETUMSyntaxError
+from interpreter.utils.py_func_exec import PyFuncExecEngine
+from interpreter.utils.api_srv import api_request
+from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst
 
 
@@ -31,6 +32,7 @@ class TestItemPyFunc(TestItem):
                 f"The '{self.cmd()}' test item named '{self.name()}' (child of '{self.parent.name()}') has a missing or wrong parameter",
                 self.seqFilename(),
             )
+        self._proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
 
     @test_run
     def execute(self):
@@ -45,7 +47,22 @@ class TestItemPyFunc(TestItem):
             if tm.debug_enabled():
                 tm.print_debug("Parameters list:")
                 tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
-            success, ret = py_func_exec(self.file_name, self.func_name, pl)
+
+                # start the process for executing external python
+                self._proc.start()
+                if not self._proc.wait_ready(10):
+                    raise ETUMRuntimeError(
+                        f"""Impossible to start the external python execution process.
+Is the python path correct ?
+python_bin = {tm.gd("python_bin", "no python path defined")}"""
+                    )
+
+            try:
+                success, ret = self._proc.func_call(self.file_name, self.func_name, pl)
+            finally:
+                # Stops python function execution process
+                self._proc.stop()
+                self._proc.join()
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)

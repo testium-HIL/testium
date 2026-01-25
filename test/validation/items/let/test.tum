@@ -12,8 +12,7 @@
             name:  Let it be
             values:
                 it: $(loop_param)
-            eval:
-                - be: "$(loop_param) == $(it)"
+                be: $| $(loop_param) == $(it) |
 
 - loop:
     name: Cycle iterating on list
@@ -31,8 +30,7 @@
             name:  Let it be
             values:
                 - it: $(loop_param)
-            eval:
-                - be: "$(loop_param) == $(it)"
+                - be: $| $(loop_param) == $(it) |
 
 - let:
     name:  Get time
@@ -45,8 +43,8 @@
 - let:
     name:  Get parameter file value
     key: $(test)_PASS
-    eval:
-        - test_overwrite_me: "$(overwrite_me) == True"
+    values:
+        - test_overwrite_me: $| $(overwrite_me) == True |
 
 - py_func:
     name: Check global dic pass
@@ -85,8 +83,8 @@
 - let:
     name:  Evaluate Overwriting parameter file value
     key: $(test)_PASS
-    eval:
-        - test_overwrite_me: '"$(overwrite_me)" == True'
+    values:
+        - test_overwrite_me: $| "$(overwrite_me)" == True |
 
 - check:
     name: Check Overwriting parameter file value

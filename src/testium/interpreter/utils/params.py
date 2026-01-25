@@ -1,7 +1,7 @@
 import interpreter.utils.globdict as globdict
-from interpreter.utils.eval import evaluate
 from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
+glob_eval_func = None
 
 class TestItemParams:
 
@@ -295,12 +295,6 @@ def _operate_param(glob, parent):
     return treated, g
 
 
-# def _dummy_eval(val):
-#     bla = evaluate(val)
-#     print("******** evaluate(" + str(val) + ") = " + str(bla[1]))
-#     return bla
-
-
 def _preprocess_string(value, parent=None):
     """This function parses a string value to check if patterns corresponding
     to $(xxx) exists.
@@ -318,7 +312,8 @@ def _eval_param(value):
     content is done.
     If it is not evaluable, not replaced.
     """
-    return _parse_and_process("$|", "|", value, evaluate)
+    global glob_eval_func
+    return _parse_and_process("$|", "|", value, glob_eval_func)
 
 
 def _process_recursively(func, param_value, *fparams):
@@ -377,3 +372,9 @@ def expanse(param_value, parent=None):
         result = tmp_res
         n += 1
     return result
+
+
+def eval_func_init(eval_func):
+    global glob_eval_func
+
+    glob_eval_func = eval_func

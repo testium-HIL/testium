@@ -259,14 +259,14 @@ class TestiumSettings():
     def git_supported(self, value):
         self.set_value(self.SettingsGitSupported, value)
 
-# SettingsPythonPath = 'pythonPath'
+# SettingsPythonPath = 'python_bin'
     @property
-    def python_path(self):
+    def python_bin(self):
         r = self.value(self.SettingsPythonPath, "")
         return r
 
-    @python_path.setter
-    def python_path(self, value):
+    @python_bin.setter
+    def python_bin(self, value):
         self.set_value(self.SettingsPythonPath, value)
 
 # SettingsLuaPath = 'luaPath'

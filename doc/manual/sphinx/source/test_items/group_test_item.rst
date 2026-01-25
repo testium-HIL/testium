@@ -8,10 +8,10 @@ This element is of the following form:
 
     - group:
         name: Group Item
-        condition: "'$(OS)' == 'Linux'"
+        condition: $| "$(OS)" == "Linux" |
         steps:
             - unittest_file:
-                test_file: test_prod_rio6_8093.py
+                test_file: test_prod_alpha_13.py
                 test_method:
                     ...
             - sleep:
@@ -23,4 +23,4 @@ Attributes
 --------------------
 
 * The ``steps`` list describes the sequence executed in the group.
-  It is a list of any of the testium test items,
+  It is a list of any of the `testium` test items,

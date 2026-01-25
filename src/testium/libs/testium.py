@@ -143,21 +143,21 @@ def last_plot_value(name: str) -> dict:
 
 
 ###############################################################################
-class FunctionItem():
-    """Class allowing extended capabilities of function."""
-    module_count = 0
+# class FunctionItem():
+#     """Class allowing extended capabilities of function."""
+#     module_count = 0
 
-    def __init__(self):
-        self._reported_value = {}
+#     def __init__(self):
+#         self._reported_value = {}
 
-    def reportValue(self, key, value):
-        self._reported_value[key] = value
+#     def reportValue(self, key, value):
+#         self._reported_value[key] = value
 
-    def reportedValues(self):
-        return self._reported_value
+#     def reportedValues(self):
+#         return self._reported_value
 
-    def exec(self):
-        pass
+#     def exec(self):
+#         pass
 
 
 def get_main_dir():
@@ -207,6 +207,14 @@ def OS():
     :rtype: str
     """
     return platform.system()
+
+
+def sys_encoding():
+    if OS() == "Windows":
+        enc = "oem"
+    else:
+        enc = "utf-8"
+    return enc
 
 
 def line_number(phrase, filename):
