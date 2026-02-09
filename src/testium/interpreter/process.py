@@ -350,6 +350,10 @@ Is the python exec path correct ?"""
                             res = {cmd: self.__cmds[cmd](**args)}
                         elif args is None:
                             res = {cmd: self.__cmds[cmd]()}
+                        else:
+                            raise ETUMRuntimeError("Test process control command malformed")
+                    except ETUMRuntimeError as e:
+                        res = (None, str(e))
                     except:
                         res = (None, "function unknown or call failed")
                 except:
