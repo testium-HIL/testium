@@ -139,7 +139,7 @@ class PyProcessBase:
 
         params = [
             self._pbin,
-            "-m",
+            # "-m",
             "py_func",
             "-p",
             f"{self._port}",

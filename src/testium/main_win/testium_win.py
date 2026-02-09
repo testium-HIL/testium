@@ -1016,7 +1016,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.test_proc.start()
             while self.test_proc.is_alive():
                 try:
-                    if self.ts_controller.control("loaded", timeout=0.1):
+                    if self.ts_controller.control("loaded", timeout=1.0):
                         break
                 except Empty:
                     self.ts_controller.clear()
