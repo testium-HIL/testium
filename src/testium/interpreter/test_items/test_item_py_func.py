@@ -1,6 +1,6 @@
 import sys
 import traceback
-
+import time
 import pprint
 import textwrap
 
@@ -32,7 +32,7 @@ class TestItemPyFunc(TestItem):
                 f"The '{self.cmd()}' test item named '{self.name()}' (child of '{self.parent.name()}') has a missing or wrong parameter",
                 self.seqFilename(),
             )
-        self._proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+        self._py_func_proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
 
     @test_run
     def execute(self):
@@ -48,21 +48,26 @@ class TestItemPyFunc(TestItem):
                 tm.print_debug("Parameters list:")
                 tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
 
-                # start the process for executing external python
-                self._proc.start()
-                if not self._proc.wait_ready(10):
-                    raise ETUMRuntimeError(
-                        f"""Impossible to start the external python execution process.
+            # start the process for executing external python
+            t0 = time.monotonic()
+            self._py_func_proc.start()
+            t1 = time.monotonic()
+            if not self._py_func_proc.wait_ready():
+                raise ETUMRuntimeError(
+                    f"""Impossible to start the external python execution process.
 Is the python path correct ?
 python_bin = {tm.gd("python_bin", "no python path defined")}"""
-                    )
-
+                )
+            t2 = time.monotonic()
+            tm.print_info(f"t1 = {(t1-t0):0.2f}. t2 = {(t2-t1):0.2f}")
             try:
-                success, ret = self._proc.func_call(self.file_name, self.func_name, pl)
+                success, ret = self._py_func_proc.func_call(self.file_name, self.func_name, pl)
             finally:
                 # Stops python function execution process
-                self._proc.stop()
-                self._proc.join()
+                self._py_func_proc.stop()
+                t3 = time.monotonic()
+                self._py_func_proc.join()
+                tm.print_info(f"t3 = {(t3-t2):0.3f}. t4 = {(time.monotonic()-t3):0.3f}")
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)

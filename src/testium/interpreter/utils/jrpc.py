@@ -1,5 +1,6 @@
 import socket
 import json
+from time import monotonic
 import threading
 import itertools
 from time import sleep
@@ -58,7 +59,6 @@ class JsonRpcConnection:
         name,
         conn: socket.socket,
         req_handler: Callable[..., Any],
-        timeout=0.2,
         dbg_out=None,
     ):
         self.name = name
@@ -74,8 +74,9 @@ class JsonRpcConnection:
         self.id_gen = itertools.count(1)
         self.running = True
         self._dbg_out = dbg_out
+        self._event_ready = threading.Event()
 
-        self.conn.settimeout(timeout)
+        self.conn.settimeout(0.1)
 
         self.recv_thread = threading.Thread(target=self._recv_loop, daemon=True)
         self.recv_thread.start()
@@ -93,6 +94,7 @@ class JsonRpcConnection:
         buffer = b""
 
         try:
+            self._event_ready.set()
             while self.running:
                 try:
                     data = self.conn.recv(4096)
@@ -222,6 +224,12 @@ class JsonRpcConnection:
     def join(self):
         self.recv_thread.join()
 
+    def is_alive(self):
+        self.recv_thread.is_alive()
+
+    def wait_ready(self, timeout=None):
+        return self._event_ready.wait(timeout)
+
 
 class JsonRpcBase(threading.Thread):
     """Threaded base class for simple JSON-RPC server/client helpers.
@@ -292,6 +300,7 @@ class JsonRpcBase(threading.Thread):
         self._rpc = JsonRpcConnection(
             self.name, sock, self.handle_request, dbg_out=self.dbg_out
         )
+        self._rpc.wait_ready()
         self._event_ready.set()
 
     def wait_ready(self, timeout=None):
@@ -342,16 +351,12 @@ class JsonRpcSrv(JsonRpcBase):
                 self.print_info(f"listening on {self._host}:{self._port}")
 
                 self.print_info(f"awaiting connection for {self._timeout} secs")
-                tslice = 0.2
-                sock.settimeout(tslice)
-                t = self._timeout
+                sock.settimeout(self._timeout)
                 while True:
                     try:
                         conn, addr = sock.accept()
                         break
                     except socket.timeout:
-                        t -= tslice
-                        if t < 0:
                             raise ETUMRuntimeError(f"{self.name}: Timeout")
 
                 self.print_info("Client connected")
@@ -439,22 +444,20 @@ class JsonRpcClient(JsonRpcBase):
         # TCP/IP socket creation
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                tslice = 0.5
-                t = self._timeout
-                sock.settimeout(tslice)
+                tslice = 0.1
+                t0 = monotonic()
+                sock.settimeout(0)
                 # Link of the socket at the configured port
                 while True:
                     try:
+                        sleep(tslice)
                         sock.connect((self._host, self._port))
                         break
                     except Exception as e:
-                        t -= tslice
-                        if t < 0:
+                        if (monotonic() - t0) > self._timeout:
                             raise ETUMRuntimeError(
                                 f"{self.name}: failed to connect : {e}"
                             )
-                        else:
-                            sleep(tslice)
 
                 self.print_info("Connected to server")
                 self.connect(sock)

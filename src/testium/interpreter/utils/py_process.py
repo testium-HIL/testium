@@ -84,31 +84,35 @@ class PyProcessBase:
     }
 
     def __init__(self, python_bin="", request_handler=None, timeout=10, python_path=""):
-        if (python_bin is not None) and (python_bin != ""):
+        self._pbin = python_bin
+        if (self._pbin is not None) and (self._pbin != ""):
 
-            if shutil.which(python_bin) is None:
+            if shutil.which(self._pbin) is None:
                 raise ETUMRuntimeError(
-                    f"The passed python path is not pointing to an executable: '{python_bin}'"
+                    f"The passed python path is not pointing to an executable: '{self._pbin}'"
                 )
 
-            if not _is_python_interpreter(python_bin):
+            if not _is_python_interpreter(self._pbin):
                 raise ETUMRuntimeError(
-                    f"The passed executable is not a python interpreter: '{python_bin}'"
+                    f"The passed executable is not a python interpreter: '{self._pbin}'"
                 )
 
         else:
-            python_bin = _sys_python_bin()
-            if python_bin == "":
-                raise ETUMRuntimeError(f"No valid python interpreter found")
-            tm.setgd("python_bin", python_bin)
+            self._pbin = tm.gd("_cached_python_bin", "")
+            if self._pbin == "":
+                self._pbin = _sys_python_bin()
+                tm.setgd("_cached_python_bin", self._pbin)
 
-        self._pbin = python_bin
+            if self._pbin == "":
+                raise ETUMRuntimeError(f"No valid python interpreter found")
+
         self._ppath = python_path
         self._req_handler = request_handler
         self._process = None
         self._port = 0
         self._timeout = timeout
         self._rpc = None
+
 
     def start(self):
         """
@@ -132,6 +136,9 @@ class PyProcessBase:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(("localhost", 0))
         self._port = sock.getsockname()[1]
+        # Port was reserved until the sub-process is started. Now released.
+        if sock is not None:
+            sock.close()
 
         # Add the path of the subprocess (root sources of testium)
         func_proc_path = testium_path()
@@ -152,16 +159,17 @@ class PyProcessBase:
 
         self._process = subprocess.Popen(params, env=env, cwd=func_proc_path)
 
-        # Port was reserved until the sub-process is started. Now released.
-        if sock is not None:
-            sock.close()
-
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler
         )
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
             self._rpc.dbg_out = sys.stdout
         self._rpc.start()
+
+    @property
+    def python_bin(self):
+        return self._pbin
+
 
     def join(self):
         if self._rpc is not None:
