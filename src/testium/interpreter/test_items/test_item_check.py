@@ -40,17 +40,12 @@ class TestItemCheckValue(TestItem):
         #test core function
         for v in self._action_list:
             val = self._prms.expanse(v)
-            is_evaluated, ev = evaluate(val)
-            if not is_evaluated:
-                self.result.set(TestValue.FAILURE, "Error evaluating: '{}'".format(val))
+            if not isinstance(val, bool):
+                self.result.set(TestValue.FAILURE, f"The expanse of '{v}' must result in a boolean, but it resulted in '{val}'")
                 return
-
-            if not isinstance(ev, bool):
-                self.result.set(TestValue.FAILURE, "The check of '{}' must result in a boolean: ".format(v))
-                return
-
-            print("Evaluation of '{}' --> '{}' is {}.".format(v, val, str(ev)))
-            if not ev:
+            if v != val:
+                print("Evaluation of '{}' --> {}.".format(v, val))
+            if not val:
                 is_success = False
 
         if is_success:

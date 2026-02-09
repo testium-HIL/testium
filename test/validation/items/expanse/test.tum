@@ -39,7 +39,7 @@
     name: Check complex variables expansion is correct (PASS)
     key: $(test)_PASS
     values:
-      - $(expanse_complex) == 38
+      - $| $(expanse_complex) == 38 |
 
 - let:
     name: Variables expansion in object
@@ -61,4 +61,4 @@
     name: Check complex variables expansion is correct (PASS)
     key: $(test)_PASS
     values:
-      - '$(expanse_object) == [{"a": 6, "b": 8}, {"blo": [18, 25]}]'
+      - '$| $(expanse_object) == [{"a": 6, "b": 8}, {"blo": [18, 25]}] |'

@@ -19,10 +19,10 @@
     name: Check condition on existing variable (PASS)
     key: $(test)_PASS
     values:
-        - $(pfn_Dummy_int) > 1
+        - $| $(pfn_Dummy_int) > 1 |
 
 - check:
     name: Check condition on existing variable (FAIL)
     key: $(test)_FAIL
     values:
-        - '"tailor" in "$(pfn_Dummy_str)"'
+        - $| "tailor" in "$(pfn_Dummy_str)" |
