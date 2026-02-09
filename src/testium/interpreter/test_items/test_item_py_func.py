@@ -49,25 +49,19 @@ class TestItemPyFunc(TestItem):
                 tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
 
             # start the process for executing external python
-            t0 = time.monotonic()
             self._py_func_proc.start()
-            t1 = time.monotonic()
             if not self._py_func_proc.wait_ready():
                 raise ETUMRuntimeError(
                     f"""Impossible to start the external python execution process.
 Is the python path correct ?
 python_bin = {tm.gd("python_bin", "no python path defined")}"""
                 )
-            t2 = time.monotonic()
-            tm.print_info(f"t1 = {(t1-t0):0.2f}. t2 = {(t2-t1):0.2f}")
             try:
                 success, ret = self._py_func_proc.func_call(self.file_name, self.func_name, pl)
             finally:
                 # Stops python function execution process
                 self._py_func_proc.stop()
-                t3 = time.monotonic()
                 self._py_func_proc.join()
-                tm.print_info(f"t3 = {(t3-t2):0.3f}. t4 = {(time.monotonic()-t3):0.3f}")
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)
