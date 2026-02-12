@@ -54,9 +54,7 @@ def _is_python_interpreter(path: str, timeout=2) -> bool:
 
 
 def _sys_python_bin():
-    sys_python_bin = tm.gd("_sys_python_bin", "")
-    if sys_python_bin != "":
-        return sys_python_bin
+    sys_python_bin = ""
 
     cur_os = tm.OS()
     if cur_os == "Windows":
@@ -73,7 +71,6 @@ def _sys_python_bin():
             sys_python_bin = ""
             continue
 
-    tm.setgd("_sys_python_bin", sys_python_bin)
     return sys_python_bin
 
 

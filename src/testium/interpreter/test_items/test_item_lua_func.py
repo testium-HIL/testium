@@ -14,7 +14,7 @@ from interpreter.utils.constants import TestItemType as cst
 
 
 class TestItemLuaFunc(TestItem):
-    """py_func item usage.
+    """lua_func item usage.
     func file: func_file.py, func_name: func, param: [$(variable1), [1, 2, 3], true]
     """
 

@@ -6,8 +6,8 @@ import platform
 import math
 import json
 import traceback
-from interpreter.utils.jrpc import JsonRpcSrv
-from interpreter.utils.tum_except import ETUMRuntimeError, print_exception
+from testium.interpreter.utils.jrpc import JsonRpcSrv
+from testium.interpreter.utils.tum_except import ETUMRuntimeError, print_exception
 from py_func.func_call import func_exec
 
 

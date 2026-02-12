@@ -17,8 +17,8 @@ is raised.
 
 import sys
 from py_func.handle import FuncHandler
-from interpreter.utils.tum_except import ETUMRuntimeError
-from interpreter.utils.api import SUPPORTED_API
+from testium.interpreter.utils.tum_except import ETUMRuntimeError
+from testium.interpreter.utils.api import SUPPORTED_API
 
 thismodule = sys.modules[__name__]
 # Shared FuncHandler instance used to forward API calls. Remains None
