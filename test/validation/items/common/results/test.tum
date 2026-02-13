@@ -138,7 +138,7 @@
 
         - py_func:
             name: Return True expect False but no_fail expansed
-            no_fail: $| bool(0) == False |
+            no_fail: <| bool(0) == False |>
             key: $(test)_PASS
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
@@ -147,7 +147,7 @@
 
         - py_func:
             name: Return True expect False but no_fail expansed (must fail)
-            no_fail: $| bool(1) == False |
+            no_fail: <| bool(1) == False |>
             key: $(test)_FAIL
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo

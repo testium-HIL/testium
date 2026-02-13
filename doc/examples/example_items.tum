@@ -16,7 +16,7 @@ main:
 
         - group:
             name: Set test variables for Linux
-            condition: $| "$(os)" == "Linux" |
+            condition: <| "$(os)" == "Linux" |>
             steps:
 
             - let:
@@ -26,7 +26,7 @@ main:
 
         - group:
             name: Set test variables for Windows
-            condition: $| "$(os)" == "Windows" |
+            condition: <| "$(os)" == "Windows" |>
             steps:
 
             - let:

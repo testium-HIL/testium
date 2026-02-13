@@ -8,7 +8,7 @@ This element is of the following form:
 
     - group:
         name: Group Item
-        condition: $| "$(OS)" == "Linux" |
+        condition: <| "$(OS)" == "Linux" |>
         steps:
             - unittest_file:
                 test_file: test_prod_alpha_13.py

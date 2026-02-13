@@ -21,9 +21,9 @@ main:
         - let:
             name: Extract data
             values:
-                - text_extract: $| [l for l in '''$(rand_text)'''.splitlines() if '$(text_searched)' in l][0] |
+                - text_extract: <| [l for l in '''$(rand_text)'''.splitlines() if '$(text_searched)' in l][0] |>
 
         - dialog_message:
-            condition: $| len('$(text_extract)') > 0 |
+            condition: <| len('$(text_extract)') > 0 |>
             name: dialog value test item
             question: Tataaaaa !

@@ -22,6 +22,6 @@ main:
                 - *seq_sleep
 
             exit_condition:
-                value: $| $(variable) >= 3 |
+                value: <| $(variable) >= 3 |>
 
         - !include {file: seq2.tum, is_dialog: True, sleep_timeout: 12, func_para: truc}

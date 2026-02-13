@@ -307,13 +307,13 @@ def _preprocess_string(value, parent=None):
 
 def _eval_param(value):
     """This function parses a string value to check if patterns corresponding
-    to $|xxx| exists.
+    to <|xxx|> exists.
     When this kind of pattern is found, an attempt to evaluate its
     content is done.
     If it is not evaluable, not replaced.
     """
     global glob_eval_func
-    return _parse_and_process("$|", "|", value, glob_eval_func)
+    return _parse_and_process("<|", "|>", value, glob_eval_func)
 
 
 def _process_recursively(func, param_value, *fparams):

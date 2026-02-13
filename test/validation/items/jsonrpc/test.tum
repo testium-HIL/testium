@@ -13,7 +13,7 @@
 
 - group:
     name: jsonrpc tests
-    condition: $| '/jrpces' in r'''$(cn_json rpc echo server)''' |
+    condition: <| '/jrpces' in r'''$(cn_json rpc echo server)''' |>
     steps:
         - console:
             name: Start the json rpc echo server
