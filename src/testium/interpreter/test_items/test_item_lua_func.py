@@ -46,9 +46,8 @@ class TestItemLuaFunc(TestItem):
             self.func_name = self._prms.expanse(self.func_name)
             param_list = self._prms.getParamFromList(self.params)
             pl = self._prms.expanse(param_list)
-            if tm.debug_enabled():
-                tm.print_debug("Parameters list:")
-                tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
+            print("Parameters list:")
+            print(textwrap.indent(pprint.pformat(pl), " |"))
 
             if self._proc is not None:
                 self._proc.start()
@@ -71,13 +70,11 @@ Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)
                 res, reported_values = ret
-                print(res)
                 reported_values = {**reported_values, "returned": res}
                 self.result.reported = ret[1]
 
-                if tm.debug_enabled():
-                    tm.print_debug("Returned value:")
-                    tm.print_debug(textwrap.indent(pprint.pformat(res), " |"))
+                print("Returned value:")
+                print(textwrap.indent(pprint.pformat(res), " |"))
 
                 # The result of the func test item is put in global dir and result
                 tm.setgd("lfn_" + self._name, res)
@@ -85,9 +82,9 @@ Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables
 
             else:
                 self.result.set(TestValue.FAILURE, ret)
-                if tm.debug_enabled():
-                    tm.print_debug("Failed:")
-                    tm.print_debug(textwrap.indent(pprint.pformat(ret), " |"))
+
+                print("Failed!")
+                tm.print_debug(textwrap.indent(pprint.pformat(ret), " |"))
 
             return
 

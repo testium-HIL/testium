@@ -138,7 +138,7 @@ class PyProcessBase:
             sock.close()
 
         # Add the path of the subprocess (root sources of testium)
-        func_proc_path = testium_path()
+        func_proc_path = os.path.realpath(os.path.join(testium_path(), ".."))
         env["PYTHONPATH"] = func_proc_path + os.pathsep + self._ppath + os.pathsep + env.get("PYTHONPATH", "")
 
         params = [

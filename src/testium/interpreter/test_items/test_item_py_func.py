@@ -44,9 +44,8 @@ class TestItemPyFunc(TestItem):
             self.func_name = self._prms.expanse(self.func_name)
             param_list = self._prms.getParamFromList(self.params)
             pl = self._prms.expanse(param_list)
-            if tm.debug_enabled():
-                tm.print_debug("Parameters list:")
-                tm.print_debug(textwrap.indent(pprint.pformat(pl), " |"))
+            print("Parameters list:")
+            print(textwrap.indent(pprint.pformat(pl), " |"))
 
             # start the process for executing external python
             self._py_func_proc.start()
@@ -68,10 +67,8 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                 res, reported_values = ret
                 reported_values = {**reported_values, "returned": res}
                 self.result.reported = ret[1]
-
-                if tm.debug_enabled():
-                    tm.print_debug("Returned value:")
-                    tm.print_debug(textwrap.indent(pprint.pformat(res), " |"))
+                print("Returned value:")
+                print(textwrap.indent(pprint.pformat(res), " |"))
 
                 # The result of the func test item is put in global dir and result
                 tm.setgd("pfn_" + self._name, res)
@@ -79,9 +76,8 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
 
             else:
                 self.result.set(TestValue.FAILURE, ret)
-                if tm.debug_enabled():
-                    tm.print_debug("Failed:")
-                    tm.print_debug(textwrap.indent(pprint.pformat(ret), " |"))
+                print("Failed!")
+                tm.print_debug(textwrap.indent(pprint.pformat(ret), " |"))
 
             return
 
