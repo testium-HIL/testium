@@ -77,6 +77,9 @@ main:
             condition: <| $(conditional_exec) == 1 |>
             console_name: consname
             steps:
+{% if os == "Windows" %}
+                - read_until: {expected: "echo 0", timeout: 0}
+{% endif %}
                 - read_until: {expected: "0", timeout: 0}
 
         - console:

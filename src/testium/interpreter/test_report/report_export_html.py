@@ -1,5 +1,6 @@
 
-import lxml
+import lxml.html
+import lxml.etree
 import html
 import interpreter.test_report.report_export as rpe
 import interpreter.test_report.test_report as tr
