@@ -42,6 +42,9 @@
     console_name: consname
     key: $(test)_PASS
     steps:
+{% if os == "Windows" %}
+        - read_until: {expected: echo "terminal loaded", timeout: 1}
+{% endif %}
         - read_until: {expected: terminal loaded, timeout: 5}
 
 - console:
@@ -63,6 +66,9 @@
     console_name: consname
     key: $(test)_PASS
     steps:
+{% if os == "Windows" %}
+        - read_until: {expected: echo 0, timeout: 0}
+{% endif %}
         - read_until: {expected: "0", timeout: 0}
 
 - console:

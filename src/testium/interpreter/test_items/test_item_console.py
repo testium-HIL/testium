@@ -88,8 +88,9 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             terminal_path = self._prms.getParam("terminal_path", processed=True)
             if terminal_path is not None:
                 terminal_path = os.path.normpath(terminal_path)
+            default_shell = "cmd.exe" if tm.OS() == "Windows" else "/usr/bin/env bash"
             terminal_shell = self._prms.getParam(
-                "shell", default="/usr/bin/env bash", required=False, processed=True
+                "shell", default=default_shell, required=False, processed=True
             )
 
         try:

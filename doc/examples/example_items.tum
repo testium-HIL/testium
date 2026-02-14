@@ -67,13 +67,16 @@ main:
                 name: Console read_until immediate
                 console_name: consname
                 steps:
-                    - read_until: {expected: "0", timeout: 0}
+{% if os == "Windows" %}
+                    - read_until: {expected: "echo 0", timeout: 1}
+{% endif %}
+                    - read_until: {expected: "0", timeout: 1}
 
             - console:
                 name: Console read_until immediate (2)
                 console_name: consname
                 steps:
-                    - read_until: {expected: "$(terminal_prompt)", timeout: 0}
+                    - read_until: {expected: "$(terminal_prompt)", timeout: 1}
 
             - console:
                 name: Console closure

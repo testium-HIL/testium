@@ -8,14 +8,20 @@
         - open:
             protocol: terminal
             terminal_path: $(test_directory)
+{% if os == "Linux" %}
         - writeln: echo "endOfOpen"
+{% endif %}
 
 - console:
     name: Console read_until with timeout
     console_name: term
     key: $(test)_PASS
     steps:
+{% if os == "Linux" %}
         - read_until: {expected: endOfOpen, timeout: 5}
+{% else %}
+        - read_until: {expected: $(terminal_prompt), timeout: 5}
+{% endif %}
 
 - console:
     name: Console write
@@ -33,6 +39,9 @@
     console_name: term
     key: $(test)_PASS
     steps:
+{% if os == "Windows" %}
+        - read_until: {expected: "echo 0", timeout: 0}
+{% endif %}
         - read_until: {expected: "0", timeout: 0}
 
 - console:
@@ -61,7 +70,7 @@
     console_name: term
     key: $(test)_PASS
     steps:
-        - read_until: {expected: "Something never prints", timeout: 1, no_fail: true}
+        - read_until: {expected: Something never prints, timeout: 1, no_fail: true}
 
 - console:
     name: Console read_until muted
@@ -69,7 +78,10 @@
     key: $(test)_PASS
     steps:
         - writeln: echo "HelloConsole"
-        - read_until: {expected: "HelloConsole", timeout: 1, mute: true}
+{% if os == "Windows" %}
+        - read_until: {expected: echo "HelloConsole", timeout: 1, mute: true}
+{% endif %}
+        - read_until: {expected: HelloConsole, timeout: 1, mute: true}
 
 - console:
     name: Console read_until muted
@@ -77,6 +89,9 @@
     key: $(test)_PASS
     steps:
         - writeln: echo "HelloConsole is PASS" && echo "endOfCmd"
+{% if os == "Windows" %}
+        - read_until: {expected: echo "endOfCmd", timeout: 1}
+{% endif %}
         - read_until: {expected: endOfCmd, timeout: 1, process_result: "'Hello' in r'''$(result)''' and 'PASS' in r'''$(result)''' "}
 
 - console:

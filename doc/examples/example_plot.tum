@@ -13,8 +13,13 @@ main:
               - open:
                   protocol: terminal
                   terminal_path: $(test_directory)
+{% if os == "Windows" %}
+              - writeln: mkdir "$(plot_log_path)" && echo Fini
+              - read_until: {expected: echo Fini, timeout: 1}
+{% else %}
               - writeln: mkdir -p "$(plot_log_path)" && echo Fini
-              - read_until: {expected: Fini, timeout: 5}
+{% endif %}
+              - read_until: {expected: Fini, timeout: 1}
 
       - console:
           name: Console closure
