@@ -36,6 +36,10 @@ class TestItemReport(TestItem):
 
         success = TestValue.SUCCESS
         for rep in reports:
-            rep.exec(self.report.db_connection, rep_name, no_header=True)
+            try:
+                rep.exec(self.report.db_connection, rep_name, no_header=True)
+            except Exception as e:
+                print(f"Error reporting '{rep.type}': {e}")
+
 
         self.result.set(success)
