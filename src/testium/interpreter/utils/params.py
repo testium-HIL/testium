@@ -10,7 +10,7 @@ class TestItemParams:
         self._parent = parent
 
     def expanse(self, param_value):
-        return expanse(param_value, self._parent)
+        return expanse(param_value, parent=self._parent)
 
     def getParam(self, parameter, default=None, required=False, processed=False):
         """Returns a parameter value from the test item dictionnary.

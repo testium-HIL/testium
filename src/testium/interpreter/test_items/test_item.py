@@ -279,9 +279,9 @@ class TestItem:
 
         self.result.sendStatus(self.status_queue)
         if not self.result.value is None:
-            tm.setgd("last_test_result", str(self.result.value))
+            tm.setgd("last_step_result", str(self.result.value))
         else:
-            tm.setgd("last_test_result", str(self.result.test_result))
+            tm.setgd("last_step_result", str(self.result.test_result))
         self.write_footer()
         self._is_running = False
         self._is_stopped = False
@@ -315,12 +315,6 @@ class TestItem:
             print("   Result processing failed!")
             print(e)
             self.result.set(TestValue.FAILURE, "Result processing failed")
-
-        if isinstance(self.result.value, bool):
-            if self.result.value:
-                self.result.set(TestValue.SUCCESS, "Processing result returned 'True'")
-            else:
-                self.result.set(TestValue.FAILURE, "Processing result returned 'False'")
 
     def process_report(self, report_eval):
         tm.print_debug(f"Export reported values:")

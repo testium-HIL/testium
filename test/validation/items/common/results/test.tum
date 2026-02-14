@@ -49,7 +49,7 @@
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
             param: [ 28 ]
-            expected_result: "$(last_test_result)"
+            expected_result: "$(last_step_result)"
 
 - group:
     name : Expected result Failure raised issue

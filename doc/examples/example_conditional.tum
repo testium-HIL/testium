@@ -35,7 +35,7 @@ main:
                     no_fail: True
 
             exit_condition:
-                value: <| "$(last_test_result)" == "PASS" |>
+                value: <| "$(last_step_result)" == "PASS" |>
 
 
         - let:

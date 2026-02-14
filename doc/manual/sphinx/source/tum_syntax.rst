@@ -132,7 +132,7 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 * ``test_name``: The name of the file being executed without extension,
 * ``home``: the path of the current user's home directory,
 * ``test_outputs``: list of the paths of the test log and test report (if any),
-* ``last_test_result``: test result of the last step (see :ref:`sec_item_common`),
+* ``last_step_result``: test result of the last step (see :ref:`sec_item_common`),
 * ``ts_start_<item_name>``: timestamp at the start of test item execution (see :ref:`sec_item_common`),
 * ``ts_end_<item_name>``: timestamp at the end of test item execution (see :ref:`sec_item_common`),
 * ``ts_duration_<item_name>``: duration of test item execution in seconds (see :ref:`sec_item_common`),

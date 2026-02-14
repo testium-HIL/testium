@@ -92,12 +92,12 @@ if not provided is given in the table as well.
 last test result
 -----------------------------------------------
 
-The global variable ``last_test_result`` is automatically set at the end of a test item execution.
+The global variable ``last_step_result`` is automatically set at the end of a test item execution.
 
-If the corresponding test item does not return any acutal, the content of the ``last_test_result``
+If the corresponding test item does not return any acutal, the content of the ``last_step_result``
 variable will be the test success (``PASS``, ``FAIL`` or ``SKIP``).
 
-It the test item returns a value, the ``last_test_result`` variable will contain the returned value.
+It the test item returns a value, the ``last_step_result`` variable will contain the returned value.
 
 The main test items returning a value are:
 
@@ -192,7 +192,7 @@ Export attribute
     - check:
         name: Example of result specific to the step 001
         values:
-            - $(last_test_result) == PASS
+            - $(last_step_result) == PASS
         key:
             - GID-1510554_step_1
         report:
