@@ -1,73 +1,61 @@
-- let:
-    name: func test constants,
-    values:
-      test parameter: test parameter
 
-- py_func:
-    name: pass func
-    key: $(test)_PASS
-    file: $(test_path)$(psep)func.py
-    func_name: assertparam
-    param:
-        - true
-
-- py_func:
-    name: fail func
+- lua_func:
+    name: fail lua_func
     key: $(test)_FAIL
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: assertparam
     param:
         - false
 
-- py_func:
-    name: fail func with expected result "FAIL"
+- lua_func:
+    name: fail lua_func with expected result FAIL
     key: $(test)_PASS
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: assertparam
     param:
         - false
     expected_result: FAIL
 
-- py_func:
-    name: pass func with expected result FAIL
+- lua_func:
+    name: pass lua_func with expected result FAIL
     key: $(test)_FAIL
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: assertparam
     param:
         - true
     expected_result: FAIL
 
-- py_func:
+- lua_func:
     name: expected -1
     key: $(test)_PASS
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: echo
     param:
         - -1
     expected_result: -1
 
-- py_func:
+- lua_func:
     name: expected eval
     key: $(test)_PASS
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: echo
     param:
         - -1
     expected_result: "354848436 - 354848437"
 
-- py_func:
+- lua_func:
     name: expected table
     key: $(test)_PASS
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: echo
     param:
         - [-1, a, {toto: tata}]
     expected_result: "[-1, 'a', {'toto': 'tata'}]"
 
-- py_func:
-    name: global param func
+- lua_func:
+    name: global param lua_func
     key: $(test)_PASS
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: checkglobal
     param:
         - $(test parameter)
@@ -76,50 +64,50 @@
     name:  python2func
     key: $(test)_PASS
     values:
-        - py: $(test_path)$(psep)func.py
+        - py: $(test_path)$(psep)lua_func.lua
 
-- py_func:
-    name: global param func
+- lua_func:
+    name: global param lua_func
     key: $(test)_PASS
     file: $(py)
     func_name: checkglobal
     param:
         - $(test parameter)
 
-- py_func:
+- lua_func:
     name: skipped_checkglobal
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: should_not_be_called
     param:
         - $(test parameter)
 
-- py_func:
+- lua_func:
     name: skipped true
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: checkglobal
     skipped: true
     param:
         - $(test parameter)
 
-- py_func:
+- lua_func:
     name: skipped true
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: checkglobal
     skipped: true
     param:
         - $(test parameter)
 
-- py_func:
+- lua_func:
     name: skipped 1
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: checkglobal
     skipped: 1
     param:
         - $(test parameter)
 
-- py_func:
+- lua_func:
     name: FunctionItem test
-    file: $(test_path)$(psep)func.py
+    file: $(test_path)$(psep)lua_func.lua
     func_name: ValidationTest
     param:
         - $(test parameter)
@@ -130,54 +118,54 @@
         - group:
             name: Function result failure
             steps:
-                - py_func:
+                - lua_func:
                     name: int failure
-                    key: $(test)_FAIL
-                    file: $(test_path)$(psep)func.py
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: echo
                     param: [-1]
-                - py_func:
+                - lua_func:
                     name: float failure
-                    key: $(test)_FAIL
-                    file: $(test_path)$(psep)func.py
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: echo
                     param: [-1.3]
-                - py_func:
+                - lua_func:
                     name: String failure
-                    key: $(test)_FAIL
-                    file: $(test_path)$(psep)func.py
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: echo
                     param: [ "FAIL" ]
-                - py_func:
+                - lua_func:
                     name: Tuple int,str failure
-                    key: $(test)_FAIL
-                    file: $(test_path)$(psep)func.py
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: tuple_return
                     param: [ -1, "Got a failure" ]
         - group:
             name: Functions result success
             steps:
-                - py_func:
+                - lua_func:
                     name: int success
                     key: $(test)_PASS
-                    file: $(test_path)$(psep)func.py
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: echo
                     param: [0]
-                - py_func:
+                - lua_func:
                     name: float success
                     key: $(test)_PASS
-                    file: $(test_path)$(psep)func.py
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: echo
                     param: [0.3]
-                - py_func:
+                - lua_func:
                     name: String success
                     key: $(test)_PASS
-                    file: $(test_path)$(psep)func.py
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: echo
                     param: [ "Something that is not only strictly FAIL" ]
-                - py_func:
+                - lua_func:
                     name: Tuple int,str success
                     key: $(test)_PASS
-                    file: $(test_path)$(psep)func.py
+                    file: $(test_path)$(psep)lua_func.lua
                     func_name: tuple_return
                     param: [ 0, "OK" ]

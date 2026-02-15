@@ -16,6 +16,9 @@ def checkglobal(param):
     assert param=='test parameter'
     return 0
 
+def checkglobal2():
+    return tm.gd("py_func test parameter")
+
 def should_not_be_called(param):
     raise
 

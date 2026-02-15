@@ -6,9 +6,9 @@
 The ``py_func`` test item is used to execute custom python scripts with the given
 input parameters.
 
-There are two modes for executing a ``py_func`` item. The class mode and the function mode.
+There are two modes for executing a ``py_func`` item. The *class* mode and the *function* mode.
 
-class py_func item
+class ``py_func`` item
 -------------------------
 
 This is the normal way of calling some custom python code.
@@ -80,7 +80,8 @@ There is no possibility to access the report features in that mode.
 
 **Attributes**
 
-Beside common test items attributes, py_func item has specific attribute, some of which being mandatory.
+Beside common test items attributes, ``py_func`` item has specific attribute,
+some of which being mandatory.
 
 * ``file``: the script file name that contains the function to be executed.
   Only python script format is supported.
@@ -106,6 +107,9 @@ on how to access to global variables from test items and scripts).
 In the example above, the global variable ``$(pfn_function test item)``
 would be created at the end of the item execution. It would contain the resulting
 value of the funcToBeExecuted python function.
+
+The ``py_func`` will always result ``PASS``, except if the called function raises
+and exception or if the ``expected_result`` attribute is used.
 
 **Python Interpreter environment setup**
 

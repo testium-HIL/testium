@@ -7,6 +7,7 @@ import libs.testium as tm
 from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
 from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.jrpc import JsonRpcClient
+from interpreter.utils.paths import testium_path
 from interpreter.test_items.test_result import TestValue
 
 function_call_process = None
@@ -147,7 +148,7 @@ class LuaFuncExecEngine:
                 )
             tm.setgd("lua_bin", lua_bin)
 
-        self._lpath = lua_bin
+        self._lbin = lua_bin
         self._req_handler = request_handler
         self._process = None
         self._port = 0
@@ -168,7 +169,7 @@ class LuaFuncExecEngine:
         if self._process is not None:
             raise ETUMRuntimeError("The function subprocess has already been started.")
 
-        func_proc_path = os.path.join(tm.gd("testium_path"),"lua_func")
+        func_proc_path = os.path.realpath(os.path.join(testium_path(), "..", "lua_func"))
 
         # POpen config
         CUST_ENV = {
@@ -190,9 +191,10 @@ class LuaFuncExecEngine:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(("localhost", 0))
         self._port = sock.getsockname()[1]
+        sock.close()
 
         # POpen params
-        params = [self._lpath, "main.lua", "--timeout", f"{self._timeout}", "--host", "127.0.0.1", "--port", f"{self._port}"]
+        params = [self._lbin, "main.lua", "--timeout", f"{self._timeout}", "--host", "127.0.0.1", "--port", f"{self._port}"]
 
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
             params.append("--verbose")
@@ -200,10 +202,6 @@ class LuaFuncExecEngine:
         self._process = subprocess.Popen(
             params, env=env, cwd=func_proc_path
         )
-
-        # Port was reserved until the sub-process is started. Now released.
-        if sock is not None:
-            sock.close()
 
         self._rpc = JsonRpcClient("localhost", self._port, req_handler=self._req_handler)
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
