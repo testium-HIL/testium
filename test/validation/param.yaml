@@ -29,3 +29,13 @@ linux_prompt: "$ "
 #Added param to show handling of the include with statically loaded parameter
 inc_no_template: "inc no template"
 inc_with_template: "inc with template"
+
+lua_env_windows:
+  LUA_PATH: .\?.lua;C:\Program Files (x86)\Lua\5.1\?.lua;C:\Program Files (x86)\Lua\5.1\?\init.lua;C:\Program Files (x86)\Lua\5.1\?.dll;C:\Program Files (x86)\Lua\5.1\loadall.dll;C:\Users\francois\AppData\Roaming\LuaRocks\share\lua\5.1\?.lua;C:\Users\francois\AppData\Roaming\LuaRocks\share\lua\5.1\?\init.lua
+  LUA_CPATH: .\?.dll;C:\Program Files (x86)\Lua\5.1\?.dll;C:\Program Files (x86)\Lua\5.1\loadall.dll;C:\Users\francois\AppData\Roaming\LuaRocks\lib\lua\5.1\?.dll
+
+lua_env_linux:
+  LUA_PATH: ./?.lua;/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua;/usr/local/lib/lua/5.1/?.lua;/usr/local/lib/lua/5.1/?/init.lua;/usr/share/lua/5.1/?.lua;/usr/share/lua/5.1/?/init.lua;/home/francois/.luarocks/share/lua/5.1/?.lua;/home/francois/.luarocks/share/lua/5.1/?/init.lua
+  LUA_CPATH: ./?.so;/usr/local/lib/lua/5.1/?.so;/usr/lib/x86_64-linux-gnu/lua/5.1/?.so;/usr/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so;/home/francois/.luarocks/lib/lua/5.1/?.so
+
+lua_env: $(lua_env_$(os))

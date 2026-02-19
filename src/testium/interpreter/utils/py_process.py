@@ -67,9 +67,9 @@ def _sys_python_bin():
         sys_python_bin = func(e)
         if sys_python_bin == "":
             continue
-        if not _is_python3(sys_python_bin):
-            sys_python_bin = ""
-            continue
+        if _is_python3(sys_python_bin):
+            break
+        sys_python_bin = ""           
 
     return sys_python_bin
 
