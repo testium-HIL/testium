@@ -7,7 +7,7 @@ import textwrap
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
 import libs.testium as tm
-from interpreter.utils.lua_func_exec import lua_func_call_init, lua_func_exec
+from interpreter.utils.lua_func_exec import LuaFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst
@@ -15,7 +15,7 @@ from interpreter.utils.constants import TestItemType as cst
 
 class TestItemLuaFunc(TestItem):
     """lua_func item usage.
-    func file: func_file.py, func_name: func, param: [$(variable1), [1, 2, 3], true]
+    func file: func_file.lua, func_name: func, param: [$(variable1), [1, 2, 3], true]
     """
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
@@ -33,8 +33,7 @@ class TestItemLuaFunc(TestItem):
                 self.seqFilename(),
             )
         # Lua functions call subprocess initialization
-        self._proc = lua_func_call_init(tm.gd("lua_bin", ""), api_request, 10)
-
+        self._lua_func_proc = LuaFuncExecEngine(tm.gd("lua_bin", ""), api_request, 10)
 
     @test_run
     def execute(self):
@@ -49,30 +48,28 @@ class TestItemLuaFunc(TestItem):
             print("Parameters list:")
             print(textwrap.indent(pprint.pformat(pl), " |"))
 
-            if self._proc is not None:
-                self._proc.start()
-                if not self._proc.wait_ready(10):
-                    raise ETUMRuntimeError(
-                        f"""Impossible to start the external lua execution process.
+            self._lua_func_proc.start()
+            if not self._lua_func_proc.wait_ready(10):
+                raise ETUMRuntimeError(
+                    f"""Impossible to start the external lua execution process.
 Is the lua path correct ?
 lua_bin = {tm.gd("lua_bin", "no lua path defined")}
 Are "lua-sockets" and "lua-cjson" installed ?
 Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables ?"""
-                    )
+                )
 
             try:
-                success, ret = lua_func_exec(self.file_name, self.func_name, pl)
+                success, ret = self._lua_func_proc.func_call(self.file_name, self.func_name, pl)
             finally:
                 # Stops lua function execution process
-                self._proc.stop()
-                self._proc.join()
+                self._lua_func_proc.stop()
+                self._lua_func_proc.join()
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)
                 res, reported_values = ret
                 reported_values = {**reported_values, "returned": res}
                 self.result.reported = ret[1]
-
                 print("Returned value:")
                 print(textwrap.indent(pprint.pformat(res), " |"))
 
@@ -82,7 +79,6 @@ Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables
 
             else:
                 self.result.set(TestValue.FAILURE, ret)
-
                 print("Failed!")
                 tm.print_debug(textwrap.indent(pprint.pformat(ret), " |"))
 

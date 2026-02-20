@@ -121,6 +121,9 @@ class PyProcessBase:
 
         # POpen config
         py_env = tm.gd("python_env", {})
+        if not isinstance(py_env, dict):
+            raise ETUMRuntimeError(f"The 'py_env' global value should be a dictionary. But it is '{py_env}'.")
+        
         env = os.environ.copy()
         for k, v in self.CUST_ENV.items():
             e = py_env.get(k, "")
