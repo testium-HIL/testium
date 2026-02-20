@@ -8,9 +8,15 @@ end
 
 function module.assertparam(param)
     assert(param)
+    return 0
 end
 
-function module.checkglobal(param, index)
+function module.checkglobal(param)
+    local res = tm.gd(param)
+    return res
+end
+
+function module.checkglobal2(index)
     return tm.gd("lua_data_to_be_returned")[index]
 end
 

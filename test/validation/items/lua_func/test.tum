@@ -1,3 +1,7 @@
+- let:
+    name: lua_func test constants,
+    values:
+      lua_func test parameter: test parameter lua_func
 
 - lua_func:
     name: fail lua_func
@@ -58,7 +62,35 @@
     file: $(test_path)$(psep)lua_func.lua
     func_name: checkglobal
     param:
-        - $(test parameter)
+        - lua_func test parameter
+    expected_result: $(lua_func test parameter)
+
+- lua_func:
+    name: global param lua_func 1
+    key: $(test)_PASS
+    file: $(test_path)$(psep)lua_func.lua
+    func_name: checkglobal2
+    param:
+        - 1
+    expected_result: ($(lua_data_to_be_returned))[0]
+
+- lua_func:
+    name: global param lua_func 2
+    key: $(test)_PASS
+    file: $(test_path)$(psep)lua_func.lua
+    func_name: checkglobal2
+    param:
+        - 2
+    expected_result: ($(lua_data_to_be_returned))[1]
+
+- lua_func:
+    name: global param lua_func 3
+    key: $(test)_PASS
+    file: $(test_path)$(psep)lua_func.lua
+    func_name: checkglobal2
+    param:
+        - 3
+    expected_result: ($(lua_data_to_be_returned))[2]
 
 - let:
     name:  python2func
@@ -66,13 +98,6 @@
     values:
         - py: $(test_path)$(psep)lua_func.lua
 
-- lua_func:
-    name: global param lua_func
-    key: $(test)_PASS
-    file: $(py)
-    func_name: checkglobal
-    param:
-        - $(test parameter)
 
 - lua_func:
     name: skipped_checkglobal
@@ -90,25 +115,10 @@
         - $(test parameter)
 
 - lua_func:
-    name: skipped true
-    file: $(test_path)$(psep)lua_func.lua
-    func_name: checkglobal
-    skipped: true
-    param:
-        - $(test parameter)
-
-- lua_func:
     name: skipped 1
     file: $(test_path)$(psep)lua_func.lua
     func_name: checkglobal
     skipped: 1
-    param:
-        - $(test parameter)
-
-- lua_func:
-    name: FunctionItem test
-    file: $(test_path)$(psep)lua_func.lua
-    func_name: ValidationTest
     param:
         - $(test parameter)
 
