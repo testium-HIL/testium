@@ -46,21 +46,24 @@ def get_testium_version():
         return (ver + " (binary release)")
 
     # Executed from sources
-    if prefs.settings.git_supported:
-        git = import_module("git")
-        path = tm.get_main_dir()
-        try:
-            return repo_rev(path)
-        except git.InvalidGitRepositoryError:
-            pkg_rec = import_module("pkg_resources")
+    try:
+        if prefs.settings.git_supported:
+            git = import_module("git")
+            path = tm.get_main_dir()
             try:
-                ret = pkg_rec.get_distribution("testium").version
-                _cached_versions.update({path: ret})
-                return str(ret) + " (wheel release)"
-            except:
-                return "Warning : testium not versioned"
-    else:
-        return "Warning git not supported in your settings, version of testium is unknown."
+                return repo_rev(path)
+            except git.InvalidGitRepositoryError:
+                pkg_rec = import_module("pkg_resources")
+                try:
+                    ret = pkg_rec.get_distribution("testium").version
+                    _cached_versions.update({path: ret})
+                    return str(ret) + " (wheel release)"
+                except:
+                    return "Warning : testium not versioned"
+        else:
+            return "Warning git not supported in your settings, version of testium is unknown."
+    except:
+        return ("Unknown")
 
 def get_modifications(path : str)-> str:
 

@@ -31,8 +31,9 @@ dynamic = ["version"]
 [project.scripts]
 testium = "testium:main"
 
-[tool.setuptools.package-data]
-docpkg = ["*.pdf"]
+[tool.setuptools.packages.find]
+where=["."]
+exclude=["lua_func", "py_func"]
 
 [tool.setuptools.dynamic]
 version = {file = ["VERSION"]}
