@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog
 from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QDesktopServices
 from PySide6.QtCore import Qt, QUrl
 
-from testium.main_win.f1_win.f1_win_core import Ui_F1Dialog
+from main_win.f1_win.f1_win_core import Ui_F1Dialog
 
 
 class YamlHighlighter(QSyntaxHighlighter):

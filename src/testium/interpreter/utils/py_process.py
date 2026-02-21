@@ -7,7 +7,7 @@ import libs.testium as tm
 from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
 from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.jrpc import JsonRpcClient
-from interpreter.utils.paths import testium_path
+from interpreter.utils.paths import testium_path, subproc_path
 
 
 def _python_version(path: str):
@@ -69,8 +69,9 @@ def _sys_python_bin():
             continue
         if _is_python3(sys_python_bin):
             break
-        sys_python_bin = ""           
+        sys_python_bin = ""
 
+    tm.print_debug(f"python bin is: '{sys_python_bin}'.")
     return sys_python_bin
 
 
@@ -123,7 +124,7 @@ class PyProcessBase:
         py_env = tm.gd("python_env", {})
         if not isinstance(py_env, dict):
             raise ETUMRuntimeError(f"The 'py_env' global value should be a dictionary. But it is '{py_env}'.")
-        
+
         env = os.environ.copy()
         for k, v in self.CUST_ENV.items():
             e = py_env.get(k, "")
@@ -141,8 +142,9 @@ class PyProcessBase:
             sock.close()
 
         # Add the path of the subprocess (root sources of testium)
-        func_proc_path = os.path.realpath(os.path.join(testium_path(), ".."))
-        env["PYTHONPATH"] = func_proc_path + os.pathsep + self._ppath + os.pathsep + env.get("PYTHONPATH", "")
+        tstium_path = os.path.realpath(testium_path())
+        func_proc_path = os.path.realpath(subproc_path())
+        env["PYTHONPATH"] = tstium_path + os.pathsep + self._ppath + os.pathsep + env.get("PYTHONPATH", "")
 
         params = [
             self._pbin,

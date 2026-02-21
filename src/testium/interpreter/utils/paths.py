@@ -9,9 +9,23 @@ import libs.testium as tm
 
 
 def testium_path():
+
+    if getattr(sys, 'frozen', False):
+        # Exécuté depuis le .exe
+        print(f"Path: {sys._MEIPASS}")
+        return sys._MEIPASS
+
     tp = inspect.getfile(inspect.getmodule(testium))
     return str(Path(tp).parent.resolve())
 
+def subproc_path():
+    if getattr(sys, 'frozen', False):
+        # Exécuté depuis le .exe
+        print(f"Path: {sys._MEIPASS}")
+        return sys._MEIPASS
+
+    tp = inspect.getfile(inspect.getmodule(testium))
+    return str(Path(tp).parent.parent.resolve())
 
 def prepare_file_to_save(file_name, file_ext=""):
     iname = file_name

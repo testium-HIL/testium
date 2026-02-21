@@ -5,7 +5,7 @@ import subprocess
 import socket
 
 import libs.testium as tm
-from interpreter.utils.paths import testium_path
+from interpreter.utils.paths import subproc_path
 from interpreter.utils.tum_except import ETUMRuntimeError
 from interpreter.utils.jrpc import JsonRpcClient
 from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
@@ -58,6 +58,7 @@ def _sys_lua_bin():
         tm.print_debug(f"'{sys_lua_bin}' not a lua 5.1 min.")
         sys_lua_bin = ""
 
+    tm.print_debug(f"lua bin is: '{sys_lua_bin}'.")
     tm.setgd("_sys_lua_bin", sys_lua_bin)
     return sys_lua_bin
 
@@ -145,7 +146,7 @@ class LuaProcessBase:
             raise ETUMRuntimeError("The function subprocess has already been started.")
 
         func_proc_path = os.path.realpath(
-            os.path.join(testium_path(), "..", "lua_func")
+            os.path.join(subproc_path(), "lua_func")
         )
 
         # POpen config
@@ -159,7 +160,7 @@ class LuaProcessBase:
         env = os.environ.copy()
         if not isinstance(lua_env, dict):
             raise ETUMRuntimeError(f"The 'lua_env' global value should be a dictionary. But it is '{lua_env}'.")
-        
+
         for k, v in CUST_ENV.items():
             e = lua_env.get(k, "")
             if e != "":
