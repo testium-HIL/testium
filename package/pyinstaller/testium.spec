@@ -1,12 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['../../src/testium/__main__.py'],
     pathex=['../../src/testium',
             '../../src/testium/main_win/resources'],
     binaries=[],
-    datas=[ ('../../src/VERSION', '.')],
+    datas=[ ('../../src/VERSION', '.'),
+            ('../../src/lua_func', 'lua_func'),
+            ('../../src/py_func', 'py_func'),
+            ('../../src/lib', 'lib')],
     hiddenimports=["git",
                    "interpreter",
                    "main_win",

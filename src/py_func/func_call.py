@@ -5,7 +5,7 @@ from pathlib import Path
 import importlib
 import traceback
 
-from testium.interpreter.utils.tum_except import ETUMRuntimeError, ETUMSyntaxError
+from lib.tum_except import ETUMRuntimeError, ETUMSyntaxError
 from py_func import tm
 
 

@@ -1,6 +1,6 @@
 import traceback
 
-from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.test_items.test_item import TestItem, test_run

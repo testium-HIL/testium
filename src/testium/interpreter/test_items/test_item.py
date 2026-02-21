@@ -7,7 +7,7 @@ import libs.testium as tm
 from interpreter.utils.params import TestItemParams
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 
 LOG_TEST_STOP = '<----- step "{}" finished'
 LOG_TEST_START = '-----> step "{}" started'

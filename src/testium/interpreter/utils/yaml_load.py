@@ -2,7 +2,7 @@ from yaml.parser import ParserError
 from yaml import load, Loader
 from yaml.scanner import ScannerError
 from libs.testium import print_debug
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 import io
 
 

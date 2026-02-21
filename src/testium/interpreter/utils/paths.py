@@ -12,7 +12,6 @@ def testium_path():
 
     if getattr(sys, 'frozen', False):
         # Exécuté depuis le .exe
-        print(f"Path: {sys._MEIPASS}")
         return sys._MEIPASS
 
     tp = inspect.getfile(inspect.getmodule(testium))
@@ -21,7 +20,6 @@ def testium_path():
 def subproc_path():
     if getattr(sys, 'frozen', False):
         # Exécuté depuis le .exe
-        print(f"Path: {sys._MEIPASS}")
         return sys._MEIPASS
 
     tp = inspect.getfile(inspect.getmodule(testium))

@@ -1,5 +1,5 @@
 import interpreter.utils.globdict as globdict
-from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
 glob_eval_func = None
 

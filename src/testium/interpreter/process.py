@@ -1,15 +1,14 @@
 import os
-import sys
 from multiprocessing import Process, Queue, Pipe
 from queue import Empty
 from threading import Thread
 from time import sleep
 import copy
 
+from lib.string_queue import StringQueue
+from lib.tum_except import print_exception, ETUMRuntimeError, ETUMSyntaxError
 import libs.testium as tm
 from interpreter.utils.params import expanse
-from interpreter.utils.string_queue import StringQueue
-from interpreter.utils.tum_except import ETUMRuntimeError, ETUMSyntaxError
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.test_init import (
     env_init,
@@ -25,10 +24,9 @@ from interpreter.utils.test_init import (
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.test_set import TestSet
 from interpreter.utils.include import TUMLoader, TUMLoaderNoIncludes, TUMLoaderRawIncludes
-from interpreter.utils.stdout_redirect import stdio_redir
+from lib.stdout_redirect import stdio_redir
 from interpreter.utils.template import template_to_test
 from interpreter.utils.yaml_load import yaml_load
-from interpreter.utils.tum_except import print_exception
 from interpreter.utils.py_eval import eval_process_init
 from interpreter.utils.api_srv import api_request
 

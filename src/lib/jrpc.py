@@ -5,9 +5,12 @@ import threading
 import itertools
 from time import sleep
 from typing import Callable, Any
-import libs.testium as tm
+try:
+    import libs.testium as tm
+except:
+    import py_func.tm as tm
 
-from interpreter.utils.tum_except import ETUMRuntimeError
+from lib.tum_except import ETUMRuntimeError
 
 """Lightweight JSON-RPC 2.0 helpers over TCP sockets.
 

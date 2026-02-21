@@ -1,4 +1,4 @@
-from interpreter.utils.tum_except import (ETUMRuntimeError)
+from lib.tum_except import (ETUMRuntimeError)
 
 from datetime import datetime
 from enum import Enum

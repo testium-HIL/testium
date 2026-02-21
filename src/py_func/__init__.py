@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import multiprocessing
 from py_func.tm import _init_api, _remote_print
-from testium.interpreter.utils.stdout_redirect import stdio_redir
+from lib.stdout_redirect import stdio_redir
 
 
 class TcpStdOut:

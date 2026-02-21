@@ -1,6 +1,6 @@
 import libs.testium as tm
 from interpreter.utils.py_eval import eval_exec
-from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
 
 def evaluate(val, **replacement_dict):

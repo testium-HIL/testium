@@ -2,7 +2,7 @@ import yaml
 import os.path
 import libs.testium as tm
 from interpreter.utils.params import expanse
-from interpreter.utils.tum_except import ETUMFileError
+from lib.tum_except import ETUMFileError
 from interpreter.utils.template import template_to_test
 from copy import copy
 from interpreter.utils.globdict import global_dict

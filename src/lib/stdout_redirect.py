@@ -1,6 +1,6 @@
 import sys
 from threading import (Thread, Event)
-from interpreter.utils.string_queue import StringQueue
+from lib.string_queue import StringQueue
 from time import (sleep)
 
 class StdioRedirect:

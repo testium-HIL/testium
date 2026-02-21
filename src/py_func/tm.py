@@ -1,24 +1,8 @@
-"""tm — proxy module exposing remote-callable API functions.
-
-This module dynamically exposes functions listed in
-``interpreter.utils.api.SUPPORTED_API``. Each exposed function is a
-thin wrapper that forwards the call to a running ``FuncHandler``
-instance (stored in ``_func_call_thread``).
-
-Typical usage:
-    >>> from testium.py_func import tm
-    >>> handler = tm._init_api(port)
-    >>> tm.some_api_function(args)
-
-Only after ``_init_api`` has been called will API functions be able to
-send requests to the remote handler; otherwise an ``ETUMRuntimeError``
-is raised.
-"""
 
 import sys
 from py_func.handle import FuncHandler
-from testium.interpreter.utils.tum_except import ETUMRuntimeError
-from testium.interpreter.utils.api import SUPPORTED_API
+from lib.tum_except import ETUMRuntimeError
+from lib.api import SUPPORTED_API
 
 thismodule = sys.modules[__name__]
 # Shared FuncHandler instance used to forward API calls. Remains None

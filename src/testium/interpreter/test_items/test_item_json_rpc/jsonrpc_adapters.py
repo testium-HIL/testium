@@ -3,7 +3,7 @@ import socket
 import re
 import struct
 
-from interpreter.utils.tum_except import ETUMRuntimeError
+from lib.tum_except import ETUMRuntimeError
 import libs.testium as tm
 from libs.console import Console
 

@@ -6,7 +6,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.test_items.tested_references_files import tested_refs_dialog
 import libs.testium as tm
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 from interpreter.utils.constants import TestItemType as cst
 
 class TestItemTestedRefsDialog(TestItem):

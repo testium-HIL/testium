@@ -8,8 +8,8 @@ from multiprocessing import Queue
 
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
-from interpreter.utils.tum_except import ETUMFileError
-from interpreter.utils.stdout_redirect import stdio_redir
+from lib.tum_except import ETUMFileError
+from lib.stdout_redirect import stdio_redir
 
 
 class Batch:

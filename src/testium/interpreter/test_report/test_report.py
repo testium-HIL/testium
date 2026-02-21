@@ -3,8 +3,8 @@ from functools import wraps
 import sqlite3
 from time import (time, sleep)
 import traceback
-from interpreter.utils.tum_except import (ETUMRuntimeError, ETUMSyntaxError)
-from interpreter.utils.stdout_redirect import stdio_redir
+from lib.tum_except import (ETUMRuntimeError, ETUMSyntaxError)
+from lib.stdout_redirect import stdio_redir
 from interpreter.utils.params import (expanse)
 from interpreter.utils.paths import prepare_file_to_save
 import interpreter.utils.constants as cst

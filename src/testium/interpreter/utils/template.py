@@ -4,7 +4,7 @@ from jinja2 import Template
 from jinja2.exceptions import TemplateSyntaxError, TemplateError, UndefinedError
 from tempfile import TemporaryFile
 from interpreter.utils.yaml_load import print_yaml
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 
 
 def template_to_test(filename: str, params: list):

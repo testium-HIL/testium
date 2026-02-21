@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 import libs.testium as tm
 from interpreter.test_items.test_result import TestValue
-from interpreter.utils.tum_except import ETUMRuntimeError
+from lib.tum_except import ETUMRuntimeError
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.eval import post_evaluate

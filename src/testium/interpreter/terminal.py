@@ -90,7 +90,7 @@ class Terminal(Cmd):
         # redirect output
 
         if 'Linux' in platform.system() and not no_color:
-            from interpreter.utils.stdout_redirect import stdio_redir
+            from lib.stdout_redirect import stdio_redir
             try:
                 from interpreter.utils.termlog import TermLog
                 stdio_redir.redirect(TermLog(sys.stdout))

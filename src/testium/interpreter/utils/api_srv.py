@@ -1,4 +1,4 @@
-from interpreter.utils.api import SUPPORTED_API
+from lib.api import SUPPORTED_API
 
 import libs.testium as tm
 

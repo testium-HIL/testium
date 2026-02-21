@@ -5,13 +5,13 @@ from unittest import (TestCase, TestSuite, TextTestRunner,
 from unittest.loader import defaultTestLoader
 
 import libs.testium as tm
-from interpreter.utils.tum_except import (ETUMFileError)
+from lib.tum_except import (ETUMFileError)
 from interpreter.utils.modules import load_source
 from interpreter.test_items.test_item import (TestItem, test_run, LOG_TEST_STOP, LOG_TEST_START)
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.test_items.test_item import test_data
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.stdout_redirect import stdio_redir
+from lib.stdout_redirect import stdio_redir
 
 class UnittestResult(TextTestResult):
     """Test result adapted for unittest test"""

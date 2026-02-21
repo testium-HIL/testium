@@ -7,7 +7,7 @@ from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.dialog_image_files import dialog_image
 import libs.testium as tm
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 
 
 class TestItemImageDialog(TestItem):

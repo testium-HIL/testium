@@ -5,9 +5,9 @@ import subprocess
 import socket
 
 import libs.testium as tm
+from lib.jrpc import JsonRpcClient
 from interpreter.utils.paths import subproc_path
-from interpreter.utils.tum_except import ETUMRuntimeError
-from interpreter.utils.jrpc import JsonRpcClient
+from lib.tum_except import ETUMRuntimeError
 from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
 
 def _lua_version(path: str):

@@ -1,7 +1,7 @@
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.tum_except import ETUMParamError, ETUMSyntaxError
+from lib.tum_except import ETUMParamError, ETUMSyntaxError
 import interpreter.utils.version as git
 
 class TestItemGit(TestItem):

@@ -13,7 +13,7 @@ import interpreter.utils.settings as prefs
 from interpreter.utils.paths import testium_path
 from interpreter.utils.yaml_load import yaml_load
 from interpreter.utils import clear_recursively
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 from interpreter.utils.params import expanse, eval_func_init
 from interpreter.utils.eval import evaluate
 from interpreter.utils.version import (

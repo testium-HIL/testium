@@ -10,7 +10,7 @@ from PySide6.QtGui import (QFont, QFontInfo)
 from time import (time)
 
 from main_win.test_tree_items.common import (TEST_COLS, TEST_COLS_WITH_TIME)
-from interpreter.utils.tum_except import (ETUMFileError, ETUMSyntaxError)
+from lib.tum_except import (ETUMFileError, ETUMSyntaxError)
 from interpreter.utils.test_ctrl import TestSetController
 from main_win.test_tree_items.test_tree_git import QTestTreeItemGit
 

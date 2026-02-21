@@ -3,14 +3,14 @@ import datetime
 from queue import Queue
 from interpreter.utils.params import expanse
 import libs.testium as tm
-from interpreter.utils.tum_except import (
+from lib.tum_except import (
     ETUMSyntaxError,
 )
 import interpreter.utils.settings as prefs
 from interpreter.test_report.test_report import TestReport
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
-from interpreter.utils.tum_except import ETUMRuntimeError
+from lib.tum_except import ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst_type
 import interpreter.utils.constants as cst
 from interpreter.utils.constants import TEST_TYPE_LIST

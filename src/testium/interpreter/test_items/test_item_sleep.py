@@ -7,7 +7,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.test_items.dialog_sleep_files import dialog_sleep
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
 class TestItemSleep(TestItem):
     """sleep item usage.

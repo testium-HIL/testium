@@ -4,8 +4,8 @@ import importlib
 import traceback
 
 import libs.testium as tm
-from interpreter.utils.tum_except import ETUMSyntaxError
-from interpreter.utils.stdout_redirect import stdio_redir
+from lib.tum_except import ETUMSyntaxError
+from lib.stdout_redirect import stdio_redir
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction

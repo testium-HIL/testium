@@ -6,7 +6,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.test_items.dialog_msg_files import msg_dialog
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError
 
 class TestItemMsgDialog(TestItem):
     """dialog_message item usage.

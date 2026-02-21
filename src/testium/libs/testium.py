@@ -4,7 +4,7 @@ import sys
 import textwrap
 from time import monotonic
 import interpreter.utils.globdict as globdict
-from interpreter.utils.tum_except import (ETUMSyntaxError)
+from lib.tum_except import (ETUMSyntaxError)
 
 ###############################################################################
 # Console helper functions
