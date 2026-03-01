@@ -71,7 +71,6 @@ def _sys_python_bin():
             break
         sys_python_bin = ""
 
-    tm.print_debug(f"python bin is: '{sys_python_bin}'.")
     return sys_python_bin
 
 
