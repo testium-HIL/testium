@@ -3,7 +3,6 @@ import py_func.tm as tm
 import textwrap
 import sqlite3
 from junit_xml import TestSuite, TestCase
-from interpreter.test_items.test_result import TestValue
 
 
 def _prepare_file_to_save(file_name, file_ext=""):
@@ -36,10 +35,10 @@ def _get_testSuite(test, cur):
         )
 
         # Check the results of all
-        if result[1] == str(TestValue.NORUN):
+        if result[1] == "SKIP":
             tc.add_skipped_info("The test has not being runned")
         elif result[2] == f"{test}_PASS":
-            if result[1] == str(TestValue.FAILURE):
+            if result[1] == "FAIL":
                 failures += 1
                 print(f"Item [{test}] Failing on '{result[0]}' : The test should PASS")
                 print("*" * 80)
@@ -47,7 +46,7 @@ def _get_testSuite(test, cur):
                 print("*" * 80)
                 tc.add_error_info("The test should PASS!\n\n" + result[4])
         elif result[2] == f"{test}_FAIL":
-            if result[1] == str(TestValue.SUCCESS):
+            if result[1] == "PASS":
                 failures += 1
                 print(
                     f"Item [{test}] Failing on '{result[0]}' : \n\tThe test should FAIL"

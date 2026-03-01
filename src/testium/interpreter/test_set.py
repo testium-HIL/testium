@@ -320,19 +320,18 @@ class TestSet:
     def set_post_exec(self):
         post_exec = self._testdict.get("post_execution", None)
         if post_exec is None:
-            if self.post_exec_file is not None:
-                self.post_exec_file = None
+            self.post_exec_file = None
             return
 
         postexec_file = post_exec["file_name"]
 
-        if not os.path.isfile(os.path.join(self._testDir, postexec_file)):
+        if not os.path.isfile(os.path.join(tm.gd("test_directory"), postexec_file)):
             raise ETUMSyntaxError(f"Post execution file '{postexec_file}' not found")
 
         self.post_exec_file = postexec_file
 
     def run_post_exec(self):
-
+        tm.print_debug("Is there a post execution file ?")
         post_exec_file = self.post_exec_file
         test_dir = tm.gd("test_directory")
 
