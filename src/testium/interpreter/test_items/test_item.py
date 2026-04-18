@@ -34,6 +34,7 @@ def test_run(f):
                     if isinstance(c, bool):
                         condition = c
                     else:
+                        condition = False
                         c = False
 
                     if raw_condition == c:
