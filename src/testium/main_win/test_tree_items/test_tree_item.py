@@ -7,6 +7,56 @@ from PySide6.QtWidgets import (QTreeWidgetItem)
 from interpreter.utils.icons import icon_prefix
 from libs.testium import print_warn
 
+# Maps item_name (from TestItemType.item_name) to visual config.
+# Keys: icon (required), icon_on (optional 2nd state), expanded, unfoldable, no_breakpoint
+_ITEM_CONFIG = {
+    "unittest file":        {"icon": "folder.png",        "icon_on": "folder-open.png", "expanded": True,  "no_breakpoint": True},
+    "unittest step":        {"icon": "document.png",                                                        "no_breakpoint": True},
+    "Console":              {"icon": "terminal.png",       "unfoldable": False},
+    "Console action":       {"icon": "terminal.png"},
+    "Cycle":                {"icon": "cycle.png",          "expanded": True},
+    "python Function":      {"icon": "python.png"},
+    "lua Function":         {"icon": "lua.png"},
+    "Report":               {"icon": "report.png"},
+    "git repository":       {"icon": "git.png"},
+    "Runtime plot":         {"icon": "plot.png"},
+    "Runtime plot action":  {"icon": "plot.png"},
+    "Group":                {"icon": "group.png",          "expanded": True},
+    "Image Dialog":         {"icon": "image.png"},
+    "Message Dialog":       {"icon": "info.png"},
+    "Let":                  {"icon": "let.png"},
+    "Check value":          {"icon": "verif.png"},
+    "Note Dialog":          {"icon": "note.png"},
+    "Question Dialog":      {"icon": "question.png"},
+    "Sleep":                {"icon": "sleep.png"},
+    "References Dialog":    {"icon": "label.png"},
+    "Value Dialog":         {"icon": "question.png"},
+    "Choices Dialog":       {"icon": "label.png"},
+    "Run tum":              {"icon": "testium_logo.svg"},
+    "JSON-RPC":             {"icon": "json.png",           "unfoldable": False},
+    "JSON-RPC action":      {"icon": "json.png"},
+}
+
+
+def make_tree_item(parent, test_set_item, cols):
+    """Factory: create a QTestTreeItem configured for the given test_set_item type."""
+    item = QTestTreeItem(parent, test_set_item, cols)
+    cfg = _ITEM_CONFIG.get(test_set_item["type"], {})
+    if cfg.get("unfoldable") is False:
+        item.recursive_unfoldable = False
+    if cfg.get("expanded"):
+        item.setExpanded(True)
+    if cfg.get("no_breakpoint"):
+        item._no_breakpoint = True
+    icon = cfg.get("icon", "")
+    if icon:
+        icon_on = cfg.get("icon_on", "")
+        item.setRowIcon(
+            icon_prefix() + "/" + icon,
+            icon_prefix() + "/" + icon_on if icon_on else "",
+        )
+    return item
+
 
 def __iter__QTreeWidgetItem(self):
     for item in chain(*map(iter, self.children())):
@@ -51,6 +101,7 @@ class QTestTreeItem(QTreeWidgetItem):
         self._is_highlighted = False
         self._initial_brush = None
         self._failure_list = None
+        self._no_breakpoint = False
         parent.addChild(self)
         self._has_failed = False
         self._display_pause = False
@@ -106,9 +157,7 @@ class QTestTreeItem(QTreeWidgetItem):
         self.setIcon(self._cols["status"]["index"], icon)
 
     def setBreakpoint(self):
-        if (self.__class__.__name__ == "QTestTreeItemUnittest") or (
-            self.__class__.__name__ == "QTestTreeItemUnittestElement"
-        ):
+        if self._no_breakpoint:
             return
         self._display_pause = not self._display_pause
         if self._display_pause:
