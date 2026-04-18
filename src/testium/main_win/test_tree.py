@@ -12,32 +12,7 @@ from time import (time)
 from main_win.test_tree_items.common import (TEST_COLS, TEST_COLS_WITH_TIME)
 from lib.tum_except import (ETUMFileError, ETUMSyntaxError)
 from main_win.test_controller_service import TestControllerService
-from main_win.test_tree_items.test_tree_git import QTestTreeItemGit
-
-# to be removed in the future and replaced by a more "sexy" mechanism
-from main_win.test_tree_items.test_tree_unittest import (QTestTreeItemUnittest,
-                                                         QTestTreeItemUnittestElement)
-from main_win.test_tree_items.test_tree_sleep import QTestTreeItemSleep
-from main_win.test_tree_items.test_tree_cycle import QTestTreeItemCycle
-from main_win.test_tree_items.test_tree_group import QTestTreeItemGroup
-from main_win.test_tree_items.test_tree_git import QTestTreeItemGit
-from main_win.test_tree_items.test_tree_py_func import QTestTreeItemPyFunc
-from main_win.test_tree_items.test_tree_lua_func import QTestTreeItemLuaFunc
-from main_win.test_tree_items.test_tree_jsonrpc import QTestTreeItemJSONRPC, QTestTreeItemJSONRPCAction
-from main_win.test_tree_items.test_tree_run import QTestTreeItemRun
-from main_win.test_tree_items.test_tree_runtime_plot import QTestTreePlot, QTestTreePlotAction
-from main_win.test_tree_items.test_tree_report import QTestTreeItemReport
-from main_win.test_tree_items.test_tree_let import QTestTreeItemLet
-from main_win.test_tree_items.test_tree_check import QTestTreeItemCheckValue
-from main_win.test_tree_items.test_tree_unittest import QTestTreeItemUnittest, QTestTreeItemUnittestElement
-from main_win.test_tree_items.test_tree_value_dialog import QTestTreeItemValueDialog
-from main_win.test_tree_items.test_tree_note_dialog import QTestTreeItemNoteDialog
-from main_win.test_tree_items.test_tree_image_dialog import QTestTreeItemImageDialog
-from main_win.test_tree_items.test_tree_msg_dialog import QTestTreeItemMsgDialog
-from main_win.test_tree_items.test_tree_question_dialog import QTestTreeItemQuestionDialog
-from main_win.test_tree_items.test_tree_tested_references_dialog import QTestTreeItemTestedRefsDialog
-from main_win.test_tree_items.test_tree_choices_dialog import QTestTreeItemChoicesDialog
-from main_win.test_tree_items.test_tree_console import (QTestTreeItemConsole, QTestTreeItemConsoleAction)
+from main_win.test_tree_items.test_tree_item import make_tree_item
 
 from interpreter.test_items.test_result import (TestValue)
 import libs.testium as tm
@@ -47,33 +22,8 @@ from interpreter.utils.icons import icon_prefix
 
 class QTestTree(QTreeWidget):
     breakpoint = Signal()
-    DICT_TREE_ITEMS = {
-                    cst.TYPE_UNITTEST_FILE.item_name    : QTestTreeItemUnittest,
-                    cst.TYPE_UNITTEST_STEP.item_name    : QTestTreeItemUnittestElement,
-                    cst.TYPE_SLEEP.item_name            : QTestTreeItemSleep,
-                    cst.TYPE_CYCLE.item_name            : QTestTreeItemCycle,
-                    cst.TYPE_GRAPH.item_name            : QTestTreePlot,
-                    cst.TYPE_GRAPH_ACTION.item_name     : QTestTreePlotAction,
-                    cst.TYPE_GROUP.item_name            : QTestTreeItemGroup,
-                    cst.TYPE_GIT.item_name              : QTestTreeItemGit,
-                    cst.TYPE_PY_FUNCTION.item_name      : QTestTreeItemPyFunc,
-                    cst.TYPE_LUA_FUNCTION.item_name     : QTestTreeItemLuaFunc,
-                    cst.TYPE_LET.item_name              : QTestTreeItemLet,
-                    cst.TYPE_CHECK.item_name            : QTestTreeItemCheckValue,
-                    cst.TYPE_JSON_RPC.item_name         : QTestTreeItemJSONRPC,
-                    cst.TYPE_JSON_RPC_ACTION.item_name  : QTestTreeItemJSONRPCAction,
-                    cst.TYPE_RUN.item_name              : QTestTreeItemRun,
-                    cst.TYPE_REPORT.item_name           : QTestTreeItemReport,
-                    cst.TYPE_VALUE_DLG.item_name        : QTestTreeItemValueDialog,
-                    cst.TYPE_NOTE_DLG.item_name         : QTestTreeItemNoteDialog,
-                    cst.TYPE_IMAGE_DLG.item_name        : QTestTreeItemImageDialog,
-                    cst.TYPE_MESSAGE_DLG.item_name      : QTestTreeItemMsgDialog,
-                    cst.TYPE_QUESTION_DLG.item_name     : QTestTreeItemQuestionDialog,
-                    cst.TYPE_REFERENCE_DLG.item_name    : QTestTreeItemTestedRefsDialog,
-                    cst.TYPE_CHOICES_DLG.item_name      : QTestTreeItemChoicesDialog,
-                    cst.TYPE_CONSOLE.item_name          : QTestTreeItemConsole,
-                    cst.TYPE_CONSOLE_ACTION.item_name   : QTestTreeItemConsoleAction,
-                }
+
+    _KNOWN_TYPES = {e.item_name for e in cst}
 
 
     def __init__(self, parent):
@@ -297,12 +247,9 @@ class QTestTree(QTreeWidget):
 
         for test_id in test_set_item.keys():
             childType = test_set_item[test_id]["type"]
-            if childType in self.DICT_TREE_ITEMS.keys():
-                tree_item = self.DICT_TREE_ITEMS[childType](tree_parent,
-                                                    test_set_item[test_id],
-                                                    self.cols)
-            else:
+            if childType not in self._KNOWN_TYPES:
                 raise ETUMSyntaxError(f"Error in the test_set, type {childType} undefined")
+            tree_item = make_tree_item(tree_parent, test_set_item[test_id], self.cols)
 
             cb = QComboBox(self)
             self.setItemWidget(tree_item, self.cols['desc']['index'], cb)
