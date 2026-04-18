@@ -123,17 +123,12 @@ Each ``py_func`` item without a ``context_id`` runs in a dedicated subprocess th
 is started and stopped around the call. State cannot be shared between two such
 items using module-level variables.
 
-Two mechanisms are available to share data across calls:
-
-**Using the testium global dictionary**
-
-Inside a ``py_func`` script, the ``tm`` module exposes ``tm.setgd`` and ``tm.gd``
-to read and write the testium global dictionary of the test process. Values stored
-this way are accessible from any subsequent test item (including other ``py_func``
-items) without requiring a shared subprocess.
+Inside a ``py_func`` script, ``tm.setgd`` and ``tm.gd`` read and write the testium
+global dictionary. Values stored this way are accessible from any subsequent test
+item, including other ``py_func`` items, without requiring a shared subprocess.
 
 .. code-block:: python
-    :caption: sharing a serializable value via the global dictionary
+    :caption: sharing a value via the global dictionary
 
     import py_func.tm as tm
 
@@ -144,36 +139,22 @@ items) without requiring a shared subprocess.
     def consume():
         return tm.gd("my_shared_value", None)
 
-Values stored with ``tm.setgd`` must be JSON-serializable (str, int, float, list,
-dict, bool, None). Non-serializable values (objects, connections, file handles…)
-are handled transparently by the local fallback described below.
-
-**Using a shared persistent subprocess (``context_id``)**
-
 When ``context_id`` is set, all ``py_func`` items that share the same identifier
-reuse the same subprocess. The subprocess is kept alive until the end of the test.
-
-This is required for non-JSON-serializable objects (e.g. a socket connection, a
-device handle). Calling ``tm.setgd`` with such a value stores it inside the
-subprocess local dictionary instead of sending it to the main process. It can then
-be retrieved with ``tm.gd`` from any subsequent call that runs in the same subprocess.
+reuse the same persistent subprocess. This allows sharing any Python object across
+calls — including objects that cannot be transmitted to other processes.
 
 .. code-block:: python
-    :caption: sharing a non-serializable object via ``context_id``
+    :caption: sharing an object via ``context_id``
 
     import py_func.tm as tm
 
-    class _Connection:          # not JSON-serializable
-        def __init__(self):
-            self.value = "open"
-
     def open_connection():
-        tm.setgd("conn", _Connection())   # stored locally in the subprocess
+        tm.setgd("conn", MyConnection())
         return "ok"
 
     def use_connection():
-        conn = tm.gd("conn")              # retrieved from the subprocess local dict
-        return conn.value
+        conn = tm.gd("conn")
+        return conn.status()
 
 .. code-block:: yaml
     :caption: ``py_func`` items sharing a persistent subprocess

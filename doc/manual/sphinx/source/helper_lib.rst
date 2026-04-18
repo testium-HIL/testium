@@ -21,7 +21,7 @@ Global variables helper functions
 To manage values in the global variables dataset, the following testium library API
 must be used:
 
-.. automodule:: interpreter.utils.globdict
+.. automodule:: py_func.tm
    :members: gd, setgd, delgd
    :undoc-members:
    :no-index:

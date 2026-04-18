@@ -265,6 +265,13 @@ Is the python exec path correct ?"""
                                 test_set.run_post_exec()
                             finally:
                                 self.__exec = False
+                                # Stop shared context engines before restore_gd wipes them
+                                for engine in tm.gd("_py_func_contexts", {}).values():
+                                    engine.stop()
+                                    engine.join()
+                                for engine in tm.gd("_lua_func_contexts", {}).values():
+                                    engine.stop()
+                                    engine.join()
                                 # Sends signal to the GUI
                                 self.send_finished()
                                 restore_gd(gdict)

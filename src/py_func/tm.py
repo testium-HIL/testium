@@ -45,12 +45,21 @@ for k in SUPPORTED_API:
 ###############################################################################
 # gd/setgd/delgd with local-dict fallback for non-serializable values
 
-def gd(*params):
-    key = params[0] if params else None
-    if key is not None and key in _local_dict:
-        return _local_dict[key]
+def gd(name, default=None):
+    """Return a value from the testium global dictionary.
+
+    The value is accessible from any test item and from any ``py_func``
+    subprocess, regardless of the ``context_id`` used.
+
+    :param name: Name of the entry to retrieve.
+    :type name: str
+    :param default: Value returned when the key is absent. Defaults to ``None``.
+    :return: The stored value, or *default* if not found.
+    """
+    if name is not None and name in _local_dict:
+        return _local_dict[name]
     if _func_call_thread is not None:
-        res = _func_call_thread.call("gd", params)
+        res = _func_call_thread.call("gd", (name, default))
         if "result" in res:
             return res["result"]
         elif "error" in res:
@@ -60,14 +69,25 @@ def gd(*params):
     raise ETUMRuntimeError("api not initialized")
 
 
-def setgd(*params):
-    key = params[0] if params else None
-    value = params[1] if len(params) > 1 else None
-    if key is not None and not _is_json_serializable(value):
-        _local_dict[key] = value
+def setgd(name, value):
+    """Store a value in the testium global dictionary.
+
+    The stored value is accessible from any subsequent test item and from any
+    ``py_func`` subprocess via :func:`gd`.
+
+    When ``context_id`` is used on the ``py_func`` item, any Python object
+    (including those that cannot be transmitted to other processes) can be
+    stored and shared between calls running in the same subprocess.
+
+    :param name: Name of the entry to set.
+    :type name: str
+    :param value: Value to store.
+    """
+    if name is not None and not _is_json_serializable(value):
+        _local_dict[name] = value
         return None
     if _func_call_thread is not None:
-        res = _func_call_thread.call("setgd", params)
+        res = _func_call_thread.call("setgd", (name, value))
         if "result" in res:
             return res["result"]
         elif "error" in res:
@@ -77,13 +97,17 @@ def setgd(*params):
     raise ETUMRuntimeError("api not initialized")
 
 
-def delgd(*params):
-    key = params[0] if params else None
-    if key is not None and key in _local_dict:
-        del _local_dict[key]
+def delgd(name):
+    """Remove an entry from the testium global dictionary.
+
+    :param name: Name of the entry to remove.
+    :type name: str
+    """
+    if name is not None and name in _local_dict:
+        del _local_dict[name]
         return None
     if _func_call_thread is not None:
-        res = _func_call_thread.call("delgd", params)
+        res = _func_call_thread.call("delgd", (name,))
         if "result" in res:
             return res["result"]
         elif "error" in res:
