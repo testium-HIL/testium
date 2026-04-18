@@ -3,7 +3,8 @@ import sys
 import traceback
 from queue import Empty
 
-from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QFileDialog, QProgressDialog
 
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
@@ -44,9 +45,25 @@ class TestFileManager:
         self.load(file_name)
         w.reconnect_signals()
 
+    def _make_progress(self, w):
+        progress = QProgressDialog("Starting test process…", None, 0, 0, w)
+        progress.setWindowTitle("Loading")
+        progress.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setMinimumWidth(320)
+        progress._force_close = False
+        progress.closeEvent = lambda e: e.accept() if progress._force_close else e.ignore()
+        return progress
+
+    def _close_progress(self, progress):
+        progress._force_close = True
+        progress.close()
+
     def load(self, file_name: str) -> bool:
         """Load a test file. Returns True on success, False otherwise."""
         w = self._win
+        progress = None
         try:
             if not file_name:
                 raise ETUMFileError("No file to load")
@@ -58,6 +75,10 @@ class TestFileManager:
                 raise ETUMFileError("Could not find %s directory" % initial_dir)
             if not os.path.isfile(file_name):
                 raise ETUMFileError("Could not find %s file" % file_name)
+
+            progress = self._make_progress(w)
+            progress.show()
+            QApplication.processEvents()
 
             w.testFile = None
             w.ts_controller = TestSetController()
@@ -71,12 +92,14 @@ class TestFileManager:
                 self._defaults_for_process(),
             )
             w.test_proc.start()
+            progress.setLabelText("Loading test file…")
             while w.test_proc.is_alive():
                 try:
-                    if w.test_service.loaded(timeout=1.0):
+                    if w.test_service.loaded(timeout=0.05):
                         break
                 except Empty:
                     w.test_service.clear()
+                QApplication.processEvents()
 
             if not w.test_proc.is_alive():
                 del w.test_proc
@@ -89,9 +112,14 @@ class TestFileManager:
                     "Test could not be loaded (test process crashed for any reason)"
                 )
 
+            progress.setLabelText("Building test tree…")
+            QApplication.processEvents()
             test_data = w.test_service.tree()
             w.treeTests.clear()
+            QApplication.processEvents()
             w.treeTests.loadTestRecursively(w.treeTests.invisibleRootItem(), test_data)
+            self._close_progress(progress)
+            progress = None
             w.treeTests.setFoldDefault()
             w.treeTests.updateTreeSkipState(w.test_service)
 
@@ -109,6 +137,8 @@ class TestFileManager:
             w.show_checkboxes()
             return True
         except:
+            if progress is not None:
+                self._close_progress(progress)
             w.statusBar().showMessage("No test file could be loaded", 10000)
             w.treeTests.clear()
             print(traceback.format_exc())
