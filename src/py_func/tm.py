@@ -1,19 +1,26 @@
 
+import json
 import sys
 from py_func.handle import FuncHandler
 from lib.tum_except import ETUMRuntimeError
 from lib.api import SUPPORTED_API
 
 thismodule = sys.modules[__name__]
-# Shared FuncHandler instance used to forward API calls. Remains None
-# until `_init_api` is invoked.
 _func_call_thread = None
+
+# Local storage for non-JSON-serializable values
+_local_dict = {}
+
+
+def _is_json_serializable(value):
+    try:
+        json.dumps(value)
+        return True
+    except (TypeError, ValueError):
+        return False
 
 
 ###############################################################################
-# Dynamically create module-level functions for each supported API name.
-# Each generated function shares the implementation of `api_call` but
-# has a distinct name used as the remote action identifier.
 def _make_api(name):
     def _wrapper(*params):
         if _func_call_thread is not None:
@@ -31,21 +38,62 @@ def _make_api(name):
     return _wrapper
 
 for k in SUPPORTED_API:
-    setattr(thismodule, k, _make_api(k))
+    if k not in ('gd', 'setgd', 'delgd'):
+        setattr(thismodule, k, _make_api(k))
+
+
+###############################################################################
+# gd/setgd/delgd with local-dict fallback for non-serializable values
+
+def gd(*params):
+    key = params[0] if params else None
+    if key is not None and key in _local_dict:
+        return _local_dict[key]
+    if _func_call_thread is not None:
+        res = _func_call_thread.call("gd", params)
+        if "result" in res:
+            return res["result"]
+        elif "error" in res:
+            raise ETUMRuntimeError(f"api call to 'tm.gd' failed with error '{res['error']}'")
+        else:
+            raise ETUMRuntimeError("api call failure in jrpc client to be reported to testium support team.")
+    raise ETUMRuntimeError("api not initialized")
+
+
+def setgd(*params):
+    key = params[0] if params else None
+    value = params[1] if len(params) > 1 else None
+    if key is not None and not _is_json_serializable(value):
+        _local_dict[key] = value
+        return None
+    if _func_call_thread is not None:
+        res = _func_call_thread.call("setgd", params)
+        if "result" in res:
+            return res["result"]
+        elif "error" in res:
+            raise ETUMRuntimeError(f"api call to 'tm.setgd' failed with error '{res['error']}'")
+        else:
+            raise ETUMRuntimeError("api call failure in jrpc client to be reported to testium support team.")
+    raise ETUMRuntimeError("api not initialized")
+
+
+def delgd(*params):
+    key = params[0] if params else None
+    if key is not None and key in _local_dict:
+        del _local_dict[key]
+        return None
+    if _func_call_thread is not None:
+        res = _func_call_thread.call("delgd", params)
+        if "result" in res:
+            return res["result"]
+        elif "error" in res:
+            raise ETUMRuntimeError(f"api call to 'tm.delgd' failed with error '{res['error']}'")
+        else:
+            raise ETUMRuntimeError("api call failure in jrpc client to be reported to testium support team.")
+    raise ETUMRuntimeError("api not initialized")
+
 
 def _init_api(host, port, timeout):
-    """Start and initialize the remote function handler.
-
-    Starts a ``FuncHandler`` bound to ``port``, runs it and blocks until
-    it signals readiness.
-
-    Args:
-        port: port number or identifier passed to ``FuncHandler``.
-
-    Returns:
-        The initialized ``FuncHandler`` instance assigned to
-        ``_func_call_thread``.
-    """
     global _func_call_thread
     _func_call_thread = FuncHandler(host, port, timeout=timeout)
     return _func_call_thread
@@ -53,17 +101,10 @@ def _init_api(host, port, timeout):
 
 ###############################################################################
 def _remote_print(*values):
-    """Forward print-like output to the remote handler.
-
-    If a ``_func_call_thread`` is available, this function calls the
-    handler with action name ``"print"`` and the provided values. Errors
-    during forwarding are ignored because printing is best-effort.
-    """
     if _func_call_thread is not None:
         try:
             _func_call_thread.call("print", values)
         except:
-            # Best-effort: ignore forwarding failures
             pass
 
 

@@ -275,6 +275,13 @@ Is the python exec path correct ?"""
                     # Stop python eval execution process
                     eval_proc.stop()
                     eval_proc.join()
+                    # Stop shared func context engines (keep_context_id)
+                    for engine in tm.gd("_py_func_contexts", {}).values():
+                        engine.stop()
+                        engine.join()
+                    for engine in tm.gd("_lua_func_contexts", {}).values():
+                        engine.stop()
+                        engine.join()
 
             except Exception as e:
                 print_exception(e)

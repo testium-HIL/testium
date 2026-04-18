@@ -189,3 +189,51 @@
                     func_name: tuple_return
                     param: [ 0, "OK" ]
                     expected_result: [0, "OK"]
+
+- group:
+    name: context_id tests
+    steps:
+        - py_func:
+            name: set serializable value
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: set_context_value
+            param:
+                - hello context
+            expected_result: hello context
+        - py_func:
+            name: get serializable value (same context_id)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: get_context_value
+            context_id: ctx_test
+            expected_result: hello context
+        - py_func:
+            name: get serializable value (no context_id, from main gd)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: get_context_value
+            expected_result: hello context
+        - py_func:
+            name: get serializable value (different context_id)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: get_context_value
+            context_id: ctx_other
+            expected_result: hello context
+        - py_func:
+            name: set non-serializable value
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: set_ns_value
+            context_id: ctx_ns_test
+            param:
+                - hello ns
+            expected_result: hello ns
+        - py_func:
+            name: get non-serializable value (same context_id)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: get_ns_value
+            context_id: ctx_ns_test
+            expected_result: hello ns

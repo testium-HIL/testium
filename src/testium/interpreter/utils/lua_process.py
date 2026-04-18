@@ -221,6 +221,11 @@ class LuaProcessBase:
             return self._rpc.wait_ready(timeout)
         return False
 
+    def is_alive(self):
+        if self._rpc is not None:
+            return self._rpc.is_alive()
+        return False
+
     def stop(self):
         """
         Stops the RPC client.

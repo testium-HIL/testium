@@ -12,10 +12,13 @@ from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.constants import TestItemType as cst
 
+_PY_FUNC_CONTEXTS_KEY = "_py_func_contexts"
+
 
 class TestItemPyFunc(TestItem):
     """py_func item usage.
     func file: func_file.py, func_name: func, param: [$(variable1), [1, 2, 3], true]
+    Optional: context_id: <id>  — share a persistent process with other py_func items using the same id.
     """
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
@@ -27,12 +30,25 @@ class TestItemPyFunc(TestItem):
             self.file_name = self._prms.getParam("file", required=True)
             self.func_name = self._prms.getParam("func_name", required=True)
             self.params = self._prms.getParamAll("param")
+            self._context_id = self._prms.getParam("context_id", default=None, processed=False)
         except:
             raise ETUMSyntaxError(
                 f"The '{self.cmd()}' test item named '{self.name()}' (child of '{self.parent.name()}') has a missing or wrong parameter",
                 self.seqFilename(),
             )
         self._py_func_proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+
+    def _get_engine(self):
+        """Return (engine, persistent). If context_id is set, use a shared persistent engine."""
+        if self._context_id is None:
+            return self._py_func_proc, False
+
+        ctx_id = self._prms.expanse(self._context_id)
+        contexts = tm.gd(_PY_FUNC_CONTEXTS_KEY, {})
+        if ctx_id not in contexts:
+            contexts[ctx_id] = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+            tm.setgd(_PY_FUNC_CONTEXTS_KEY, contexts)
+        return contexts[ctx_id], True
 
     @test_run
     def execute(self):
@@ -47,20 +63,23 @@ class TestItemPyFunc(TestItem):
             print("Parameters list:")
             print(textwrap.indent(pprint.pformat(pl), " |"))
 
-            # start the process for executing external python
-            self._py_func_proc.start()
-            if not self._py_func_proc.wait_ready():
-                raise ETUMRuntimeError(
-                    f"""Impossible to start the external python execution process.
+            engine, persistent = self._get_engine()
+
+            if not engine.is_alive():
+                engine.start()
+                if not engine.wait_ready():
+                    raise ETUMRuntimeError(
+                        f"""Impossible to start the external python execution process.
 Is the python path correct ?
 python_bin = {tm.gd("python_bin", "no python path defined")}"""
-                )
+                    )
+
             try:
-                success, ret = self._py_func_proc.func_call(self.file_name, self.func_name, pl)
+                success, ret = engine.func_call(self.file_name, self.func_name, pl)
             finally:
-                # Stops python function execution process
-                self._py_func_proc.stop()
-                self._py_func_proc.join()
+                if not persistent:
+                    engine.stop()
+                    engine.join()
 
             if success == TestValue.SUCCESS:
                 self.result.set(TestValue.SUCCESS)
@@ -70,7 +89,6 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                 print("Returned value:")
                 print(textwrap.indent(pprint.pformat(res), " |"))
 
-                # The result of the func test item is put in global dir and result
                 tm.setgd("pfn_" + self._name, res)
                 self.result.value = res
 

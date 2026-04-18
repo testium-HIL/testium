@@ -32,5 +32,13 @@ function module.tuple_return(first, second)
     return first, second
 end
 
+function module.set_context_value(val)
+    tm.setgd("_lua_ctx_test_value", val)
+    return val
+end
+
+function module.get_context_value()
+    return tm.gd("_lua_ctx_test_value")
+end
 
 return module

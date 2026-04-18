@@ -39,11 +39,14 @@ The ``lua_func`` test item is of the form:
 Beside common test items attributes, lua_func item has specific attribute, some of which being mandatory.
 
 * ``file``: the script file name that contains the function to be executed.
-  Only python script format is supported.
+  Only Lua script format is supported.
 * ``func_name``: The function name to be executed.
 * ``param``: This is a list of parameters that are passed to the function
   in the order they are presented in the script. These parameters are not
   mandatory and are highly dependent of the function prototype.
+* ``context_id``: Optional. When set, all ``lua_func`` items sharing the same
+  ``context_id`` value run inside the same persistent Lua subprocess for the
+  duration of the test. See :ref:`lua_func context<sec_lua_func_context>` for details.
 
 .. code-block:: yaml
     :caption: ``lua_func`` test item example of usage
@@ -56,16 +59,71 @@ Beside common test items attributes, lua_func item has specific attribute, some 
             - $(my_param)
 
 The result of the function (after eventual post treatment) is stored in the global
-variable named ``pfn_<func_name>``
+variable named ``lfn_<item_name>``
 (See :ref:`global variables<sec_global_variables>` for more detail
 on how to access to global variables from test items and scripts).
 
 In the example above, the global variable ``$(lfn_activity)``
 would be created at the end of the item execution. It would contain the resulting
-value of the funcToBeExecuted python function.
+value of the methodName Lua function.
 
 The ``lua_func`` will always result ``PASS``, except if the called function raises
-and exception or if the ``expected_result`` attribute is used.
+an exception or if the ``expected_result`` attribute is used.
+
+.. _sec_lua_func_context:
+
+Sharing state between ``lua_func`` calls
+------------------------------------------
+
+Each ``lua_func`` item without a ``context_id`` runs in a dedicated subprocess that
+is started and stopped around the call. Module-level variables are not preserved
+between two such items.
+
+Inside a ``lua_func`` script, the ``tm`` module exposes ``tm.setgd`` and ``tm.gd``
+to read and write the testium global dictionary of the test process. Values stored
+this way are accessible from any subsequent test item without requiring a shared
+subprocess.
+
+.. code-block:: lua
+    :caption: sharing a value via the global dictionary
+
+    local tm = require("tm")
+    local module = {}
+
+    function module.produce(val)
+        tm.setgd("my_shared_value", val)
+        return val
+    end
+
+    function module.consume()
+        return tm.gd("my_shared_value")
+    end
+
+    return module
+
+When ``context_id`` is set, all ``lua_func`` items that share the same identifier
+reuse the same persistent subprocess. This allows Lua-side state (upvalues, module
+cache) to be retained across calls beyond what ``tm.setgd`` persists.
+
+.. code-block:: yaml
+    :caption: ``lua_func`` items sharing a persistent subprocess
+
+    - lua_func:
+        name: produce value
+        file: my_script.lua
+        func_name: produce
+        context_id: my_context
+        param:
+            - hello
+
+    - lua_func:
+        name: consume value
+        file: my_script.lua
+        func_name: consume
+        context_id: my_context
+        expected_result: hello
+
+The shared subprocess is automatically stopped at the end of the test run.
 
 **Lua Interpreter environment setup**
 

@@ -179,3 +179,36 @@
                     file: $(test_path)$(psep)lua_func.lua
                     func_name: tuple_return
                     param: [ 0, "OK" ]
+
+- group:
+    name: context_id tests
+    steps:
+        - lua_func:
+            name: set context value
+            key: $(test)_PASS
+            file: $(test_path)$(psep)lua_func.lua
+            func_name: set_context_value
+            context_id: lua_ctx_test
+            param:
+                - hello lua
+            expected_result: hello lua
+        - lua_func:
+            name: get context value (same context_id)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)lua_func.lua
+            func_name: get_context_value
+            context_id: lua_ctx_test
+            expected_result: hello lua
+        - lua_func:
+            name: get context value (no context_id, from main gd)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)lua_func.lua
+            func_name: get_context_value
+            expected_result: hello lua
+        - lua_func:
+            name: get context value (different context_id)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)lua_func.lua
+            func_name: get_context_value
+            context_id: lua_ctx_other
+            expected_result: hello lua
