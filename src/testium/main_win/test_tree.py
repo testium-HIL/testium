@@ -11,7 +11,7 @@ from time import (time)
 
 from main_win.test_tree_items.common import (TEST_COLS, TEST_COLS_WITH_TIME)
 from lib.tum_except import (ETUMFileError, ETUMSyntaxError)
-from interpreter.utils.test_ctrl import TestSetController
+from main_win.test_controller_service import TestControllerService
 from main_win.test_tree_items.test_tree_git import QTestTreeItemGit
 
 # to be removed in the future and replaced by a more "sexy" mechanism
@@ -122,11 +122,11 @@ class QTestTree(QTreeWidget):
 
         self.header().sectionResized.connect(self.resized)
 
-    def updateTestSetItemState(self, tree_item, tst_ctrl: TestSetController, state, unitary=False):
+    def updateTestSetItemState(self, tree_item, tst_ctrl: TestControllerService, state, unitary=False):
         id = tree_item.id
-        tst_ctrl.control("set_enabled_state", item_id=id, enabled_state=state, unitary=unitary)
+        tst_ctrl.set_enabled_state(id, state, unitary=unitary)
 
-    def updateTreeCheckState(self, tree_item, tst_ctrl: TestSetController):
+    def updateTreeCheckState(self, tree_item, tst_ctrl: TestControllerService):
         # treat the case of the invisible root
         if tree_item is self.root:
             for i in range(self.root.childCount()):
@@ -137,9 +137,9 @@ class QTestTree(QTreeWidget):
             self.updateTestSetItemState(tree_item, tst_ctrl, state)
             self.synchronizeEnabledState(tst_ctrl)
 
-    def checkUncheckAll(self, tst_ctrl: TestSetController, isChecked):
+    def checkUncheckAll(self, tst_ctrl: TestControllerService, isChecked):
         # test_set.enableDisableAll(test_set.rootItem(), isChecked)
-        tst_ctrl.control("check_uncheck_all", checked=isChecked)
+        tst_ctrl.check_uncheck_all(isChecked)
         self.synchronizeEnabledState(tst_ctrl)
 
     def __foldRecursively(self, tree_item, is_fold):
@@ -158,10 +158,10 @@ class QTestTree(QTreeWidget):
     def foldAll(self, is_fold):
         self.__foldRecursively(self.root, is_fold)
 
-    def __synchronizeEnabledStateRecursively(self, tree_item, tst_ctrl: TestSetController):
+    def __synchronizeEnabledStateRecursively(self, tree_item, tst_ctrl: TestControllerService):
         for i in range(tree_item.childCount()):
             id = tree_item.child(i).id
-            checked = tst_ctrl.control("enabled_state", item_id=id)
+            checked = tst_ctrl.get_enabled_state(id)
             if checked:
                 tree_item.child(i).setCheckState(self.cols['name']['index'],
                                                  Qt.Checked)
@@ -171,14 +171,14 @@ class QTestTree(QTreeWidget):
             self.__synchronizeEnabledStateRecursively(
                 tree_item.child(i), tst_ctrl)
 
-    def updateTreeSkipState(self, tst_ctrl: TestSetController):
+    def updateTreeSkipState(self, tst_ctrl: TestControllerService):
         self.__updateTreeSkipStateRecursively(self.root, tst_ctrl)
 
-    def __updateTreeSkipStateRecursively(self, tree_item, tst_ctrl: TestSetController):
+    def __updateTreeSkipStateRecursively(self, tree_item, tst_ctrl: TestControllerService):
         for i in range(tree_item.childCount()):
             id = tree_item.child(i).id
             # skipped = test_set.getSkippedState(id)
-            skipped = tst_ctrl.control("skipped_state", item_id=id)
+            skipped = tst_ctrl.get_skipped_state(id)
             if skipped:
                 tree_item.child(i).setDisabled(True)
                 tree_item.child(i).setExpanded(False)
@@ -195,7 +195,7 @@ class QTestTree(QTreeWidget):
             tree_item.child(i)._is_skipped = True
             self.__skipRecursively(tree_item.child(i))
 
-    def synchronizeEnabledState(self, tst_ctrl: TestSetController):
+    def synchronizeEnabledState(self, tst_ctrl: TestControllerService):
         self.__synchronizeEnabledStateRecursively(self.root, tst_ctrl)
 
     def __enableRecursively(self, tree_item):
@@ -347,7 +347,7 @@ class QTestTree(QTreeWidget):
             if root.child(i).childCount() > 0:
                 self.addCheckBoxes(root.child(i))
 
-    def showCheckBoxes(self, checklist, tst_ctrl: TestSetController):
+    def showCheckBoxes(self, checklist, tst_ctrl: TestControllerService):
         self.addCheckBoxes()
         self.restoreCheckList(checklist, tst_ctrl)
 
@@ -382,12 +382,12 @@ class QTestTree(QTreeWidget):
             checklist.append((i.checkState(0) == Qt.Checked))
         return checklist
 
-    def restoreCheckList(self, checklist, tst_ctrl: TestSetController):
+    def restoreCheckList(self, checklist, tst_ctrl: TestControllerService):
         itemlist = reversed(list(self.root))
         for item in itemlist:
             state = checklist.pop(len(checklist)-1)
             if item is not self.root:
-                skipped = tst_ctrl.control("skipped_state", item_id=item.id)
+                skipped = tst_ctrl.get_skipped_state(item.id)
                 if skipped:
                     item.setDisabled(True)
                     for i in range(item.childCount()):

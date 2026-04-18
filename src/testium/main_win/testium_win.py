@@ -39,6 +39,7 @@ from main_win.test_run.thread_output import ThreadTestOutput
 from lib.string_queue import StringQueue
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
+from main_win.test_controller_service import TestControllerService
 from interpreter.utils.icons import icon_prefix
 
 from main_win.test_run.outlog import OutLog
@@ -181,6 +182,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.debug = debug
         self.test_proc = None
         self.ts_controller = None
+        self.test_service = None
         self.threadTestStatus = None
         self._test_started = False
         self._test_paused = False
@@ -380,7 +382,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             checkList = prefs.settings.value(prefs.SettingsItem("checkList", list), [])
             if checkList is not None:
                 if len(checkList) == self.treeTests.getItemCount():
-                    self.treeTests.restoreCheckList(checkList, self.ts_controller)
+                    self.treeTests.restoreCheckList(checkList, self.test_service)
 
                 else:
                     tm.print_info(
@@ -436,11 +438,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             and self.test_proc.is_alive()
             and (self.ts_controller is not None)
         ):
-            self.ts_controller.control("stop")
-            self.ts_controller.control("close")
+            self.test_service.stop()
+            self.test_service.close()
             self.test_proc.join()
             del self.test_proc
             self.test_proc = None
+            del self.test_service
+            self.test_service = None
             del self.ts_controller
             self.ts_controller = None
 
@@ -466,12 +470,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Test to be paused
         if self._test_started:
             if not self._test_paused:
-                self.ts_controller.control("pause")
+                self.test_service.pause()
                 self.startPauseTimer()
             else:
 
                 # Test to be continued
-                self.ts_controller.control("cont")
+                self.test_service.cont()
                 self.timerPause.stop()
                 self.timerPause.state = False
                 self.on_timerPause()
@@ -488,9 +492,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             try:
                 if not os.path.isabs(log_file):
                     default_path = prefs.settings.log_path
-                    default_path = self.ts_controller.control(
-                        "process_param", param=default_path
-                    )
+                    default_path = self.test_service.process_param(default_path)
                     log_file = os.path.join(default_path, log_file)
                 # if the directory does not exist
                 if not os.path.exists(os.path.dirname(log_file)):
@@ -521,15 +523,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.logFileName = self.logFileHandler.name
 
         # Report file definition
-        rep_file = self.ts_controller.control(
-            "process_param", param=self.reportFileName
-        )
-        self.ts_controller.control(
-            "report",
-            rep_path=rep_file,
-            rep_type=self.report_type,
-            pattern=self.report_pattern,
-        )
+        rep_file = self.test_service.process_param(self.reportFileName)
+        self.test_service.set_report(rep_file, self.report_type, self.report_pattern)
         self.adaptInterfaceDuringTest()
         self.treeTests.clearAllStatus()
         try:
@@ -539,9 +534,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.timer.setInterval(100)
             self.timer.start()
             # Add the log file to the std test_outputs
-            self.ts_controller.control("set_test_outputs", outputs=[self.logFileName])
+            self.test_service.set_test_outputs([self.logFileName])
             # Launch the test
-            self.ts_controller.control("execute")
+            self.test_service.execute()
         except:
             print(traceback.format_exc())
             self.restoreInterfaceAfterTest()
@@ -566,7 +561,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionStop_test_triggered(self):
-        self.ts_controller.control("stop")
+        self.test_service.stop()
 
     def save_settings(self):
         prefs.settings.set_value(
@@ -709,9 +704,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.disconnect_signals()
         try:
             if state == Qt.Checked:
-                self.treeTests.checkUncheckAll(self.ts_controller, True)
+                self.treeTests.checkUncheckAll(self.test_service, True)
             elif state == Qt.Unchecked:
-                self.treeTests.checkUncheckAll(self.ts_controller, False)
+                self.treeTests.checkUncheckAll(self.test_service, False)
         finally:
             self.reconnect_signals()
 
@@ -719,7 +714,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.checkSelect.setCheckState(Qt.PartiallyChecked)
         self.disconnect_signals()
         try:
-            self.treeTests.updateTreeCheckState(item, self.ts_controller)
+            self.treeTests.updateTreeCheckState(item, self.test_service)
         finally:
             self.reconnect_signals()
 
@@ -772,9 +767,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         isBrkpointCol = item.setBreakpointIfCol(col)
         if isBrkpointCol:
             if item.isBreakpoint():
-                self.ts_controller.control("add_breakpoint", item_id=item.id)
+                self.test_service.add_breakpoint(item.id)
             else:
-                self.ts_controller.control("del_breakpoint", item_id=item.id)
+                self.test_service.del_breakpoint(item.id)
             return
 
         s = sys.platform
@@ -789,9 +784,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         item = self.treeTests.currentItem()
         add_breakpoint = item.setBreakpoint()
         if add_breakpoint:
-            self.ts_controller.control("add_breakpoint", item_id=item.id)
+            self.test_service.add_breakpoint(item.id)
         else:
-            self.ts_controller.control("del_breakpoint", item_id=item.id)
+            self.test_service.del_breakpoint(item.id)
 
     def on_F1Pressed(self):
         item = self.treeTests.currentItem()
@@ -919,7 +914,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             # production mode
             if hasattr(self, "treeTests"):
-                self.treeTests.checkUncheckAll(self.ts_controller, True)
+                self.treeTests.checkUncheckAll(self.test_service, True)
                 self.disconnect_signals()
                 self.treeTests.removeCheckBoxes()
                 self.reconnect_signals()
@@ -1005,6 +1000,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             self.testFile = None
             self.ts_controller = TestSetController()
+            self.test_service = TestControllerService(self.ts_controller)
             self.test_proc = TestProcess(
                 file_name,
                 self.status_queue,
@@ -1016,14 +1012,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.test_proc.start()
             while self.test_proc.is_alive():
                 try:
-                    if self.ts_controller.control("loaded", timeout=1.0):
+                    if self.test_service.loaded(timeout=1.0):
                         break
                 except Empty:
-                    self.ts_controller.clear()
+                    self.test_service.clear()
 
             if not self.test_proc.is_alive():
                 del self.test_proc
                 self.test_proc = None
+                del self.test_service
+                self.test_service = None
                 del self.ts_controller
                 self.ts_controller = None
 
@@ -1031,13 +1029,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     "Test could not be loaded (test process crashed for any reason)"
                 )
 
-            test_data = self.ts_controller.control("tree")
+            test_data = self.test_service.tree()
             self.treeTests.clear()
             self.treeTests.loadTestRecursively(
                 self.treeTests.invisibleRootItem(), test_data
             )
             self.treeTests.setFoldDefault()
-            self.treeTests.updateTreeSkipState(self.ts_controller)
+            self.treeTests.updateTreeSkipState(self.test_service)
 
             self.checkSelect.setChecked(True)
             self.testFile = file_name
@@ -1115,7 +1113,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.logSettingsBox.setEnabled(True)
             if prefs.settings.show_checkboxes:
                 self.checkSelect.setEnabled(True)
-                self.treeTests.showCheckBoxes(self._checklist, self.ts_controller)
+                self.treeTests.showCheckBoxes(self._checklist, self.test_service)
             self.checkFold.setEnabled(True)
             self.treeTests.setChildrenEnabled()
             self.reconnect_signals()
