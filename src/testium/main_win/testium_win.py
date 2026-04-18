@@ -8,7 +8,6 @@ from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 import shutil
-import ast
 
 # Qt
 from PySide6 import QtGui, QtWidgets
@@ -471,21 +470,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionRefresh_test_triggered(self):
-        self.on_exiting()
-        args = []
-        if not hasattr(sys, "frozen"):
-            args += [sys.executable]
-        args += [sys.argv[0]]
-        if len(self.defines) > 0:
-            for k, v in self.defines.items():
-                try:
-                    val = ast.literal_eval(v)
-                except:
-                    val = v
-                args += ["-d", f"{k}={val}"]
-        if (self.testFile is not None) and (isinstance(self.testFile, str)):
-            args += [self.testFile]
-        os.execv(sys.executable, args)
+        if self.testFile:
+            self.file_manager.reload(self.testFile)
 
     @Slot()
     def on_actionSave_report_triggered(self):
