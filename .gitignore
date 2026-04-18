@@ -1,12 +1,13 @@
 *__pycache__
-build
+build/
 dist
 *.egg-info/
 .env
 /.project
 /.pydevproject
 /.vscode
-/.venv
+.venv/
+.flatpak-builder/
 crash.tx*
 report_test.tx*
 *.autosave

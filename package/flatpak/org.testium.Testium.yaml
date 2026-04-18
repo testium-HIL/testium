@@ -1,0 +1,58 @@
+app-id: org.testium.Testium
+runtime: org.kde.Platform
+runtime-version: '6.10'
+
+sdk: org.kde.Sdk
+base: io.qt.PySide.BaseApp
+base-version: '6.10' # Doit correspondre au runtime
+command: testium
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=home # Optionnel : si votre testium doit lire des fichiers utilisateurs
+
+build-options:
+  build-args:
+    - "--share=network"
+
+modules:
+  - python3-requirements.json
+  # 1. Dépendances Python tierces (HORS PySide6)
+  # Utilisez flatpak-pip-generator pour vos autres libs (ex: pyserial, requests, etc.)
+  # - name: python3-requirements
+  #   buildsystem: simple
+  #   build-options:
+  #     build-args:
+  #       - --share=network
+  #   build-commands:
+  #     # --only-binary=:all: empêche la compilation et force le téléchargement des .whl
+  #     - pip3 install --prefix=/app --only-binary=:all: -r requirements.txt
+  #   sources:
+  #     - type: file
+  #       path: requirements.txt
+
+  # 2. Votre application (Code source dans ../../src)
+  - name: testium-app
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: ../../src
+    build-commands:
+      # On installe le code source dans /app/lib/testium
+      - mkdir -p /app/lib
+      - cp -r . /app/lib/
+
+      # Création du launcher exécutable
+      - mkdir -p /app/bin
+      - |
+        cat <<EOF > /app/bin/testium
+        #!/bin/sh
+        # On ajoute le code source et l'extension PySide6 au PYTHONPATH
+        export PYTHONPATH="/app/lib/testium:/usr/lib/sdk/pyside6/lib/python3.13/site-packages:\$PYTHONPATH"
+        exec python3 /app/lib/testium "\$@"
+        EOF
+      - chmod +x /app/bin/testium

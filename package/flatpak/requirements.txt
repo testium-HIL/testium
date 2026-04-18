@@ -1,0 +1,14 @@
+setuptools
+setuptools-scm
+pyserial
+telnetlib3
+pyyaml
+pexpect
+gitpython
+jinja2
+colorama
+meson-python
+numpy
+matplotlib
+junit-xml
+lxml
