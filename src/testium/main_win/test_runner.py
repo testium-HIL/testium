@@ -1,0 +1,237 @@
+import os
+import traceback
+from tempfile import NamedTemporaryFile
+
+from PySide6 import QtGui
+from PySide6.QtCore import QDateTime
+from PySide6.QtGui import QIcon, QPixmap
+
+from interpreter.utils.icons import icon_prefix
+import interpreter.utils.settings as prefs
+
+
+class TestRunner:
+    """Manages the test execution lifecycle: start/pause/stop, timers, log file, UI adaptation."""
+
+    def __init__(self, win) -> None:
+        self._win = win
+        self.logFileHandler = None
+
+    # --- Timer helpers ---
+
+    def start_pause_timer(self):
+        w = self._win
+        w.timerPause.setSingleShot(False)
+        w.timerPause.setInterval(500)
+        w.timerPause.start()
+        w.timerPause.state = False
+
+    # --- Execution control ---
+
+    def on_start_test(self):
+        w = self._win
+
+        if w._test_started:
+            if not w._test_paused:
+                w.test_service.pause()
+                self.start_pause_timer()
+            else:
+                w.test_service.cont()
+                w.timerPause.stop()
+                w.timerPause.state = False
+                self.on_timer_pause()
+            w._test_paused = not w._test_paused
+            return
+
+        w.start_time = QDateTime.currentDateTime()
+
+        # Log file setup
+        log_file = w.editLogFilePath.text()
+        if w.buttLogFileSaved.isChecked() and (log_file != ""):
+            try:
+                if not os.path.isabs(log_file):
+                    default_path = prefs.settings.log_path
+                    default_path = w.test_service.process_param(default_path)
+                    log_file = os.path.join(default_path, log_file)
+                if not os.path.exists(os.path.dirname(log_file)):
+                    os.makedirs(os.path.dirname(log_file))
+                if os.path.isfile(log_file):
+                    i = 0
+                    fname = log_file
+                    while os.path.isfile(fname):
+                        i += 1
+                        fname = log_file + "-" + str(i) + ".saved"
+                    os.rename(log_file, fname)
+                self.logFileHandler = open(log_file, "w")
+                w.out_log.set(self.logFileHandler)
+                w.logFileName = log_file
+            except:
+                self.logFileHandler = NamedTemporaryFile(mode="w", suffix=".log", delete=False)
+                w.out_log.set(self.logFileHandler)
+                w.logFileName = self.logFileHandler.name
+        else:
+            self.logFileHandler = NamedTemporaryFile(mode="w", suffix=".log", delete=False)
+            w.out_log.set(self.logFileHandler)
+            w.logFileName = self.logFileHandler.name
+
+        # Report setup and execution
+        rep_file = w.test_service.process_param(w.reportFileName)
+        w.test_service.set_report(rep_file, w.report_type, w.report_pattern)
+        self.adapt_interface_during_test()
+        w.treeTests.clearAllStatus()
+        try:
+            w.textLog.clear()
+            w.textLog.appendPlainText("Test is started\n")
+            w.timer.setSingleShot(False)
+            w.timer.setInterval(100)
+            w.timer.start()
+            w.test_service.set_test_outputs([w.logFileName])
+            w.test_service.execute()
+        except:
+            print(traceback.format_exc())
+            self.restore_interface_after_test()
+
+    def on_stop_test(self):
+        self._win.test_service.stop()
+
+    def on_run_finished(self):
+        w = self._win
+        w.timer.setSingleShot(True)
+        w.timer.setInterval(1000)
+        txt = w.stream.read()
+        w.textLog.appendPlainText(txt)
+        self.restore_interface_after_test()
+
+        if self.logFileHandler is not None:
+            w.out_log.reset()
+            self.logFileHandler.write(txt + "\n")
+            self.logFileHandler.close()
+        self.logFileHandler = None
+
+        w.textLog.appendPlainText("Test is finished")
+        if w.runandclose:
+            w.on_actionExit_triggered()
+
+    def on_breakpoint(self):
+        w = self._win
+        w._test_paused = True
+        self.start_pause_timer()
+
+    # --- Timer slots ---
+
+    def on_timer_event(self):
+        w = self._win
+        text_to_append = []
+        while not w.threads_queue.empty():
+            text_to_append.append(w.threads_queue.get())
+        if text_to_append:
+            for t in text_to_append:
+                w.textLog.appendPlainText(t)
+                if self.logFileHandler is not None:
+                    self.logFileHandler.write(t + "\n")
+                    self.logFileHandler.flush()
+
+    def on_timer_blink(self):
+        w = self._win
+        if w.buttBlink.current_color != "gray":
+            self.set_blink_gray()
+        elif w.treeTests.getGlobalSuccess():
+            self.set_blink_green()
+        else:
+            self.set_blink_red()
+
+    def on_timer_pause(self):
+        w = self._win
+        if w._test_paused:
+            icon = QtGui.QIcon()
+            if w.timerPause.state:
+                icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/pause2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            else:
+                icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/pause.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            w.timerPause.state = not w.timerPause.state
+            w.actionStart_test.setIcon(icon)
+
+    def on_timer_count(self):
+        w = self._win
+        secfromstart = w.start_time.secsTo(QDateTime.currentDateTime())
+        w.label_runtime.setText(
+            "%02d:%02d:%02d" % (secfromstart / 3600, (secfromstart / 60) % 60, secfromstart % 60)
+        )
+
+    # --- Interface adaptation ---
+
+    def adapt_interface_during_test(self):
+        w = self._win
+        try:
+            w.disconnect_signals()
+            w.actionOpenTest.setDisabled(True)
+            w.actionExit.setDisabled(True)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/pause.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            w.actionStart_test.setIcon(icon)
+            w.actionStart_test.setText("Pause test")
+            w.actionPreferences.setDisabled(True)
+            w.actionRefresh_test.setDisabled(True)
+            w.actionShow_Results.setDisabled(True)
+            w.actionSave_report.setDisabled(True)
+            w.logSettingsBox.setDisabled(True)
+            w.actionStop_test.setEnabled(True)
+            if prefs.settings.show_checkboxes:
+                w._checklist = w.treeTests.getCheckList()
+                w.treeTests.removeCheckBoxes()
+            w.checkSelect.setDisabled(True)
+            w.checkFold.setDisabled(True)
+            w.timerBlink.setSingleShot(False)
+            w.timerBlink.setInterval(1000)
+            w.timerBlink.start()
+            self.set_blink_green()
+            w.treeTests.clearGlobalSuccess()
+        finally:
+            w._test_started = True
+
+    def restore_interface_after_test(self):
+        w = self._win
+        try:
+            w.timerPause.stop()
+            w.timerBlink.stop()
+            w.actionOpenTest.setEnabled(True)
+            w.actionExit.setEnabled(True)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/start.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            w.actionStart_test.setIcon(icon)
+            w.actionStart_test.setText("Start test")
+            w.actionPreferences.setEnabled(True)
+            w.actionRefresh_test.setEnabled(True)
+            w.actionStop_test.setDisabled(True)
+            w.actionShow_Results.setEnabled(True)
+            w.actionSave_report.setEnabled(True)
+            w.logSettingsBox.setEnabled(True)
+            if prefs.settings.show_checkboxes:
+                w.checkSelect.setEnabled(True)
+                w.treeTests.showCheckBoxes(w._checklist, w.test_service)
+            w.checkFold.setEnabled(True)
+            w.treeTests.setChildrenEnabled()
+            w.reconnect_signals()
+            if w.treeTests.getGlobalSuccess():
+                self.set_blink_green()
+            else:
+                self.set_blink_red()
+        finally:
+            w._test_started = False
+
+    # --- Blink indicator ---
+
+    def set_blink_green(self):
+        w = self._win
+        w.buttBlink.setIcon(w.iconBlinkGreen)
+        w.buttBlink.current_color = "green"
+
+    def set_blink_red(self):
+        w = self._win
+        w.buttBlink.setIcon(w.iconBlinkRed)
+        w.buttBlink.current_color = "red"
+
+    def set_blink_gray(self):
+        w = self._win
+        w.buttBlink.setIcon(w.iconBlinkGray)
+        w.buttBlink.current_color = "gray"
