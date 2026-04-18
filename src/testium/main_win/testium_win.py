@@ -553,6 +553,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.reconnect_signals()
 
     def on_testChecked(self, item, index):
+        if index != self.treeTests.cols['name']['index']:
+            return
         self.checkSelect.setCheckState(Qt.PartiallyChecked)
         self.disconnect_signals()
         try:
