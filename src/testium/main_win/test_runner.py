@@ -1,5 +1,6 @@
 import os
 import traceback
+from enum import Enum, auto
 from tempfile import NamedTemporaryFile
 
 from PySide6 import QtGui
@@ -10,12 +11,19 @@ from interpreter.utils.icons import icon_prefix
 import interpreter.utils.settings as prefs
 
 
+class TestState(Enum):
+    IDLE = auto()
+    RUNNING = auto()
+    PAUSED = auto()
+
+
 class TestRunner:
     """Manages the test execution lifecycle: start/pause/stop, timers, log file, UI adaptation."""
 
     def __init__(self, win) -> None:
         self._win = win
         self.logFileHandler = None
+        self.state = TestState.IDLE
 
     # --- Timer helpers ---
 
@@ -31,16 +39,17 @@ class TestRunner:
     def on_start_test(self):
         w = self._win
 
-        if w._test_started:
-            if not w._test_paused:
+        if self.state != TestState.IDLE:
+            if self.state == TestState.RUNNING:
                 w.test_service.pause()
                 self.start_pause_timer()
+                self.state = TestState.PAUSED
             else:
                 w.test_service.cont()
                 w.timerPause.stop()
                 w.timerPause.state = False
                 self.on_timer_pause()
-            w._test_paused = not w._test_paused
+                self.state = TestState.RUNNING
             return
 
         w.start_time = QDateTime.currentDateTime()
@@ -113,8 +122,7 @@ class TestRunner:
             w.on_actionExit_triggered()
 
     def on_breakpoint(self):
-        w = self._win
-        w._test_paused = True
+        self.state = TestState.PAUSED
         self.start_pause_timer()
 
     # --- Timer slots ---
@@ -142,7 +150,7 @@ class TestRunner:
 
     def on_timer_pause(self):
         w = self._win
-        if w._test_paused:
+        if self.state == TestState.PAUSED:
             icon = QtGui.QIcon()
             if w.timerPause.state:
                 icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/pause2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -187,7 +195,7 @@ class TestRunner:
             self.set_blink_green()
             w.treeTests.clearGlobalSuccess()
         finally:
-            w._test_started = True
+            self.state = TestState.RUNNING
 
     def restore_interface_after_test(self):
         w = self._win
@@ -217,7 +225,7 @@ class TestRunner:
             else:
                 self.set_blink_red()
         finally:
-            w._test_started = False
+            self.state = TestState.IDLE
 
     # --- Blink indicator ---
 

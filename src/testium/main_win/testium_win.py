@@ -52,7 +52,7 @@ from interpreter.utils.test_init import (
 )
 from lib.tum_except import ETUMFileError, ETUMRuntimeError
 from main_win.test_controller_service import TestControllerService
-from main_win.test_runner import TestRunner
+from main_win.test_runner import TestRunner, TestState
 from main_win.test_file_manager import TestFileManager
 
 
@@ -92,8 +92,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ts_controller = None
         self.test_service = None
         self.threadTestStatus = None
-        self._test_started = False
-        self._test_paused = False
         self._signals_connected = False
 
         self.timer = QTimer()
@@ -361,7 +359,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         prefs.settings.sync()
 
     def on_exiting(self):
-        if not self._test_started:
+        if self.runner.state == TestState.IDLE:
             self.save_settings()
         self.file_manager.clear_process()
         self.threadTestStatus.stop()
