@@ -39,7 +39,9 @@ class DialogSleepWindow(QDialog, dialog_sleep_win.Ui_SleepDialogWindow):
 
 def main(args, conn=None):
     success = True
-    app = QApplication(sys.argv)
+    from interpreter.test_items import dialog_env
+    dialog_env.setup()
+    app = QApplication(['testium'])
     d = DialogSleepWindow()
     d.setFixedSize(379,129)
     d.setWindowFlags(Qt.WindowStaysOnTopHint)

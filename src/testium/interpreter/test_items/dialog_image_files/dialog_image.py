@@ -1,5 +1,4 @@
 import sys
-import os
 
 from PySide6.QtCore import (Qt)
 from PySide6.QtWidgets import (QApplication, QDialog)
@@ -18,7 +17,9 @@ class TestDialogWindow(QDialog, dialog_image_win.Ui_Dialog):
 
 def main(args, conn):
     success = True
-    app = QApplication(args)
+    from interpreter.test_items import dialog_env
+    dialog_env.setup()
+    app = QApplication(['testium'])
     d = TestDialogWindow()
     d.setFixedSize(700,600)
     d.setWindowFlags(Qt.WindowStaysOnTopHint)

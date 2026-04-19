@@ -185,7 +185,9 @@ def main(args, conn=None):
     SettingsApplication = "testium_choices_dlg_" + args[0]
     SettingsLastChoices = "last_choice"
     success = True
-    app = QApplication()
+    from interpreter.test_items import dialog_env
+    dialog_env.setup()
+    app = QApplication(['testium'])
     d = ChoicesDialog()
     d.setFixedSize(800, 600)
     d.setWindowFlags(Qt.WindowStaysOnTopHint)

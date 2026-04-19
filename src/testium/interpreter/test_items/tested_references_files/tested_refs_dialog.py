@@ -1,5 +1,4 @@
 import sys
-import os
 from multiprocessing import freeze_support
 
 from PySide6.QtWidgets import (QApplication, QDialog, QTableWidgetItem)
@@ -20,7 +19,9 @@ def main(args, conn=None):
     SettingsApplication = 'testium_ref_item'
     SettingsLastReference = 'lastReference'
     success = True
-    app = QApplication(args)
+    from interpreter.test_items import dialog_env
+    dialog_env.setup()
+    app = QApplication(['testium'])
     d = TestedRefsWindow()
     d.setFixedSize(481,386)
     d.setWindowFlags(Qt.WindowStaysOnTopHint)

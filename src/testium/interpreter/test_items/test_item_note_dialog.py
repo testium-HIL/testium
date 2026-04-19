@@ -1,16 +1,14 @@
-import os
-import sys
-from multiprocessing import Process, Pipe
-
-from interpreter.test_items.test_item import (TestItem, test_run)
-from interpreter.test_items.test_result import (TestResult, TestValue)
+from interpreter.test_items.test_item import test_run
+from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.dialog_note_files import test_dialog
-from lib.tum_except import ETUMSyntaxError, item_load_context
-import libs.testium as tm
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
 from interpreter.utils.constants import TestItemType as cst
+from lib.tum_except import item_load_context
+import libs.testium as tm
 
-class TestItemNoteDialog(TestItem):
-    def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
+
+class TestItemNoteDialog(TestItemDialogBase):
+    def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_NOTE_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_NOTE_DLG
@@ -20,18 +18,13 @@ class TestItemNoteDialog(TestItem):
 
     @test_run
     def execute(self):
-        ourpath = __file__
-        test_file = os.path.join(os.path.dirname(ourpath),
-                                 'dialog_note_files',
-                                 'test_dialog.py')
-
         q = self._prms.expanse(self._question)
         print("Question:\n" + q)
-        parent_conn, child_conn = Pipe()
-        p=Process(target=test_dialog.main,  args=([self.name(), q],child_conn))
-        p.start()
-        val, succ = parent_conn.recv()
-        p.join()
+        result = self._run_dialog_with_result(test_dialog.main, [self.name(), q])
+        if result is None:
+            self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
+            return
+        val, succ = result
         tm.setgd(self.name(), val)
         print("\n" + ("-" * 80) + "\n")
         print("- Test note\n")
@@ -43,15 +36,3 @@ class TestItemNoteDialog(TestItem):
             self.result.set(TestValue.SUCCESS, val)
         else:
             self.result.set(TestValue.FAILURE, val)
-
-def mypath():
-    if hasattr(sys, "frozen"):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(__file__)
-
-from multiprocessing import Process
-
-if __name__=='__main__':
-    p=Process(target=test_dialog.main,  args=(['bob', 'bab'],))
-    p.start()
-    p.join()

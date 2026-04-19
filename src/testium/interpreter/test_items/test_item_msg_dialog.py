@@ -1,18 +1,19 @@
 import os
 import sys
-from multiprocessing import Process, Pipe
 
-from interpreter.test_items.test_item import (TestItem, test_run)
-from interpreter.test_items.test_result import (TestValue)
+from interpreter.test_items.test_item import test_run
+from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.dialog_msg_files import msg_dialog
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import ETUMSyntaxError, item_load_context
+from lib.tum_except import item_load_context
 
-class TestItemMsgDialog(TestItem):
+
+class TestItemMsgDialog(TestItemDialogBase):
     """dialog_message item usage.
     dialog_message name: Nice message, question: Open the door and press OK
     """
-    def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
+    def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_MESSAGE_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_MESSAGE_DLG
@@ -22,28 +23,10 @@ class TestItemMsgDialog(TestItem):
 
     @test_run
     def execute(self):
-        ourpath = __file__
-        test_file = os.path.join(os.path.dirname(ourpath),
-                                 'dialog_msg_files',
-                                 'msg_dialog.py')
-
         q = self._prms.expanse(self._question)
         print("Message Displayed:\n" + q)
-        parent_conn, child_conn = Pipe()
-        p=Process(target=msg_dialog.main,
-                    args=([self.name(), q],))
-        p.start()
-        p.join()
-        self.result.set(TestValue.SUCCESS)
-
-def mypath():
-    if hasattr(sys, "frozen"):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(__file__)
-
-from multiprocessing import Process
-
-if __name__=='__main__':
-    p=Process(target=msg_dialog.main,  args=(['bob', 'bab'],))
-    p.start()
-    p.join()
+        exitcode = self._run_dialog(msg_dialog.main, [self.name(), q])
+        if exitcode == 0:
+            self.result.set(TestValue.SUCCESS)
+        else:
+            self.result.set(TestValue.FAILURE, f"Dialog subprocess exited with code {exitcode}")

@@ -1,14 +1,13 @@
-from multiprocessing import Process, Pipe
-
-from interpreter.test_items.test_item import TestItem, test_run
-from interpreter.test_items.test_result import TestResult, TestValue
+from interpreter.test_items.test_item import test_run
+from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.dialog_choices_files import choices_dialog
-import libs.testium as tm
-from lib.tum_except import ETUMSyntaxError, item_load_context
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
 from interpreter.utils.constants import TestItemType as cst
+from lib.tum_except import item_load_context
+import libs.testium as tm
 
 
-class TestItemChoicesDialog(TestItem):
+class TestItemChoicesDialog(TestItemDialogBase):
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_CHOICES_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
@@ -24,18 +23,13 @@ class TestItemChoicesDialog(TestItem):
         q = self._prms.expanse(self._question)
         choices = self._prms.expanse(self._choices)
         icon = self._prms.expanse(self._default_icon)
-        parent_conn, child_conn = Pipe()
-        p = Process(
-            target=choices_dialog.main, args=([self.name(), q, choices, icon], child_conn)
-        )
-        p.start()
-        val, succ = parent_conn.recv()
-        p.join()
-
+        result = self._run_dialog_with_result(choices_dialog.main, [self.name(), q, choices, icon])
+        if result is None:
+            self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
+            return
+        val, succ = result
         self.result.value = val
-
         if succ:
-            # The result of the test item is put into the global dict
             tm.setgd("cs_" + self._name, val)
             self.result.set(TestValue.SUCCESS, str(val))
         else:

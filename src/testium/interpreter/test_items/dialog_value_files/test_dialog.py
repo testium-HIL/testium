@@ -15,7 +15,9 @@ class TestDialogWindow(QDialog, dialog_value_win.Ui_Dialog):
 
 def main(args, conn=None):
     success = True
-    app = QApplication(args)
+    from interpreter.test_items import dialog_env
+    dialog_env.setup()
+    app = QApplication(['testium'])
     d = TestDialogWindow()
     d.setFixedSize(387,224)
     d.setWindowFlags(Qt.WindowStaysOnTopHint)
