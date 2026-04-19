@@ -4,7 +4,7 @@ from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.dialog_choices_files import choices_dialog
 import libs.testium as tm
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 from interpreter.utils.constants import TestItemType as cst
 
 
@@ -14,17 +14,10 @@ class TestItemChoicesDialog(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_CHOICES_DLG
         self.is_container = False
-        try:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam("question", required=True)
             self._choices = self._prms.getParam("choices", required=True)
-            self._default_icon = self._prms.getParam(
-                "icon", required=False, default=None
-            )
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' (a child of: '{self.parent().name()}') has a missing or wrong parameter",
-                self.seqFilename()
-            )
+            self._default_icon = self._prms.getParam("icon", required=False, default=None)
 
     @test_run
     def execute(self):

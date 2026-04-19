@@ -4,7 +4,7 @@ import traceback
 from functools import wraps
 
 import libs.testium as tm
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.item_actions import TestItemActions
@@ -108,17 +108,12 @@ class TestItemPlotActionPeriodic(TestItemPlotAction):
         )
 
         # Periodic function call
-        try:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self.period = self._prms.getParam("period", required=True)
             self.file_name = self._prms.getParam("file", required=True)
             self.func_name = self._prms.getParam("func_name", required=True)
             self.params = self._prms.getParamAll("param")
             self.post_eval = self._prms.getParam("eval", default="")
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' 'periodic' action settings syntax error",
-                self.seqFilename(),
-            )
 
     @test_run
     def execute(self):

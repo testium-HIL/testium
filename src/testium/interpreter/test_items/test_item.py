@@ -7,7 +7,7 @@ import libs.testium as tm
 from interpreter.utils.params import TestItemParams
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 
 LOG_TEST_STOP = '<----- step "{}" finished'
 LOG_TEST_START = '-----> step "{}" started'
@@ -131,11 +131,11 @@ class TestItem:
                 if s:
                     try:
                         self.skipped = eval_to_boolean(s)
-                    except:
+                    except Exception as e:
                         raise ETUMSyntaxError(
                             f"'{self.cmd()}' test item named '{self.name()}':\nskipped expresion can only be a static expression as it is evaluated during loading of TUM : {s}",
                             self.seqFilename(),
-                        )
+                        ) from e
                 # This allow disabling test item directly by using its name inside param.yaml file
                 elif self._name in tm.gd("skipped_test_item", []):
                     self.skipped = True
@@ -164,11 +164,13 @@ class TestItem:
                 self.banner = LOG_TEST_START.format(self._name)
                 self.footer = LOG_TEST_STOP.format(self._name)
 
-            except:
+            except ETUMSyntaxError:
+                raise
+            except Exception as e:
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
+                    f"The '{self.cmd()}' test item named '{self.name()}' has an unexpected loading error: {e}",
                     self.seqFilename(),
-                )
+                ) from e
 
         self.result = TestResult(self, TestValue.FAILURE, "Failure by default")
 

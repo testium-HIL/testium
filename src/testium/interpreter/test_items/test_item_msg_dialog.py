@@ -6,7 +6,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.test_items.dialog_msg_files import msg_dialog
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 
 class TestItemMsgDialog(TestItem):
     """dialog_message item usage.
@@ -17,13 +17,8 @@ class TestItemMsgDialog(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_MESSAGE_DLG
         self.is_container = False
-        try:
-            self._question = self._prms.getParam('question', required = True)
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
-                self.seqFilename(),
-            )
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
+            self._question = self._prms.getParam('question', required=True)
 
     @test_run
     def execute(self):

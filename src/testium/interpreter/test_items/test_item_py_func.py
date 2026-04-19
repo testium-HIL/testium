@@ -4,7 +4,7 @@ import time
 import pprint
 import textwrap
 
-from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
 import libs.testium as tm
@@ -26,16 +26,11 @@ class TestItemPyFunc(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_PY_FUNCTION
         self.is_container = False
-        try:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self.file_name = self._prms.getParam("file", required=True)
             self.func_name = self._prms.getParam("func_name", required=True)
             self.params = self._prms.getParamAll("param")
             self._context_id = self._prms.getParam("context_id", default=None, processed=False)
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' (child of '{self.parent.name()}') has a missing or wrong parameter",
-                self.seqFilename(),
-            )
         self._py_func_proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
 
     def _get_engine(self):

@@ -10,7 +10,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 import libs.testium as tm
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 
 def nowInBetween(start, end):
@@ -30,7 +30,7 @@ class TestItemRun(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_RUN
         self.is_container = False
-        try:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self.tum_fime = self._prms.getParam('tum_fime', required=True)
             self.param_file = self._prms.getParam('param_file', default='')
             self.python_bin = self._prms.getParam('python_bin', default='')
@@ -40,11 +40,6 @@ class TestItemRun(TestItem):
             self.start_time = self._prms.getParam('start_time')
             self.end_time = self._prms.getParam('end_time')
             self.wait_for_exec = self._prms.getParam('wait_for_exec')
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
-                self.seqFilename(),
-            )
 
     @test_run
     def execute(self):

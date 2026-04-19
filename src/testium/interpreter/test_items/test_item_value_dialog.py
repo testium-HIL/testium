@@ -6,7 +6,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.test_items.dialog_value_files import test_dialog
 import libs.testium as tm
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 from interpreter.utils.constants import TestItemType as cst
 
 class TestItemValueDialog(TestItem):
@@ -18,14 +18,9 @@ class TestItemValueDialog(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_VALUE_DLG
         self.is_container = False
-        try:
-            self._question = self._prms.getParam('question', required = True)
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
+            self._question = self._prms.getParam('question', required=True)
             self._default = self._prms.getParam('default', '')
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
-                self.seqFilename(),
-            )
 
     @test_run
     def execute(self):

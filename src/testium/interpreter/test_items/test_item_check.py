@@ -1,7 +1,7 @@
 
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import TestValue
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 import libs.testium as tm
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import evaluate
@@ -15,21 +15,16 @@ class TestItemCheckValue(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_CHECK
         self.is_container = False
-        try:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._action_list = self._prms.getParamAll('steps', default=[], required=False)
             if len(self._action_list) > 0:
                 tm.print_warn("'steps' argument of check test item is deprecated and is replaced by 'values'")
             self._action_list += self._prms.getParamAll('values', default=[], required=False)
             if len(self._action_list) <= 0:
                 raise ETUMSyntaxError(
-                    f" The '{self.cmd()}' test item named '{self.name()}' must have a 'values' parameter",
+                    f"Missing required 'values' parameter",
                     self.seqFilename()
                 )
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' (a child of: '{self.parent().name()}') has a missing or wrong parameter",
-                self.seqFilename(),
-            )
 
     @test_run
     def execute(self):

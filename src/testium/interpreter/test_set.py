@@ -3,9 +3,7 @@ import datetime
 from queue import Queue
 from interpreter.utils.params import expanse
 import libs.testium as tm
-from lib.tum_except import (
-    ETUMSyntaxError,
-)
+from lib.tum_except import ETUMSyntaxError
 import interpreter.utils.settings as prefs
 from interpreter.test_report.test_report import TestReport
 from interpreter.utils.py_func_exec import PyFuncExecEngine
@@ -17,6 +15,17 @@ from interpreter.utils.constants import TEST_TYPE_LIST
 from interpreter.test_items.test_item import test_data
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.test_result import TestValue
+
+
+def _build_item_path(item) -> str:
+    """Build a breadcrumb path like 'main > Group > sub-group' from an item to root."""
+    parts = []
+    current = item
+    while current is not None:
+        name = current.name()
+        parts.append(name if name else f"[{current.type()}]")
+        current = current.parent()
+    return " > ".join(reversed(parts))
 
 
 class TestSet:
@@ -479,12 +488,19 @@ class TestSet:
                         action_name = cst.FOLDED_CHAR + it.item_cmd
 
                     seq_filename = action[action_name]["seq_filename"]
-                    item = (it.item_class)(
-                        action[action_name],
-                        tree_parent,
-                        self.status_queue,
-                        filename=seq_filename
-                    )
+                    try:
+                        item = (it.item_class)(
+                            action[action_name],
+                            tree_parent,
+                            self.status_queue,
+                            filename=seq_filename
+                        )
+                    except ETUMSyntaxError as e:
+                        path = _build_item_path(tree_parent)
+                        raise ETUMSyntaxError(
+                            f"In: {path}\n{e._message}",
+                            e._file or seq_filename,
+                        ) from e
                     item.is_folded = is_folded
                     child = {}
                     # case where the test item loads itself its descendants

@@ -5,7 +5,7 @@ from multiprocessing import Process, Pipe
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.test_items.dialog_note_files import test_dialog
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 import libs.testium as tm
 from interpreter.utils.constants import TestItemType as cst
 
@@ -15,13 +15,8 @@ class TestItemNoteDialog(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_NOTE_DLG
         self.is_container = False
-        try:
-            self._question = self._prms.getParam('question', required = True)
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
-                self.seqFilename(),
-            )
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
+            self._question = self._prms.getParam('question', required=True)
 
     @test_run
     def execute(self):

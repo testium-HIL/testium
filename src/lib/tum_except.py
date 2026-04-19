@@ -1,5 +1,6 @@
 import traceback
 import textwrap
+from contextlib import contextmanager
 
 
 class ETUMError(Exception):
@@ -65,6 +66,28 @@ class ETUMParamError(ETUMError):
         lines += [f"Concerning parameter \"{self._param}\""]
         lines += [f"{self._message}"]
         return lines
+
+
+@contextmanager
+def item_load_context(item_type: str, item_name: str, filename: str = ""):
+    """Context manager that enriches ETUMSyntaxError with item context during loading.
+
+    Usage in test item __init__:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
+            self.param = self._prms.getParam("param", required=True)
+    """
+    try:
+        yield
+    except ETUMSyntaxError as e:
+        raise ETUMSyntaxError(
+            f"In '{item_type}' item named '{item_name}':\n{e._message}",
+            filename or e._file,
+        ) from e
+    except Exception as e:
+        raise ETUMSyntaxError(
+            f"In '{item_type}' item named '{item_name}':\nUnexpected error: {e}",
+            filename,
+        ) from e
 
 
 def print_exception(exc: ETUMError):

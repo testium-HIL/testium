@@ -7,7 +7,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.test_items.dialog_sleep_files import dialog_sleep
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 class TestItemSleep(TestItem):
     """sleep item usage.
@@ -19,14 +19,9 @@ class TestItemSleep(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_SLEEP
         self.is_container = False
-        try:
-            self._timeout = self._prms.getParam('timeout', required = True)
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
+            self._timeout = self._prms.getParam('timeout', required=True)
             self._has_dialog = self._prms.getParam('dialog', default=False)
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
-                self.seqFilename(),
-            )
 
     @test_run
     def execute(self):

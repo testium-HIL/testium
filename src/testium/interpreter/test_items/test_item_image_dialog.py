@@ -7,7 +7,7 @@ from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.dialog_image_files import dialog_image
 import libs.testium as tm
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import ETUMSyntaxError
+from lib.tum_except import ETUMSyntaxError, item_load_context
 
 
 class TestItemImageDialog(TestItem):
@@ -20,14 +20,9 @@ class TestItemImageDialog(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_IMAGE_DLG
         self.is_container = False
-        try:
+        with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam("question", required=True)
             self._filename = self._prms.getParam("filename", required=True)
-        except:
-            raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a missing or wrong parameter",
-                self.seqFilename(),
-            )
 
     @test_run
     def execute(self):
