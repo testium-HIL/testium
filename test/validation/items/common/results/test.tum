@@ -92,6 +92,7 @@
             func_name: echo
             param: [ $(str_example) ]
             process_result: "'44' in '$(result)'"
+            expected_result: True
         - py_func:
             name: Save the result in a global variable
             key: $(test)_PASS
