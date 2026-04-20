@@ -30,7 +30,13 @@ class TestFileManager:
         ):
             w.test_service.stop()
             w.test_service.close()
-            w.test_proc.join()
+            w.test_proc.join(timeout=5)
+            if w.test_proc.is_alive():
+                w.test_proc.terminate()
+                w.test_proc.join(timeout=2)
+            if w.test_proc.is_alive():
+                w.test_proc.kill()
+                w.test_proc.join()
             del w.test_proc
             w.test_proc = None
             del w.test_service

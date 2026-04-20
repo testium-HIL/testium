@@ -228,7 +228,7 @@ class JsonRpcConnection:
         self.recv_thread.join()
 
     def is_alive(self):
-        self.recv_thread.is_alive()
+        return self.recv_thread.is_alive()
 
     def wait_ready(self, timeout=None):
         return self._event_ready.wait(timeout)

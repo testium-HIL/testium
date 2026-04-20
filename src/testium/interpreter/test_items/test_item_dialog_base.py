@@ -1,6 +1,8 @@
-from multiprocessing import Process, Pipe
+import multiprocessing
 
 from interpreter.test_items.test_item import TestItem
+
+_spawn_ctx = multiprocessing.get_context('spawn')
 
 
 class TestItemDialogBase(TestItem):
@@ -19,7 +21,7 @@ class TestItemDialogBase(TestItem):
 
         Returns the subprocess exit code.
         """
-        p = Process(target=target, args=(args,))
+        p = _spawn_ctx.Process(target=target, args=(args,))
         p.start()
         while p.is_alive() and not self._is_stopped:
             p.join(timeout=0.5)
@@ -31,9 +33,10 @@ class TestItemDialogBase(TestItem):
 
         Returns the received value, or None if stopped or if the subprocess crashed.
         """
-        parent_conn, child_conn = Pipe()
-        p = Process(target=target, args=(args, child_conn))
+        parent_conn, child_conn = _spawn_ctx.Pipe()
+        p = _spawn_ctx.Process(target=target, args=(args, child_conn))
         p.start()
+        child_conn.close()
         result = None
         while p.is_alive() and not self._is_stopped:
             if parent_conn.poll(0.5):
