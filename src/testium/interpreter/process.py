@@ -8,6 +8,7 @@ import copy
 from lib.string_queue import StringQueue
 from lib.tum_except import print_exception, ETUMRuntimeError, ETUMSyntaxError
 import libs.testium as tm
+import interpreter.utils.globdict as globdict
 from interpreter.utils.params import expanse
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.test_init import (
@@ -255,6 +256,7 @@ Is the python exec path correct ?"""
                                 try:
                                     test_run_init()
                                     print(test_run_header())
+                                    globdict.set_update_queue(self.__squeue)
                                     test_set.execute()
                                 finally:
                                     if test_set.success():
@@ -274,6 +276,7 @@ Is the python exec path correct ?"""
                                     engine.join()
                                 # Sends signal to the GUI
                                 self.send_finished()
+                                globdict.set_update_queue(None)
                                 restore_gd(gdict)
                         except Exception as e:
                             print_exception(e)
@@ -311,6 +314,9 @@ Is the python exec path correct ?"""
             "enabled_state": test_set.getEnabledState,
             "process_param": self.process_param,
             "set_test_outputs": self.set_test_outputs,
+            "get_gd_vars": self.get_gd_vars,
+            "set_gd_var": self.set_gd_var,
+            "del_gd_var": self.del_gd_var,
             "set_enabled_state": test_set.setEnabledState,
             "check_uncheck_all": test_set.checkUncheckAll,
             "get_folded": test_set.getFolded,
@@ -343,6 +349,25 @@ Is the python exec path correct ?"""
 
     def set_test_outputs(self, outputs: list):
         tm.setgd("test_outputs", outputs)
+
+    def get_gd_vars(self):
+        import json
+        result = {}
+        for k, v in globdict.global_dict.items():
+            if k.startswith("_"):
+                continue
+            try:
+                json.dumps(v)
+                result[k] = v
+            except (TypeError, ValueError):
+                pass
+        return result
+
+    def set_gd_var(self, name: str, value):
+        tm.setgd(name, value)
+
+    def del_gd_var(self, name: str):
+        tm.delgd(name)
 
     def process_control_commands(self, tctrl):
         term = False

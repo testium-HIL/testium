@@ -41,6 +41,7 @@ class TestFileManager:
             w.test_proc = None
             del w.test_service
             w.test_service = None
+            w.d_f1_win.set_service(None)
             del w.ts_controller
             w.ts_controller = None
 
@@ -89,6 +90,7 @@ class TestFileManager:
             w.testFile = None
             w.ts_controller = TestSetController()
             w.test_service = TestControllerService(w.ts_controller)
+            w.d_f1_win.set_service(w.test_service)
             w.test_proc = TestProcess(
                 file_name,
                 w.status_queue,
@@ -112,6 +114,7 @@ class TestFileManager:
                 w.test_proc = None
                 del w.test_service
                 w.test_service = None
+                w.d_f1_win.set_service(None)
                 del w.ts_controller
                 w.ts_controller = None
                 raise ETUMRuntimeError(
@@ -128,6 +131,7 @@ class TestFileManager:
             progress = None
             w.treeTests.setFoldDefault()
             w.treeTests.updateTreeSkipState(w.test_service)
+            w.d_f1_win.load_initial_vars(w.test_service.get_gd_vars())
 
             w.checkSelect.setChecked(True)
             w.testFile = file_name

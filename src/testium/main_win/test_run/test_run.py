@@ -6,6 +6,8 @@ from PySide6.QtCore import (Signal, QThread)
 class ThreadTestStatus(QThread):
     statusToBeUpdated = Signal(dict)
     testSetIsFinished = Signal()
+    gdUpdated = Signal(str, object)
+    gdDeleted = Signal(str)
 
     def __init__(self, status_queue, parent=None, debug=False):
         super().__init__(parent)
@@ -21,7 +23,12 @@ class ThreadTestStatus(QThread):
             while True:
                 while not self._status_queue.empty():
                     m = self._status_queue.get()
-                    if m.get("id", None) is None:
+                    msg_type = m.get("type")
+                    if msg_type == "gd_update":
+                        self.gdUpdated.emit(m["key"], m["value"])
+                    elif msg_type == "gd_delete":
+                        self.gdDeleted.emit(m["key"])
+                    elif m.get("id", None) is None:
                         self.testSetIsFinished.emit()
                     else:
                         self.statusToBeUpdated.emit(m)

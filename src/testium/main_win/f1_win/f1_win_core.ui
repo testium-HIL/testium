@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>550</width>
+    <height>450</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,69 +22,139 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2"/>
-   </item>
-   <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="typeLabel">
-       <property name="text">
-        <string>Test step type</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="typeLineEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="sequenceFileNameLabel">
-       <property name="text">
-        <string>Test file name</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <!-- Tab 0: Test item -->
+     <widget class="QWidget" name="tabTestItem">
+      <attribute name="title">
+       <string>Test item</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab0">
        <item>
-        <widget class="QLineEdit" name="sequenceFileNameLineEdit">
+        <layout class="QFormLayout" name="formLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="typeLabel">
+           <property name="text">
+            <string>Test step type</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="typeLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="sequenceFileNameLabel">
+           <property name="text">
+            <string>Test file name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QLineEdit" name="sequenceFileNameLineEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="ButtLocOpen">
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Test content:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextEdit" name="TestContentEdit">
          <property name="readOnly">
           <bool>true</bool>
          </property>
         </widget>
        </item>
+      </layout>
+     </widget>
+     <!-- Tab 1: Variables -->
+     <widget class="QWidget" name="tabVariables">
+      <attribute name="title">
+       <string>Variables</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab1">
        <item>
-        <widget class="QToolButton" name="ButtLocOpen">
-         <property name="text">
-          <string>...</string>
-         </property>
+        <widget class="QTableWidget" name="varsTable">
+         <column>
+          <property name="text">
+           <string>Key</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Value</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string/>
+          </property>
+         </column>
         </widget>
        </item>
+       <item>
+        <layout class="QHBoxLayout" name="addVarLayout">
+         <item>
+          <widget class="QLineEdit" name="newKeyEdit">
+           <property name="placeholderText">
+            <string>New key</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="newValueEdit">
+           <property name="placeholderText">
+            <string>Value</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="addVarButton">
+           <property name="text">
+            <string>+</string>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
       </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Test content:</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QTextEdit" name="TestContentEdit">
-     <property name="readOnly">
-      <bool>true</bool>
-     </property>
+     </widget>
     </widget>
    </item>
    <item>

@@ -69,3 +69,12 @@ class TestControllerService:
 
     def set_test_outputs(self, outputs: list) -> None:
         self._ctrl.control("set_test_outputs", outputs=outputs)
+
+    def get_gd_vars(self) -> dict:
+        return self._ctrl.control("get_gd_vars")
+
+    def set_gd_var(self, name: str, value) -> None:
+        self._ctrl.control("set_gd_var", name=name, value=value)
+
+    def del_gd_var(self, name: str) -> None:
+        self._ctrl.control("del_gd_var", name=name)

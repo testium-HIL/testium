@@ -247,6 +247,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.threadTestStatus.testSetIsFinished.connect(self.runner.on_run_finished)
         self.threadTestStatus.statusToBeUpdated.connect(self.treeTests.updateStatus)
+        self.threadTestStatus.gdUpdated.connect(self.d_f1_win.gd_var_updated)
+        self.threadTestStatus.gdDeleted.connect(self.d_f1_win.gd_var_deleted)
         self.reconnect_signals()
 
         if runandclose:
