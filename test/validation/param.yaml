@@ -30,8 +30,10 @@ linux_prompt: "$ "
 inc_no_template: "inc no template"
 inc_with_template: "inc with template"
 
-LUA_PATH_Linux: /usr/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?/init.lua;/usr/share/lua/5.4/?/init.lua;/usr/local/lib/lua/5.4/?.lua;/usr/local/lib/lua/5.4/?/init.lua;/usr/lib/lua/5.4/?.lua;/usr/lib/lua/5.4/?/init.lua;./?.lua;./?/init.lua;/home/francois/.luarocks/share/lua/5.4/?.lua;/home/francois/.luarocks/share/lua/5.4/?/init.lua
-LUA_CPATH_Linux: /usr/local/lib/lua/5.4/?.so;/usr/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;/usr/lib/lua/5.4/loadall.so;./?.so;/home/francois/.luarocks/lib/lua/5.4/?.so
+lua_rev: 5.5
+
+LUA_PATH_Linux: /usr/share/lua/$(lua_rev)/?.lua;/usr/local/share/lua/$(lua_rev)/?.lua;/usr/local/share/lua/$(lua_rev)/?/init.lua;/usr/share/lua/$(lua_rev)/?/init.lua;/usr/local/lib/lua/$(lua_rev)/?.lua;/usr/local/lib/lua/$(lua_rev)/?/init.lua;/usr/lib/lua/$(lua_rev)/?.lua;/usr/lib/lua/$(lua_rev)/?/init.lua;./?.lua;./?/init.lua;/home/francois/.luarocks/share/lua/$(lua_rev)/?.lua;/home/francois/.luarocks/share/lua/$(lua_rev)/?/init.lua
+LUA_CPATH_Linux: /usr/local/lib/lua/$(lua_rev)/?.so;/usr/lib/lua/$(lua_rev)/?.so;/usr/local/lib/lua/$(lua_rev)/loadall.so;/usr/lib/lua/$(lua_rev)/loadall.so;./?.so;/home/francois/.luarocks/lib/lua/$(lua_rev)/?.so
 PATH_Linux:
 
 LUA_PATH_Windows: ;.\?.lua;C:\Lua\5.1\lua\?.lua;C:\Lua\5.1\lua\?\init.lua;C:\Lua\5.1\?.lua;C:\Lua\5.1\?\init.lua;C:\Lua\5.1\lua\?.luac
