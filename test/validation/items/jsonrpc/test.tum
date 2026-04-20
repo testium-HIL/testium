@@ -1,27 +1,27 @@
 
 - console:
     name: json rpc echo server
-    doc: check if the jsonrpc echo server is installed
+    doc: check if jrpc_echo_server.py is available
     console_name: jrpces
     key: $(test)_PASS
     steps:
         - open:
             protocol: terminal
         - read_until: {expected: $(terminal_prompt), timeout: 1, no_fail: True}
-        - writeln: which jrpces
-        - read_until: {expected: jrpces, timeout: 2}
+        - writeln: test -f {{include_directory}}/jrpc_echo_server.py && echo JRPC_OK
+        - read_until: {expected: JRPC_OK, timeout: 2, no_fail: True}
 
 - group:
     name: jsonrpc tests
-    condition: <| '/jrpces' in r'''$(cn_json rpc echo server)''' |>
+    condition: <| 'JRPC_OK' in r'''$(cn_json rpc echo server)''' |>
     steps:
         - console:
             name: Start the json rpc echo server
             console_name: jrpces
             key: $(test)_PASS
             steps:
-                - writeln: jrpces -c {{include_directory}}/jrpces.ini
-                - read_until: {expected: $(terminal_prompt), timeout: 1, no_fail: True}
+                - writeln: python3 {{include_directory}}/jrpc_echo_server.py -c {{include_directory}}/jrpces.ini
+                - read_until: {expected: ready, timeout: 5}
 
         - console:
             name: Open the raw tcp Console
