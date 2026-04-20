@@ -87,6 +87,10 @@ if not provided is given in the table as well.
     |                       |                   | see :ref:`Expected result<sec_expected_result>`       |
     |                       |                   | for details.                                          |
     +-----------------------+-------------------+-------------------------------------------------------+
+    | ``store_result``      | /                 | Store the test result in a global variable.           |
+    |                       |                   | see :ref:`Store result<sec_store_result>`             |
+    |                       |                   | for details.                                          |
+    +-----------------------+-------------------+-------------------------------------------------------+
 
 
 last test result
@@ -181,6 +185,61 @@ The ``expected_result`` attribute content is a simple comparison with ``$(result
 If the result and the expected_result is equal, the test will be *PASSED* if ``True``, and *FAIL* otherwise.
 
 The special ``$(result)`` variable is replaced in the ``expected_result`` attribute content with the test result value.
+
+
+.. _sec_store_result:
+
+Store result
+-----------------------------------------------
+
+The ``store_result`` attribute stores the test result into a named global variable,
+making it available to subsequent test items via ``$(variable_name)``.
+
+If the test item returns a value (e.g. ``py_func``, ``json_rpc``), that value is stored.
+If ``process_result`` is also specified, the stored value is the post-processed result.
+
+If the test item produces no value (result is ``None``), the stored value is the
+test status string: ``"PASS"`` or ``"FAIL"``, evaluated after ``expected_result``
+but **before** ``no_fail``. This ensures the real outcome is captured even when
+``no_fail: True`` would otherwise mask a failure.
+
+.. code-block:: yaml
+    :caption: Store a function return value
+
+    - py_func:
+        name: Read sensor
+        func_name: read_temperature
+        store_result: temperature
+
+    - py_func:
+        name: Check temperature in range
+        func_name: check_range
+        param: [$(temperature), 20, 30]
+
+.. code-block:: yaml
+    :caption: Store a post-processed value
+
+    - py_func:
+        name: Get firmware version string
+        func_name: get_version
+        process_result: "'$(result)'.split('.')[0]"
+        store_result: fw_major
+
+.. code-block:: yaml
+    :caption: Store the pass/fail status of a test with no return value
+
+    - console:
+        name: Send command
+        console_name: device
+        steps:
+            - writeln: reboot
+            - read_until: {expected: "ready", timeout: 10}
+        store_result: reboot_status
+
+    - py_func:
+        name: Use reboot status
+        func_name: log_status
+        param: [$(reboot_status)]
 
 
 Export attribute

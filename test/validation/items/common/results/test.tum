@@ -99,7 +99,7 @@
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
             param: [ 44 ]
-            process_result: "tm.setgd('process_result_value', $(result))"
+            store_result: process_result_value
         - py_func:
             name: Check the saved global variable
             key: $(test)_PASS
@@ -107,6 +107,68 @@
             func_name: echo
             param: [ 44 ]
             expected_result: $(process_result_value)
+
+        - py_func:
+            name: store_result with process_result
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            process_result: "'$(result)'.upper()"
+            store_result: upper_str_example
+        - py_func:
+            name: Check store_result with process_result
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            process_result: "'$(result)'.upper()"
+            expected_result: $(upper_str_example)
+
+        - let:
+            name: store_result on let item (None value → stores PASS)
+            key: $(test)_PASS
+            values:
+                - dummy: 0
+            store_result: let_store_result
+        - py_func:
+            name: Check store_result on let stores PASS
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [PASS]
+            expected_result: $(let_store_result)
+
+        - py_func:
+            name: store_result on failing test (None value → stores FAIL)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: return_none
+            expected_result: FAIL
+            store_result: none_fail_store_result
+        - py_func:
+            name: Check store_result on failing test stores FAIL
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [FAIL]
+            expected_result: $(none_fail_store_result)
+
+        - py_func:
+            name: store_result with no_fail (None value → stores real FAIL, not forced PASS)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: return_none
+            expected_result: FAIL
+            no_fail: True
+            store_result: none_nofail_store_result
+        - py_func:
+            name: Check store_result with no_fail stores real FAIL
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [FAIL]
+            expected_result: $(none_nofail_store_result)
 
         - py_func:
             name: Process result when result is None (must fail)

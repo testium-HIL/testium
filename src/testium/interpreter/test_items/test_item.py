@@ -101,6 +101,7 @@ class TestItem:
         self.status_queue = status_queue
         self._execute_on_stop = False
         self._post_eval = None
+        self._store_result = None
         self._expected_result = None
         self._no_fail = None
         self._is_stopped = False
@@ -154,6 +155,9 @@ class TestItem:
 
                 if "process_result" in dict_item:
                     self._post_eval = dict_item["process_result"]
+
+                if "store_result" in dict_item:
+                    self._store_result = dict_item["store_result"]
 
                 if "expected_result" in dict_item:
                     self._expected_result = dict_item["expected_result"]
@@ -277,6 +281,9 @@ class TestItem:
         self.process_result()
         # expected_result treatment
         self.result_expected()
+        # Store result in a global variable if requested (before no_fail so
+        # the real outcome is captured when result.value is None)
+        self.store_result()
         # Case of the no_fail true parameter
         self.process_no_fail()
 
@@ -318,6 +325,17 @@ class TestItem:
             print("   Result processing failed!")
             print(e)
             self.result.set(TestValue.FAILURE, "Result processing failed")
+
+    def store_result(self):
+        if self._store_result is None:
+            return
+        var_name = self._prms.expanse(self._store_result)
+        if self.result.value is None:
+            value = str(self.result.test_result)
+        else:
+            value = self.result.value
+        tm.setgd(var_name, value)
+        print(f"Stored result in '$({var_name})': {value}")
 
     def process_report(self, report_eval):
         tm.print_debug(f"Export reported values:")
