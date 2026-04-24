@@ -190,6 +190,12 @@
                     param: [ 0, "OK" ]
                     expected_result: [0, "OK"]
 
+- py_func:
+    name: delgd test
+    key: $(test)_PASS
+    file: $(test_path)$(psep)py_func.py
+    func_name: test_delgd
+
 - group:
     name: context_id tests
     steps:

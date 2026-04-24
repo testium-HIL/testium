@@ -41,4 +41,12 @@ function module.get_context_value()
     return tm.gd("_lua_ctx_test_value")
 end
 
+function module.test_delgd()
+    tm.setgd("_lua_delgd_test", 42)
+    assert(tm.gd("_lua_delgd_test") == 42)
+    tm.delgd("_lua_delgd_test")
+    assert(tm.gd("_lua_delgd_test") == nil)
+    return 0
+end
+
 return module

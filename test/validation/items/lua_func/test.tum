@@ -180,6 +180,12 @@
                     func_name: tuple_return
                     param: [ 0, "OK" ]
 
+- lua_func:
+    name: delgd test
+    key: $(test)_PASS
+    file: $(test_path)$(psep)lua_func.lua
+    func_name: test_delgd
+
 - group:
     name: context_id tests
     steps:

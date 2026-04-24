@@ -47,3 +47,10 @@ def set_ns_value(val):
 def get_ns_value():
     obj = tm.gd("_py_ctx_ns_value", None)
     return obj.val if obj is not None else None
+
+def test_delgd():
+    tm.setgd("_py_delgd_test", 42)
+    assert tm.gd("_py_delgd_test") == 42
+    tm.delgd("_py_delgd_test")
+    assert tm.gd("_py_delgd_test", None) is None
+    return 0
