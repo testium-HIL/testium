@@ -40,7 +40,10 @@ class TestItemDialogBase(TestItem):
         result = None
         while p.is_alive() and not self._is_stopped:
             if parent_conn.poll(0.5):
-                result = parent_conn.recv()
+                try:
+                    result = parent_conn.recv()
+                except EOFError:
+                    pass
                 break
         self._cleanup_process(p)
         return result
