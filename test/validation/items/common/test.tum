@@ -10,3 +10,28 @@
     name : Various syntax robustness
     steps:
         - !include syntax_robustness/test.tum
+- group:
+    name: Helper lib functions
+    steps:
+        - py_func:
+            name: OS
+            key: $(test)_PASS
+            file: $(test_path)$(psep)helper_lib.py
+            func_name: check_os
+            param:
+                - $(os)
+        - py_func:
+            name: get_main_dir
+            key: $(test)_PASS
+            file: $(test_path)$(psep)helper_lib.py
+            func_name: check_get_main_dir
+        - py_func:
+            name: timestamp_as_sec conversion
+            key: $(test)_PASS
+            file: $(test_path)$(psep)helper_lib.py
+            func_name: check_timestamp_as_sec_conversion
+        - py_func:
+            name: timestamp and timestamp_as_sec
+            key: $(test)_PASS
+            file: $(test_path)$(psep)helper_lib.py
+            func_name: check_timestamp
