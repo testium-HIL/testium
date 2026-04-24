@@ -45,7 +45,7 @@ function module.test_delgd()
     tm.setgd("_lua_delgd_test", 42)
     assert(tm.gd("_lua_delgd_test") == 42)
     tm.delgd("_lua_delgd_test")
-    assert(tm.gd("_lua_delgd_test") == nil)
+    assert(tm.gd("_lua_delgd_test", "__deleted__") == "__deleted__")
     return 0
 end
 
