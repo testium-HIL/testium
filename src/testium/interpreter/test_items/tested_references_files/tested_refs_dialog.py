@@ -2,7 +2,7 @@ import sys
 from multiprocessing import freeze_support
 
 from PySide6.QtWidgets import (QApplication, QDialog, QTableWidgetItem)
-from PySide6.QtCore import (Qt, QSettings)
+from PySide6.QtCore import Qt, QSettings, QTimer
 
 try:
     from interpreter.test_items.tested_references_files import tested_refs_win
@@ -52,6 +52,9 @@ def main(args, conn=None):
         i += 1
 
     d.tableReferences.setFocus()
+    auto_result = args[3] if len(args) > 3 else None
+    if auto_result is not None:
+        QTimer.singleShot(2000, lambda: d.accept() if auto_result.lower() == 'ok' else d.reject())
     dres = d.exec()
 
     if dres == QDialog.Rejected:

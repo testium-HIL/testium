@@ -71,4 +71,4 @@
     steps:
         - close:
             wait_dialog_exit: True
-            timeout: 60
+            timeout: 2

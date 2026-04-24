@@ -2,7 +2,7 @@ import sys
 from multiprocessing import freeze_support
 
 from PySide6.QtWidgets import (QApplication, QMessageBox)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 
 def main(args, conn):
@@ -16,6 +16,10 @@ def main(args, conn):
         msg.setText(args[1])
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        auto_result = args[2] if len(args) > 2 else None
+        if auto_result is not None:
+            btn = QMessageBox.Yes if auto_result.lower() == 'yes' else QMessageBox.No
+            QTimer.singleShot(2000, lambda: msg.button(btn).click())
         reply = msg.exec()
         conn.send(reply)
     except Exception as e:

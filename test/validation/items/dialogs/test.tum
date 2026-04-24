@@ -2,6 +2,7 @@
     name: dialog image PASS
     condition: $(validation_dialogs)
     question: click ok if you see the image
+    auto_result: "ok"
     key: $(test)_PASS
     filename: $(test_path)$(psep)IMG_20140213_171455.jpg
 
@@ -9,6 +10,7 @@
     name: dialog image FAIL
     condition: $(validation_dialogs)
     question: click cancel
+    auto_result: "cancel"
     key: $(test)_FAIL
     filename: $(test_path)$(psep)IMG_20140213_171455.jpg
 
@@ -17,45 +19,54 @@
     condition: $(validation_dialogs)
     key: $(test)_PASS
     question: click ok
+    auto_result: "ok"
 
 - dialog_references:
     name: dialog_reference FAIL
     condition: $(validation_dialogs)
     key: $(test)_FAIL
     question: click cancel
+    auto_result: "cancel"
 
 - dialog_value:
     name: dialog_value PASS
     condition: $(validation_dialogs)
     key: $(test)_PASS
     question: enter 123 and click ok
+    auto_result: "ok"
+    auto_value: "123"
 
 - dialog_value:
     name: dialog_value empty FAIL
     condition: $(validation_dialogs)
     key: $(test)_FAIL
     question: enter nothing and click ok
+    auto_result: "ok"
 
 - dialog_value:
     name: dialog_value canceled FAIL
     condition: $(validation_dialogs)
     key: $(test)_FAIL
     question: enter nothing and click cancel
+    auto_result: "cancel"
 
 - dialog_message:
     name: dialog_message PASS
     condition: $(validation_dialogs)
     key: $(test)_PASS
     question: click ok
+    auto_result: "ok"
 
 - dialog_question:
     name: dialog_question PASS
     condition: $(validation_dialogs)
     key: $(test)_PASS
     question: click yes
+    auto_result: "yes"
 
 - dialog_question:
     name: dialog_question FAIL
     condition: $(validation_dialogs)
     key: $(test)_FAIL
     question: click no
+    auto_result: "no"

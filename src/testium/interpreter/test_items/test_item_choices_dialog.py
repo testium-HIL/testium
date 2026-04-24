@@ -17,13 +17,16 @@ class TestItemChoicesDialog(TestItemDialogBase):
             self._question = self._prms.getParam("question", required=True)
             self._choices = self._prms.getParam("choices", required=True)
             self._default_icon = self._prms.getParam("icon", required=False, default=None)
+            self._auto_result = self._prms.getParam("auto_result", required=False, default=None)
 
     @test_run
     def execute(self):
         q = self._prms.expanse(self._question)
         choices = self._prms.expanse(self._choices)
         icon = self._prms.expanse(self._default_icon)
-        result = self._run_dialog_with_result(choices_dialog.main, [self.name(), q, choices, icon])
+        ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+        args = [self.name(), q, choices, icon] + ([ar] if ar is not None else [])
+        result = self._run_dialog_with_result(choices_dialog.main, args)
         if result is None:
             self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
             return

@@ -20,12 +20,15 @@ class TestItemMsgDialog(TestItemDialogBase):
         self.is_container = False
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam('question', required=True)
+            self._auto_result = self._prms.getParam('auto_result', required=False, default=None)
 
     @test_run
     def execute(self):
         q = self._prms.expanse(self._question)
         print("Message Displayed:\n" + q)
-        exitcode = self._run_dialog(msg_dialog.main, [self.name(), q])
+        ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+        args = [self.name(), q] + ([ar] if ar is not None else [])
+        exitcode = self._run_dialog(msg_dialog.main, args)
         if exitcode == 0:
             self.result.set(TestValue.SUCCESS)
         else:

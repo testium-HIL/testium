@@ -5,7 +5,7 @@ from itertools import chain
 
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
-from PySide6.QtCore import Qt, QSettings, QSize
+from PySide6.QtCore import Qt, QSettings, QTimer, QSize
 from PySide6.QtGui import QFont, QFontInfo
 from PySide6.QtWidgets import QTreeWidgetItem
 
@@ -207,6 +207,9 @@ def main(args, conn=None):
     d.connect_checked()
 
     d.choicesView.setFocus()
+    auto_result = args[4] if len(args) > 4 else None
+    if auto_result is not None:
+        QTimer.singleShot(2000, lambda: d.accept() if auto_result.lower() == 'ok' else d.reject())
     dres = d.exec()
 
     if dres == QDialog.Rejected:

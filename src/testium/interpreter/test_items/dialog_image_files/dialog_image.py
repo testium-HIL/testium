@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtCore import (Qt)
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (QApplication, QDialog)
 from PySide6 import (QtGui)
 
@@ -37,6 +37,10 @@ def main(args, conn):
                      aspectMode=Qt.KeepAspectRatio)
 
         d.labelImage.setPixmap(QtGui.QPixmap.fromImage(image2))
+
+        auto_result = args[3] if len(args) > 3 else None
+        if auto_result is not None:
+            QTimer.singleShot(2000, lambda: d.accept() if auto_result.lower() == 'ok' else d.reject())
 
         dres = d.exec()
 

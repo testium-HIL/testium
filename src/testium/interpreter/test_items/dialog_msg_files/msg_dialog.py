@@ -2,7 +2,7 @@ import sys
 from multiprocessing import freeze_support
 
 from PySide6.QtWidgets import (QApplication, QMessageBox)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 
 def main(args):
@@ -15,6 +15,8 @@ def main(args):
     msg.setText(args[1])
     msg.setIcon(QMessageBox.Information)
     msg.setStandardButtons(QMessageBox.Ok)
+    if len(args) > 2:
+        QTimer.singleShot(2000, lambda: msg.button(QMessageBox.Ok).click())
     msg.exec()
 
     if hasattr(sys, "frozen"):

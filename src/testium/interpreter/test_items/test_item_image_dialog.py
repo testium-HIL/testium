@@ -21,6 +21,7 @@ class TestItemImageDialog(TestItemDialogBase):
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam("question", required=True)
             self._filename = self._prms.getParam("filename", required=True)
+            self._auto_result = self._prms.getParam("auto_result", required=False, default=None)
 
     @test_run
     def execute(self):
@@ -31,7 +32,9 @@ class TestItemImageDialog(TestItemDialogBase):
             image_path = os.path.normpath(
                 os.path.join(tm.gd("test_directory"), image_path)
             )
-        succ = self._run_dialog_with_result(dialog_image.main, [self.name(), q, image_path])
+        ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+        args = [self.name(), q, image_path] + ([ar] if ar is not None else [])
+        succ = self._run_dialog_with_result(dialog_image.main, args)
         if succ is None:
             self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
         elif succ:

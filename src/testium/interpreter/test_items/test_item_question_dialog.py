@@ -19,12 +19,15 @@ class TestItemQuestionDialog(TestItemDialogBase):
         self.is_container = False
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam('question', required=True)
+            self._auto_result = self._prms.getParam('auto_result', required=False, default=None)
 
     @test_run
     def execute(self):
         q = self._prms.expanse(self._question)
         print('Question asked:\n' + q + '\n')
-        succ = self._run_dialog_with_result(question_dialog.main, [self.name(), q])
+        ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+        args = [self.name(), q] + ([ar] if ar is not None else [])
+        succ = self._run_dialog_with_result(question_dialog.main, args)
         if succ is None:
             self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
             return

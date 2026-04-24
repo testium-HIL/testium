@@ -2,7 +2,7 @@ import sys
 import os
 
 from PySide6.QtWidgets import (QApplication, QDialog)
-from PySide6.QtCore import (Qt)
+from PySide6.QtCore import Qt, QTimer
 from interpreter.test_items.dialog_note_files import dialog_note_win
 from multiprocessing import  freeze_support
 
@@ -23,6 +23,14 @@ def main(args, conn=None):
     d.setWindowTitle(args[0])
     d.labelDialog.setText(args[1])
     d.textEdit.setFocus()
+    auto_result = args[2] if len(args) > 2 else None
+    if auto_result is not None:
+        auto_value = args[3] if len(args) > 3 else None
+        def _auto_close():
+            if auto_value is not None:
+                d.textEdit.setPlainText(auto_value)
+            d.accept() if auto_result.lower() == 'ok' else d.reject()
+        QTimer.singleShot(2000, _auto_close)
     dres = d.exec()
 
     if dres == QDialog.Rejected:
