@@ -80,8 +80,8 @@ class Batch:
                 while True:
                     try:
                         m = msg_queue.get(timeout=0.2)
-                        if m.get("id", None) is None:
-                            # No id -> finished
+                        if "id" in m and m["id"] is None:
+                            # id key present and None -> finished
                             break
                     except Empty:
                         if not tst_proc.is_alive():
