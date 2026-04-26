@@ -34,12 +34,15 @@ class TestItemImageDialog(TestItemDialogBase):
         if _is_text_mode():
             if _is_interactive():
                 ans = input("Accept? (y/n) [default: y]: ").strip().lower()
+                self.result.set(TestValue.FAILURE if ans in ('n', 'no') else TestValue.SUCCESS)
             else:
-                ans = ''
-            if ans in ('n', 'no'):
-                self.result.set(TestValue.FAILURE)
-            else:
-                self.result.set(TestValue.SUCCESS)
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                if ar is None:
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                elif ar == 'cancel':
+                    self.result.set(TestValue.FAILURE)
+                else:
+                    self.result.set(TestValue.SUCCESS)
             return
         from interpreter.test_items.dialog_image_files import dialog_image
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None

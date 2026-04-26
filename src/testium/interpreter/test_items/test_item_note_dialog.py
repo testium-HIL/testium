@@ -22,15 +22,25 @@ class TestItemNoteDialog(TestItemDialogBase):
         q = self._prms.expanse(self._question)
         print("Question:\n" + q)
         if _is_text_mode():
-            lines = []
             if _is_interactive():
                 print("Enter your note (type '.' on a new line to finish, empty line to cancel):")
+                lines = []
                 while True:
                     line = input()
                     if line == '.':
                         break
                     lines.append(line)
-            val = '\n'.join(lines)
+                val = '\n'.join(lines)
+            else:
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                av = self._prms.expanse(self._auto_value) if self._auto_value is not None else None
+                if ar is None:
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    return
+                if ar == 'cancel':
+                    self.result.set(TestValue.FAILURE, 'Dialog cancelled')
+                    return
+                val = av if av is not None else ''
             tm.setgd(self.name(), val)
             print("\n" + ("-" * 80) + "\n")
             print("- Test note\n")

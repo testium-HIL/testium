@@ -31,7 +31,17 @@ class TestItemValueDialog(TestItemDialogBase):
                 prompt = f"Enter value [{d}]: " if d else "Enter value: "
                 ans = input(prompt).strip()
             else:
-                ans = ''
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                av = self._prms.expanse(self._auto_value) if self._auto_value is not None else None
+                if ar is None:
+                    print("Answer: \nDialog not supported in batch mode")
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    return
+                if ar == 'cancel':
+                    print("Answer: \nDialog cancelled")
+                    self.result.set(TestValue.FAILURE, 'Dialog cancelled')
+                    return
+                ans = av if av is not None else ''
             val = ans if ans else d
             tm.setgd(self.name(), val)
             print("Answer: " + str(val))

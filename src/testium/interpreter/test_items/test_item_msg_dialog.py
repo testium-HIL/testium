@@ -28,7 +28,13 @@ class TestItemMsgDialog(TestItemDialogBase):
         if _is_text_mode():
             if _is_interactive():
                 input("Press Enter to continue...")
-            self.result.set(TestValue.SUCCESS)
+                self.result.set(TestValue.SUCCESS)
+            else:
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                if ar is not None:
+                    self.result.set(TestValue.SUCCESS)
+                else:
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
             return
         from interpreter.test_items.dialog_msg_files import msg_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None

@@ -25,14 +25,22 @@ class TestItemQuestionDialog(TestItemDialogBase):
         if _is_text_mode():
             if _is_interactive():
                 ans = input("Answer yes (y) or no (n) [default: y]: ").strip().lower()
+                if ans in ('n', 'no'):
+                    self.result.set(TestValue.FAILURE)
+                    print('Answer:    NO\n')
+                else:
+                    self.result.set(TestValue.SUCCESS)
+                    print('Answer:    YES\n')
             else:
-                ans = ''
-            if ans in ('n', 'no'):
-                self.result.set(TestValue.FAILURE)
-                print('Answer:    NO\n')
-            else:
-                self.result.set(TestValue.SUCCESS)
-                print('Answer:    YES\n')
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                if ar is None:
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                elif ar in ('no', 'cancel'):
+                    self.result.set(TestValue.FAILURE)
+                    print('Answer:    NO\n')
+                else:
+                    self.result.set(TestValue.SUCCESS)
+                    print('Answer:    YES\n')
             return
         from interpreter.test_items.dialog_question_files import question_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None

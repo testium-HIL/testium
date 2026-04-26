@@ -54,16 +54,26 @@ class TestItemChoicesDialog(TestItemDialogBase):
             self._print_choices(choices)
             if _is_interactive():
                 ans = input("Accept all? (y/n) [default: y]: ").strip().lower()
+                if ans in ('n', 'no'):
+                    tm.delgd("cs_" + self._name)
+                    self.result.set(TestValue.FAILURE, "Cancelled")
+                else:
+                    val = self._all_checked(choices)
+                    self.result.value = val
+                    tm.setgd("cs_" + self._name, val)
+                    self.result.set(TestValue.SUCCESS, str(val))
             else:
-                ans = ''
-            if ans in ('n', 'no'):
-                tm.delgd("cs_" + self._name)
-                self.result.set(TestValue.FAILURE, "Cancelled")
-            else:
-                val = self._all_checked(choices)
-                self.result.value = val
-                tm.setgd("cs_" + self._name, val)
-                self.result.set(TestValue.SUCCESS, str(val))
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                if ar is None:
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                elif ar == 'cancel':
+                    tm.delgd("cs_" + self._name)
+                    self.result.set(TestValue.FAILURE, "Cancelled")
+                else:
+                    val = self._all_checked(choices)
+                    self.result.value = val
+                    tm.setgd("cs_" + self._name, val)
+                    self.result.set(TestValue.SUCCESS, str(val))
             return
         from interpreter.test_items.dialog_choices_files import choices_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None

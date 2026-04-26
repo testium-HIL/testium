@@ -35,7 +35,15 @@ class TestItemTestedRefsDialog(TestItemDialogBase):
                     ref, rev, serial = parts[0], parts[1], parts[2]
                 result_rows.append(f"{ref}/{rev}/{serial}")
             val = ','.join(result_rows)
-            result = [val, True]
+            if _is_interactive():
+                succ = True
+            else:
+                ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+                if ar is None:
+                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    return
+                succ = ar != 'cancel'
+            result = [val, succ]
         else:
             from interpreter.test_items.tested_references_files import tested_refs_dialog
             ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
