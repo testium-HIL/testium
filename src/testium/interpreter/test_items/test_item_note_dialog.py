@@ -1,7 +1,6 @@
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.dialog_note_files import test_dialog
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 import libs.testium as tm
@@ -22,6 +21,29 @@ class TestItemNoteDialog(TestItemDialogBase):
     def execute(self):
         q = self._prms.expanse(self._question)
         print("Question:\n" + q)
+        if _is_text_mode():
+            lines = []
+            if _is_interactive():
+                print("Enter your note (type '.' on a new line to finish, empty line to cancel):")
+                while True:
+                    line = input()
+                    if line == '.':
+                        break
+                    lines.append(line)
+            val = '\n'.join(lines)
+            tm.setgd(self.name(), val)
+            print("\n" + ("-" * 80) + "\n")
+            print("- Test note\n")
+            print("-" * 80 + "\n")
+            print(val)
+            print("-" * 80 + "\n")
+            self.result.reported = {'note': val}
+            if val:
+                self.result.set(TestValue.SUCCESS, val)
+            else:
+                self.result.set(TestValue.FAILURE, val)
+            return
+        from interpreter.test_items.dialog_note_files import test_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
         av = self._prms.expanse(self._auto_value) if self._auto_value is not None else None
         args = [self.name(), q] + ([ar, av] if ar is not None else [])

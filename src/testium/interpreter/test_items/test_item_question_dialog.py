@@ -1,9 +1,6 @@
-from PySide6.QtWidgets import QMessageBox
-
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.dialog_question_files import question_dialog
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 
@@ -25,12 +22,26 @@ class TestItemQuestionDialog(TestItemDialogBase):
     def execute(self):
         q = self._prms.expanse(self._question)
         print('Question asked:\n' + q + '\n')
+        if _is_text_mode():
+            if _is_interactive():
+                ans = input("Answer yes (y) or no (n) [default: y]: ").strip().lower()
+            else:
+                ans = ''
+            if ans in ('n', 'no'):
+                self.result.set(TestValue.FAILURE)
+                print('Answer:    NO\n')
+            else:
+                self.result.set(TestValue.SUCCESS)
+                print('Answer:    YES\n')
+            return
+        from interpreter.test_items.dialog_question_files import question_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
         args = [self.name(), q] + ([ar] if ar is not None else [])
         succ = self._run_dialog_with_result(question_dialog.main, args)
         if succ is None:
             self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
             return
+        from PySide6.QtWidgets import QMessageBox
         if succ == QMessageBox.Yes:
             self.result.set(TestValue.SUCCESS)
             print('Answer:    YES\n')

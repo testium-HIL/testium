@@ -1,7 +1,6 @@
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.dialog_choices_files import choices_dialog
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 import libs.testium as tm
@@ -19,11 +18,54 @@ class TestItemChoicesDialog(TestItemDialogBase):
             self._default_icon = self._prms.getParam("icon", required=False, default=None)
             self._auto_result = self._prms.getParam("auto_result", required=False, default=None)
 
+    def _print_choices(self, choices, indent=0):
+        if not isinstance(choices, list):
+            return
+        for choice in choices:
+            name = choice.get("name", "")
+            desc = choice.get("description", "")
+            line = "  " * indent + f"- {name}"
+            if desc:
+                line += f": {desc}"
+            print(line)
+            sub = choice.get("choices", None)
+            if sub:
+                self._print_choices(sub, indent + 1)
+
+    def _all_checked(self, choices):
+        result = []
+        if not isinstance(choices, list):
+            return result
+        for choice in choices:
+            item = {"name": choice.get("name", ""), "checked": True}
+            sub = choice.get("choices", None)
+            if sub is not None:
+                item["choices"] = self._all_checked(sub)
+            result.append(item)
+        return result
+
     @test_run
     def execute(self):
         q = self._prms.expanse(self._question)
         choices = self._prms.expanse(self._choices)
         icon = self._prms.expanse(self._default_icon)
+        if _is_text_mode():
+            print(f"Choices: {q}")
+            self._print_choices(choices)
+            if _is_interactive():
+                ans = input("Accept all? (y/n) [default: y]: ").strip().lower()
+            else:
+                ans = ''
+            if ans in ('n', 'no'):
+                tm.delgd("cs_" + self._name)
+                self.result.set(TestValue.FAILURE, "Cancelled")
+            else:
+                val = self._all_checked(choices)
+                self.result.value = val
+                tm.setgd("cs_" + self._name, val)
+                self.result.set(TestValue.SUCCESS, str(val))
+            return
+        from interpreter.test_items.dialog_choices_files import choices_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
         args = [self.name(), q, choices, icon] + ([ar] if ar is not None else [])
         result = self._run_dialog_with_result(choices_dialog.main, args)

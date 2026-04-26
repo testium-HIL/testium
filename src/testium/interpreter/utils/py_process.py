@@ -158,7 +158,10 @@ class PyProcessBase:
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
             params.append("-v")
 
-        self._process = subprocess.Popen(params, env=env, cwd=func_proc_path)
+        self._process = subprocess.Popen(
+            params, env=env, cwd=func_proc_path,
+            stdin=subprocess.DEVNULL, restore_signals=False,
+        )
 
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler

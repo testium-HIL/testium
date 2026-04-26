@@ -1,7 +1,6 @@
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.tested_references_files import tested_refs_dialog
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 import libs.testium as tm
@@ -22,9 +21,26 @@ class TestItemTestedRefsDialog(TestItemDialogBase):
     def execute(self):
         q = self._prms.expanse(self._question)
         init_values = ','.join(self._init_values)
-        ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
-        args = [self.name(), q, init_values] + ([ar] if ar is not None else [])
-        result = self._run_dialog_with_result(tested_refs_dialog.main, args)
+        if _is_text_mode():
+            print(f"References: {q}")
+            rows = init_values.split(',') if init_values else ['']
+            result_rows = []
+            for i, row in enumerate(rows):
+                parts = (row.split('/') + ['', '', ''])[:3]
+                if _is_interactive():
+                    ref = input(f"Row {i+1} - Reference [{parts[0]}]: ").strip() or parts[0]
+                    rev = input(f"Row {i+1} - Revision  [{parts[1]}]: ").strip() or parts[1]
+                    serial = input(f"Row {i+1} - Serial    [{parts[2]}]: ").strip() or parts[2]
+                else:
+                    ref, rev, serial = parts[0], parts[1], parts[2]
+                result_rows.append(f"{ref}/{rev}/{serial}")
+            val = ','.join(result_rows)
+            result = [val, True]
+        else:
+            from interpreter.test_items.tested_references_files import tested_refs_dialog
+            ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
+            args = [self.name(), q, init_values] + ([ar] if ar is not None else [])
+            result = self._run_dialog_with_result(tested_refs_dialog.main, args)
         if result is None:
             self.result.set(TestValue.FAILURE, "Dialog subprocess exited without returning a result")
             return

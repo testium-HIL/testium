@@ -1,7 +1,6 @@
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.dialog_value_files import test_dialog
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 import libs.testium as tm
@@ -27,6 +26,23 @@ class TestItemValueDialog(TestItemDialogBase):
         q = self._prms.expanse(self._question)
         d = self._prms.expanse(self._default)
         print("Question:\n" + q)
+        if _is_text_mode():
+            if _is_interactive():
+                prompt = f"Enter value [{d}]: " if d else "Enter value: "
+                ans = input(prompt).strip()
+            else:
+                ans = ''
+            val = ans if ans else d
+            tm.setgd(self.name(), val)
+            print("Answer: " + str(val))
+            if val:
+                self.result.reported = {'question': q, 'answer': val}
+                self.result.value = val
+                self.result.set(TestValue.SUCCESS, val)
+            else:
+                self.result.set(TestValue.FAILURE, 'No value entered')
+            return
+        from interpreter.test_items.dialog_value_files import test_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
         av = self._prms.expanse(self._auto_value) if self._auto_value is not None else None
         args = [self.name(), q, d] + ([ar, av] if ar is not None else [])

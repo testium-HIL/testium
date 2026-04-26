@@ -3,8 +3,7 @@ import sys
 
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.dialog_msg_files import msg_dialog
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 
@@ -26,6 +25,12 @@ class TestItemMsgDialog(TestItemDialogBase):
     def execute(self):
         q = self._prms.expanse(self._question)
         print("Message Displayed:\n" + q)
+        if _is_text_mode():
+            if _is_interactive():
+                input("Press Enter to continue...")
+            self.result.set(TestValue.SUCCESS)
+            return
+        from interpreter.test_items.dialog_msg_files import msg_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
         args = [self.name(), q] + ([ar] if ar is not None else [])
         exitcode = self._run_dialog(msg_dialog.main, args)

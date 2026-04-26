@@ -1,6 +1,15 @@
 import multiprocessing
 
+import libs.testium as tm
 from interpreter.test_items.test_item import TestItem
+
+
+def _is_text_mode():
+    return tm.text_mode()
+
+
+def _is_interactive():
+    return bool(tm.gd("_interactive", True))
 
 _spawn_ctx = multiprocessing.get_context('spawn')
 

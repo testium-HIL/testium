@@ -102,7 +102,7 @@ def main():
         if (lf != '') or (rf != '') or (tf != '') or (pn != []):
             print('"-l", "-p", "-t", "-n" options are not supported in this mode.')
 
-        t = Terminal(os.getcwd(), cf, defines, args.no_color)
+        t = Terminal(os.getcwd(), cf, defines, args.no_color, text_mode=True)
 
         loop = 1
         while loop:
@@ -124,7 +124,7 @@ def main():
             print('"-l" option is not supported in this mode.')
 
         from interpreter.batch import Batch
-        b = Batch(tf, cf, defines, rf, args.report_type, pn, args.no_color)
+        b = Batch(tf, cf, defines, rf, args.report_type, pn, args.no_color, text_mode=True)
 
     else:
         from main_win.testium_win import MainWin

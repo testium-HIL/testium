@@ -3,9 +3,9 @@ from time import sleep
 from datetime import timedelta
 from multiprocessing import Process, Pipe
 
+import libs.testium as tm
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
-from interpreter.test_items.dialog_sleep_files import dialog_sleep
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
@@ -43,6 +43,20 @@ class TestItemSleep(TestItem):
 
         #test core function
         if has_dialog:
+            if tm.text_mode():
+                import time as _time
+                print(f"Sleep {timeout}s (press Ctrl+C to abort)...")
+                end_time = _time.time() + float(timeout)
+                while _time.time() < end_time and not self._is_stopped:
+                    sleep(0.2)
+                if self._is_stopped:
+                    print("Aborted")
+                    self.result.set(TestValue.FAILURE, 'Sleep aborted')
+                else:
+                    self.result.set(TestValue.SUCCESS, f'Sleep {timeout} sec')
+                return
+
+            from interpreter.test_items.dialog_sleep_files import dialog_sleep
             parent_conn, child_conn = Pipe()
             p=Process(target=dialog_sleep.main,  args=([self.name(), timeout],child_conn))
             p.start()

@@ -2,8 +2,7 @@ import os
 
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
-from interpreter.test_items.dialog_image_files import dialog_image
-from interpreter.test_items.test_item_dialog_base import TestItemDialogBase
+from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
 from lib.tum_except import item_load_context
 import libs.testium as tm
@@ -32,6 +31,17 @@ class TestItemImageDialog(TestItemDialogBase):
             image_path = os.path.normpath(
                 os.path.join(tm.gd("test_directory"), image_path)
             )
+        if _is_text_mode():
+            if _is_interactive():
+                ans = input("Accept? (y/n) [default: y]: ").strip().lower()
+            else:
+                ans = ''
+            if ans in ('n', 'no'):
+                self.result.set(TestValue.FAILURE)
+            else:
+                self.result.set(TestValue.SUCCESS)
+            return
+        from interpreter.test_items.dialog_image_files import dialog_image
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
         args = [self.name(), q, image_path] + ([ar] if ar is not None else [])
         succ = self._run_dialog_with_result(dialog_image.main, args)

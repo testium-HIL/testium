@@ -22,6 +22,7 @@ class Batch:
         report_type,
         report_pattern,
         no_color,
+        text_mode=False,
     ):
         try:
             try:
@@ -59,6 +60,7 @@ class Batch:
                     self.tst_ctrl,
                     config_files,
                     defines,
+                    text_mode=text_mode,
                 )
                 tst_proc.start()
 
@@ -82,6 +84,8 @@ class Batch:
                             # No id -> finished
                             break
                     except Empty:
+                        if not tst_proc.is_alive():
+                            break
                         continue
 
                 # Close the process and wait for termination
@@ -95,4 +99,7 @@ class Batch:
             stdio_redir.restore()
 
     def sigint_handler(self, signal_received, frame):
-        self.tst_ctrl.control("stop")
+        try:
+            self.tst_ctrl.control("stop", timeout=5)
+        except Exception:
+            pass

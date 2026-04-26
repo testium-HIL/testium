@@ -56,7 +56,7 @@ class Terminal(Cmd):
         cst.TYPE_CYCLE
     ]
 
-    def __init__(self, working_dir, config_files, defines, no_color):
+    def __init__(self, working_dir, config_files, defines, no_color, text_mode=False):
         super().__init__()
         self.working_dir = working_dir
         self.config_files = config_files
@@ -69,6 +69,8 @@ class Terminal(Cmd):
         # Define the builtin variables
         set_standard_gd_keys("Unnamed", self.working_dir, '', config_files)
         update_global([], defines)
+        if text_mode:
+            tm.setgd("_text_mode", True)
 
         # creation of the functions
         for tst in self.SUPPORTED_TESTS:

@@ -209,6 +209,15 @@ def OS():
     return platform.system()
 
 
+def text_mode():
+    """Whether testium is running in text mode (batch ``-b`` or terminal ``-m``).
+
+    :return: ``True`` if running in text mode, ``False`` otherwise.
+    :rtype: bool
+    """
+    return bool(globdict.gd("_text_mode", False))
+
+
 def sys_encoding():
     if OS() == "Windows":
         enc = "oem"

@@ -1,4 +1,5 @@
 import os
+import signal
 from multiprocessing import Process, Queue, Pipe
 from queue import Empty
 from threading import Thread
@@ -41,6 +42,7 @@ class TestProcess(Process):
         config_files,
         defines,
         gui_defaults={},
+        text_mode=False,
     ) -> None:
         super().__init__()
         self.__fname = file_name
@@ -49,6 +51,7 @@ class TestProcess(Process):
         self.__cfgf = config_files
         self.__defs = defines
         self.__gui_defaults = gui_defaults  # default values coming from GUI prefs
+        self.__text_mode = text_mode
         self.__exec = False
         self.__loaded = False
         self.__closed = False
@@ -194,6 +197,7 @@ class TestProcess(Process):
 
 
     def run(self):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         try:
             try:
                 # Thread for stdout redirection
@@ -223,6 +227,10 @@ Is the python exec path correct ?"""
 
                     # Load the test file
                     test_dict, param_files = self._load_test(init_param_files, glob_variables)
+
+                    if self.__text_mode:
+                        tm.setgd("_text_mode", True)
+                        tm.setgd("_interactive", False)
 
                     # Backup the global dict in case of restart of the test
                     gdict = backup_gd()
@@ -421,7 +429,7 @@ Is the python exec path correct ?"""
             try:
                 # read the pipe data
                 data = cconn.recv()
-                print(data, end="")
+                print(data, end="", flush=True)
             except EOFError:
                 # exit the loop is the pipe is closed
                 break

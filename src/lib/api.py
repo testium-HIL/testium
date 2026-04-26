@@ -4,6 +4,7 @@ SUPPORTED_API = [
     "setgd",
     "delgd",
     "add_plot_values",
-    "last_plot_value"
+    "last_plot_value",
+    "text_mode",
 ]
 
