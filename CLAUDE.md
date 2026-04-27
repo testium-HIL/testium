@@ -69,6 +69,28 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 | `src/lib/string_queue.py` | Thread-safe string buffer used for stdout redirection |
 | `src/testium/libs/testium.py` | Public API for test scripts (`tm.*`) |
 
+## GUI icons (main_win)
+
+Icons live in `src/testium/main_win/resources/` with three theme variants:
+
+| Folder | Theme index | Usage |
+|--------|-------------|-------|
+| `color/` | 0 (default) | Coloured icons |
+| `black/` | 1 | Black silhouette on transparent |
+| `white/` | 2 | White silhouette on transparent (LA mode) |
+
+Icons are **64×64 PNG**. Black variants: RGBA with RGB=`(0,0,0)`, alpha varies. White variants: LA with luminance=`255`, alpha varies.
+
+The mapping item-type → icon filename is in `_ITEM_CONFIG` (`src/testium/main_win/test_tree_items/test_tree_item.py`). At runtime, `icon_prefix()` returns `:/color`, `:/black`, or `:/white` (Qt resource prefix) based on the user preference.
+
+All icons must be declared in `src/testium/main_win/resources/testium_core_win.qrc` (one entry per theme section). After any QRC change, regenerate the compiled resource file:
+```
+cd src/testium/main_win/resources
+pyside6-rcc testium_core_win.qrc -o testium_core_win_rc.py
+```
+
+Icons are assigned once when the test file is loaded (not updated live on theme change — a file reload is required).
+
 ## Known issues / WIP
 - `-m` (terminal mode) is not functional yet.
 - `text_no_pyside` branch: work in progress on text mode improvements.
