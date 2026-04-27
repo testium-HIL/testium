@@ -67,7 +67,7 @@ def _constants_init():
     cst.TYPE_ROOT.item_class = TestItem
     cst.TYPE_RUN.item_class = TestItemRun
     cst.TYPE_SLEEP.item_class = TestItemSleep
-    cst.TYPE_UNITTEST_FILE.item_class = TestItemUnittestFile
+    cst.TYPE_UNITTEST.item_class = TestItemUnittestFile
     cst.TYPE_VALUE_DLG.item_class = TestItemValueDialog
 
 

@@ -1,15 +1,15 @@
-**unittest_file** test item
+**unittest** test item
 ============================================================
 
-unittest_file test item allows the execution of unittest test script which
+unittest test item allows the execution of unittest test script which
 is part of python standard libraries.
 
 The tum file prototype is as followed:
 
 .. code-block:: yaml
-    :caption: ``unittest_file`` test item usage example
+    :caption: ``unittest`` test item usage example
 
-    - unittest_file:
+    - unittest:
         name: unitTest test item
         test_file: unitTestScript.py
         test_method:
@@ -23,7 +23,7 @@ Beside common test items attributes, unittest test item has specific attribute, 
 
 * ``test_file``: it is the name (and eventually path) of the unittest file
   to be processed.
-* ``test_method``: it is an optional unittest_file test sub-item. If one or more
+* ``test_method``: it is an optional unittest test sub-item. If one or more
   elements are present, the unittest python script file is parsed and only
   the corresponding methods are included in the test tree. Otherwise, all
   the test methods are included in the test tree.

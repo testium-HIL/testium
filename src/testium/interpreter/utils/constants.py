@@ -8,7 +8,7 @@ class TestItemEnum():
         self.item_class = item_class
 
 class TestItemType(Enum):
-    TYPE_UNITTEST_FILE      = TestItemEnum("unittest_file", "unittest file")
+    TYPE_UNITTEST           = TestItemEnum("unittest", "unittest")
     TYPE_UNITTEST_STEP      = TestItemEnum("unittest_step", "unittest step")
     TYPE_CONSOLE            = TestItemEnum("console", "Console")
     TYPE_CONSOLE_ACTION     = TestItemEnum("console_action", "Console action")

@@ -75,7 +75,7 @@ a tooltip on the test row.
         name: Test example
         steps:
 
-            - unittest_file:
+            - unittest:
                 name: unittest item
                 doc: |
                     The purpose of this unittest test item is to demonstrate
@@ -93,4 +93,4 @@ See illustration in :numref:`Figure %s<doc-illustration>`.
 Unittest
 ^^^^^^^^^
 
-For ``unittest_file`` type test items, the python docstring of the test method is used as documentation.
+For ``unittest`` type test items, the python docstring of the test method is used as documentation.

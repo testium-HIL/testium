@@ -259,7 +259,7 @@ step list attributes.
    test_items/report_test_item.rst
    test_items/run_test_item.rst
    test_items/sleep_test_item.rst
-   test_items/unittest_file_test_item.rst
+   test_items/unittest_test_item.rst
 
 
 

@@ -1,4 +1,4 @@
 
-  - unittest_file:
+  - unittest:
         name: Test 5
         test_file: dummy.py

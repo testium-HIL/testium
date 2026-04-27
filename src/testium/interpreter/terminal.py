@@ -156,7 +156,7 @@ class Terminal(Cmd):
                                                tree_parent,
                                                status_queue)
                         # check for sequence type:
-                        if it.item_cmd == cst.TYPE_UNITTEST_FILE.item_cmd:
+                        if it.item_cmd == cst.TYPE_UNITTEST.item_cmd:
                             item.setTestDir(test_dir)
                             item.load()
                         elif ((it.item_cmd == cst.TYPE_CYCLE.item_cmd) or

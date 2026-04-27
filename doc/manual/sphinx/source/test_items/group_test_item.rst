@@ -10,7 +10,7 @@ This element is of the following form:
         name: Group Item
         condition: <| "$(OS)" == "Linux" |>
         steps:
-            - unittest_file:
+            - unittest:
                 test_file: test_prod_alpha_13.py
                 test_method:
                     ...

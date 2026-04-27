@@ -96,10 +96,10 @@ class TestItemUnittestElement(TestItem):
 
 class TestItemUnittestFile(TestItem):
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
-        self._name = cst.TYPE_UNITTEST_FILE.item_name
+        self._name = cst.TYPE_UNITTEST.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self.is_container = True
-        self._type = cst.TYPE_UNITTEST_FILE
+        self._type = cst.TYPE_UNITTEST
         self._fileName = self._prms.getParam('test_file', required = True, processed = True)
         self._testDir = ''
         self._test_methods = self._prms.getParamAll('test_method', processed=True)
@@ -161,7 +161,7 @@ class TestItemUnittestFile(TestItem):
         if self.isStopped():
             self.result.set(TestValue.NORUN, 'Group execution aborted on user request')
         else:
-            self.result.set(result.test_result, 'unittest file ' + str(result.test_result))
+            self.result.set(result.test_result, 'unittest ' + str(result.test_result))
 
     def load(self):
         ret = {}

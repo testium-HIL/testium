@@ -9,7 +9,7 @@ main:
     name: Test Sample number one
     version: 0.1
     steps:
-        - unittest_file:
+        - unittest:
             name: Unittest item
             test_file: dummy/unittest_str.py
             doc: Unittest test
@@ -88,7 +88,7 @@ main:
             name: cycle item
             iterator : 3
             steps:
-                - unittest_file:
+                - unittest:
                     name: Unittest item
                     test_file: dummy/dummy.py
                     test_method: test_01_pass
@@ -99,7 +99,7 @@ main:
                     name: cycle item
                     iterator : 3
                     steps:
-                        - unittest_file:
+                        - unittest:
                             name: Unittest item
                             test_file: dummy/dummy.py
                             test_method: test_01_pass

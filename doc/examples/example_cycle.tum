@@ -14,7 +14,7 @@ main:
         key: report-key-2
         stop_on_failure: True
         steps:
-          - unittest_file:
+          - unittest:
               name: unittest item
               doc: |
                 The purpose of this unittest test item is to demonstrate
@@ -41,7 +41,7 @@ main:
               param:
                   - 123
 
-          - unittest_file:
+          - unittest:
               name: Unittest item
               test_file: dummy/dummy.py
               test_method:
@@ -98,7 +98,7 @@ main:
         name: Infine loop unittest step crashes
         stop_on_failure: True
         steps:
-          - unittest_file:
+          - unittest:
               name: Unittest item
               test_file: dummy/dummy.py
               test_method:
@@ -243,7 +243,7 @@ main:
         name: Infinite loop
         skipped: True
         steps:
-          - unittest_file:
+          - unittest:
               name: Unittest item
               test_file: dummy/dummy.py
               test_method: test_01_pass

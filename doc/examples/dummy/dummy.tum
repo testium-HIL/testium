@@ -15,7 +15,7 @@ main:
                 - $(reference_1)
                 - $(reference_2)
             report_show_success: true
-        - unittest_file:
+        - unittest:
               name: Test 1
               test_file: dummy.py
               doc: |
@@ -23,7 +23,7 @@ main:
                   Voilà...
         - sleep:
             {name: Sleep between one and two, timeout: 10, dialog: true}
-        - unittest_file:
+        - unittest:
             {name: Test 2, test_file: dummy.py,execute_on_stop: true}
         - loop:
             name: Cycle Temperature

@@ -10,7 +10,7 @@ from libs.testium import print_warn
 # Maps item_name (from TestItemType.item_name) to visual config.
 # Keys: icon (required), icon_on (optional 2nd state), expanded, unfoldable, no_breakpoint
 _ITEM_CONFIG = {
-    "unittest file":        {"icon": "folder.png",        "icon_on": "folder-open.png", "expanded": True,  "no_breakpoint": True},
+    "unittest":             {"icon": "folder.png",        "icon_on": "folder-open.png", "expanded": True,  "no_breakpoint": True},
     "unittest step":        {"icon": "document.png",                                                        "no_breakpoint": True},
     "Console":              {"icon": "terminal.png",       "unfoldable": False},
     "Console action":       {"icon": "terminal.png"},

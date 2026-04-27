@@ -12,7 +12,7 @@ This element is of the following form:
         name: Cycle Temperature
         iterator: 10
         steps:
-            - unittest_file:
+            - unittest:
                 test_file: test_prod_rio6_8093.py
             - py_func:
                 name: function test item

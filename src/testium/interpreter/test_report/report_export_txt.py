@@ -10,7 +10,7 @@ class ReportExportTxt(rpe.ReportExport):
     no_value_types = [cst_type.TYPE_CONSOLE.item_name, cst_type.TYPE_SLEEP.item_name,
         cst_type.TYPE_IMAGE_DLG.item_name, cst_type.TYPE_LET.item_name, cst_type.TYPE_CHECK,
         cst_type.TYPE_CYCLE.item_name, cst_type.TYPE_GROUP.item_name,
-        cst_type.TYPE_UNITTEST_FILE.item_name, cst_type.TYPE_MESSAGE_DLG.item_name,
+        cst_type.TYPE_UNITTEST.item_name, cst_type.TYPE_MESSAGE_DLG.item_name,
         cst_type.TYPE_QUESTION_DLG.item_name]
 
     def __init__(self, name, report_db, report_file, pattern, key, no_header=False):
