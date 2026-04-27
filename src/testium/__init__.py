@@ -125,6 +125,7 @@ def main():
 
         from interpreter.batch import Batch
         b = Batch(tf, cf, defines, rf, args.report_type, pn, args.no_color, text_mode=True)
+        sys.exit(0 if b.success else 1)
 
     else:
         from main_win.testium_win import MainWin

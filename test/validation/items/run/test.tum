@@ -1,0 +1,25 @@
+# run item: launches a .tum file in a new testium instance.
+# In batch mode the sub-instance runs with -b; in GUI mode with -r.
+# The run item result is SUCCESS if the sub-instance launched successfully,
+# regardless of its own test result.
+
+- run:
+    name: run PASS (valid file, passing sub-test)
+    key: $(test)_PASS
+    tum: $(test_path)$(psep)sub_pass.tum
+
+- run:
+    name: run PASS (valid file, failing sub-test)
+    key: $(test)_PASS
+    tum: $(test_path)$(psep)sub_fail.tum
+
+- run:
+    name: run FAIL (file not found)
+    key: $(test)_FAIL
+    tum: $(test_path)$(psep)non_existent.tum
+
+- run:
+    name: run FAIL (wait_for_exec without time window)
+    key: $(test)_FAIL
+    tum: $(test_path)$(psep)sub_pass.tum
+    wait_for_exec: true

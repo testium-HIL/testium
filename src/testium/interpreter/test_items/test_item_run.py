@@ -31,7 +31,7 @@ class TestItemRun(TestItem):
         self._type = cst.TYPE_RUN
         self.is_container = False
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
-            self.tum_fime = self._prms.getParam('tum_fime', required=True)
+            self.tum_file = self._prms.getParam('tum', required=True)
             self.param_file = self._prms.getParam('param_file', default='')
             self.python_bin = self._prms.getParam('python_bin', default='')
             self.testium_path = self._prms.getParam('testium_path', default='')
@@ -43,39 +43,43 @@ class TestItemRun(TestItem):
 
     @test_run
     def execute(self):
-        res = -1
         try:
-            file_path = self._prms.expanse(self.tum_fime)
+            file_path = self._prms.expanse(self.tum_file)
             if not os.path.exists(file_path) and not os.path.isabs(file_path):
-                file_path = os.path.join(tm.gd('test_directory'), self.tum_fime)
+                file_path = os.path.join(tm.gd('test_directory'), file_path)
             if not os.path.isfile(file_path):
                 raise ETUMRuntimeError(
                     '"{}" file could not be found'.format(file_path))
-            self.tum_fime = file_path
+            self.tum_file = file_path
             pf = self._prms.expanse(self.param_file)
             pp = self._prms.expanse(self.python_bin)
             sp = self._prms.expanse(self.testium_path)
             lp = self._prms.expanse(self.log_path)
             rp = self._prms.expanse(self.report_path)
             cmd = []
+            if sp == '':
+                sp = sys.argv[0]
             if pp != '':
                 cmd.append(pp)
-            if sp == '':
-                sp = os.path.join(tm.get_main_dir(), "testium.pyw")
+            elif not os.path.isfile(sp) or not os.access(sp, os.X_OK):
+                cmd.append(sys.executable)
             cmd.append(sp)
-            if lp == '':
-                lp = os.path.splitext(self.tum_fime)[0] + "_" + \
-                    datetime.utcnow().isoformat(timespec='seconds') + '.log'
-            cmd.append("-r")
+            if tm.text_mode():
+                cmd.append("-b")
+            else:
+                cmd.append("-r")
+                if lp == '':
+                    lp = os.path.splitext(self.tum_file)[0] + "_" + \
+                        datetime.utcnow().isoformat(timespec='seconds') + '.log'
+                cmd.append("-l")
+                cmd.append('"' + lp + '"')
             if pf != '':
                 cmd.append("-c")
                 cmd.append('"' + pf + '"')
-            cmd.append("-l")
-            cmd.append('"' + lp + '"')
             if rp != '':
                 cmd.append("-p")
                 cmd.append('"' + rp + '"')
-            cmd.append(self.tum_fime)
+            cmd.append(self.tum_file)
             for c in cmd:
                 print(c, end = ' ')
 
@@ -90,31 +94,23 @@ class TestItemRun(TestItem):
                 raise ETUMRuntimeError(
                     '"wait_for_exec" set but not start_time or end_time')
 
+            r = None
             if self.wait_for_exec:
                 while not nowInBetween(self.start_time, self.end_time):
                     sleep(60)
-                r = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                r = subprocess.run(cmd)
             elif self.start_time is not None and self.end_time is not None:
                 if nowInBetween(self.start_time, self.end_time):
-                    r = subprocess.run(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    r = subprocess.run(cmd)
             elif self.start_time is not None:
                 if self.start_time < datetime.now().time():
-                    r = subprocess.run(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    r = subprocess.run(cmd)
             else:
-                r = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                r = subprocess.run(cmd)
             if isinstance(r, subprocess.CompletedProcess):
-                print((r.stdout).decode())
-                print(r.stderr.decode())
-                res = r.returncode
-            if res >= 0:
                 self.result.set(TestValue.SUCCESS)
             else:
-                self.result.set(TestValue.FAILURE,
-                                'Test execution returned negative value.')
+                self.result.set(TestValue.FAILURE, 'Sub-test did not execute')
         except:
             traceback.print_exception(*sys.exc_info())
             self.result.set(TestValue.FAILURE, 'Unrecoverable "run" item error')

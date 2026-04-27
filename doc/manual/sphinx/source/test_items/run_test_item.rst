@@ -8,9 +8,8 @@ This test item executes a new instance of testium.
 
     - run:
         name: Execute TUM
-        tum_fime: example_cycle.tum
+        tum: example_cycle.tum
         python_bin: python3
-        testium_path: /home/francois/projets/testium-new-report/testium.pyw
         log_file: $(home)/reports/test.log
         report_file: $(home)/reports/test.rep
 
@@ -19,7 +18,7 @@ Attributes
 
 run test item has the following specific attributes:
 
-* ``tum_fime``: mandatory the path of the file to execute, it can be relative to current execution folder,
+* ``tum``: mandatory the path of the file to execute, it can be relative to current execution folder,
 * ``param_file`` (optional) the path of the parameter file to use, otherwise default parameter file is used.
 * ``python_bin`` (optional) the path of a specific python to run your scripts,
 * ``testium_path`` (optional) the path of a specific testium to run your scripts,

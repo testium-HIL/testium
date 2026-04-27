@@ -1,0 +1,7 @@
+main:
+    name: run sub-test (always pass)
+    steps:
+        - check:
+            name: pass
+            values:
+                - true

@@ -118,6 +118,7 @@ class TestRunner:
         self.logFileHandler = None
 
         w.textLog.appendPlainText("Test is finished")
+        w.run_exit_code = 0 if w.treeTests.getGlobalSuccess() else 1
         if w.runandclose:
             w.on_actionExit_triggered()
 

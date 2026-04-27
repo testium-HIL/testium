@@ -191,7 +191,10 @@ class LuaProcessBase:
 
         self._process = subprocess.Popen(
             params, env=env, cwd=func_proc_path,
-            stdin=subprocess.DEVNULL, restore_signals=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            restore_signals=False,
         )
 
         self._rpc = JsonRpcClient(

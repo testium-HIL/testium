@@ -28,7 +28,7 @@ class ThreadTestStatus(QThread):
                         self.gdUpdated.emit(m["key"], m["value"])
                     elif msg_type == "gd_delete":
                         self.gdDeleted.emit(m["key"])
-                    elif m.get("id", None) is None:
+                    elif "id" in m and m["id"] is None:
                         self.testSetIsFinished.emit()
                     else:
                         self.statusToBeUpdated.emit(m)

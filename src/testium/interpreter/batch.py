@@ -1,6 +1,7 @@
 import os
 import sys
 import platform
+import threading
 from time import sleep
 from signal import signal, SIGINT
 from queue import Empty
@@ -8,7 +9,7 @@ from multiprocessing import Queue
 
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
-from lib.tum_except import ETUMFileError
+from lib.tum_except import ETUMFileError, ETUMRuntimeError
 from lib.stdout_redirect import stdio_redir
 
 
@@ -52,6 +53,7 @@ class Batch:
 
                 signal(SIGINT, self.sigint_handler)
 
+                self._success = False
                 msg_queue = Queue()
                 self.tst_ctrl = TestSetController()
                 tst_proc = TestProcess(
@@ -64,8 +66,17 @@ class Batch:
                 )
                 tst_proc.start()
 
-                while not self.tst_ctrl.control("loaded"):
-                    sleep(0.1)
+                # Wait for TestProcess to finish loading.
+                # Run the blocking control("loaded") in a daemon thread so we
+                # can watch for unexpected process death in the main thread.
+                _loaded_event = threading.Event()
+                def _wait_loaded():
+                    self.tst_ctrl.control("loaded")
+                    _loaded_event.set()
+                threading.Thread(target=_wait_loaded, daemon=True).start()
+                while not _loaded_event.wait(timeout=0.1):
+                    if not tst_proc.is_alive():
+                        raise ETUMRuntimeError("TestProcess terminated unexpectedly during load")
 
                 self.tst_ctrl.control(
                     "report",
@@ -82,6 +93,7 @@ class Batch:
                         m = msg_queue.get(timeout=0.2)
                         if "id" in m and m["id"] is None:
                             # id key present and None -> finished
+                            self._success = m.get("success", False)
                             break
                     except Empty:
                         if not tst_proc.is_alive():
@@ -89,7 +101,8 @@ class Batch:
                         continue
 
                 # Close the process and wait for termination
-                self.tst_ctrl.control("close")
+                if tst_proc.is_alive():
+                    self.tst_ctrl.control("close")
                 tst_proc.join()
 
             except Exception as e:
@@ -97,6 +110,10 @@ class Batch:
                 print(str(e))
         finally:
             stdio_redir.restore()
+
+    @property
+    def success(self):
+        return self._success
 
     def sigint_handler(self, signal_received, frame):
         try:

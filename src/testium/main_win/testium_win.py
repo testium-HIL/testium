@@ -1,18 +1,14 @@
 import sys
 import os
-import subprocess
-import traceback
 import webbrowser
-from time import sleep
 from multiprocessing import Queue
-from queue import Empty
 from threading import Thread
 import shutil
 
 # Qt
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtGui
 from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QTextCursor
-from PySide6.QtCore import Slot, QUrl, Qt, QTimer, QDateTime
+from PySide6.QtCore import Slot, QUrl, Qt, QTimer
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -92,6 +88,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.test_service = None
         self.threadTestStatus = None
         self._signals_connected = False
+        self.run_exit_code = -1  # -1 = test not yet completed
 
         self.timer = QTimer()
         self.timer.setSingleShot(False)
@@ -359,14 +356,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.treeTests.saveSizes()
         prefs.settings.sync()
 
+    def closeEvent(self, event):
+        self.on_exiting()
+        event.accept()
+
     def on_exiting(self):
-        if self.runner.state == TestState.IDLE:
-            self.save_settings()
-        self.file_manager.clear_process()
-        self.threadTestStatus.stop()
-        self.threadOutput.stop()
-        self.threadOutput.wait()
-        self.threadTestStatus.wait()
+        try:
+            if self.runner.state == TestState.IDLE:
+                self.save_settings()
+            self.file_manager.clear_process()
+        finally:
+            self.threadTestStatus.stop()
+            self.threadOutput.stop()
+            self.threadOutput.wait()
+            self.threadTestStatus.wait()
 
     def show_checkboxes(self, hidden=None):
         if hidden:
@@ -685,5 +688,17 @@ def MainWin(
         debug,
     )
 
+    import signal
+    import os as _os
+
+    def _sigabrt_handler(signum, frame):
+        # Qt crash: exit with the test result if known, -1 if test never completed
+        _os._exit(ui.run_exit_code)
+
+    signal.signal(signal.SIGABRT, _sigabrt_handler)
+
     ui.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    exit_code = ui.run_exit_code if ui.run_exit_code >= 0 else 0
+    del ui
+    sys.exit(exit_code)

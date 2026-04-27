@@ -283,7 +283,7 @@ Is the python exec path correct ?"""
                                     engine.stop()
                                     engine.join()
                                 # Sends signal to the GUI
-                                self.send_finished()
+                                self.send_finished(success=test_set.success())
                                 globdict.set_update_queue(None)
                                 restore_gd(gdict)
                         except Exception as e:
@@ -339,8 +339,10 @@ Is the python exec path correct ?"""
         stdio_redir.restore()
         stdio_redir.stop()
 
-    def send_finished(self):
+    def send_finished(self, success=None):
         status = {"id": None, "name": "test_process", "status": "finished"}
+        if success is not None:
+            status["success"] = success
         self.__squeue.put(status)
 
     def execute(self):
