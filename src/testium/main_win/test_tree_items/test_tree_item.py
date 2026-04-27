@@ -32,7 +32,7 @@ _ITEM_CONFIG = {
     "References Dialog":    {"icon": "label.png"},
     "Value Dialog":         {"icon": "question.png"},
     "Choices Dialog":       {"icon": "label.png"},
-    "Run tum":              {"icon": "testium_logo.svg"},
+    "Run tum":              {"icon": "run.png"},
     "JSON-RPC":             {"icon": "json.png",           "unfoldable": False},
     "JSON-RPC action":      {"icon": "json.png"},
 }

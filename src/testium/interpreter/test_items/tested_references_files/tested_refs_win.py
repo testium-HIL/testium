@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tested_refs_win.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.10.1
+## Created by: Qt User Interface Compiler version 6.11.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -44,13 +44,13 @@ class Ui_Dialog(object):
         font1 = QFont()
         font1.setPointSize(10)
         __qtablewidgetitem = QTableWidgetItem()
-        __qtablewidgetitem.setFont(font1);
+        __qtablewidgetitem.setFont(font1)
         self.tableReferences.setHorizontalHeaderItem(0, __qtablewidgetitem)
         __qtablewidgetitem1 = QTableWidgetItem()
-        __qtablewidgetitem1.setFont(font1);
+        __qtablewidgetitem1.setFont(font1)
         self.tableReferences.setHorizontalHeaderItem(1, __qtablewidgetitem1)
         __qtablewidgetitem2 = QTableWidgetItem()
-        __qtablewidgetitem2.setFont(font1);
+        __qtablewidgetitem2.setFont(font1)
         self.tableReferences.setHorizontalHeaderItem(2, __qtablewidgetitem2)
         self.tableReferences.setObjectName(u"tableReferences")
         self.tableReferences.setGeometry(QRect(10, 130, 461, 211))
@@ -70,10 +70,10 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
         self.labelDialog.setText(QCoreApplication.translate("Dialog", u"TextLabel", None))
         ___qtablewidgetitem = self.tableReferences.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("Dialog", u"Reference", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("Dialog", u"Reference", None))
         ___qtablewidgetitem1 = self.tableReferences.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("Dialog", u"Revision", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("Dialog", u"Revision", None))
         ___qtablewidgetitem2 = self.tableReferences.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("Dialog", u"Serial number", None));
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("Dialog", u"Serial number", None))
     # retranslateUi
 

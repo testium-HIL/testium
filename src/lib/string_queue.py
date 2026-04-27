@@ -1,8 +1,5 @@
-# from io import (StringIO, SEEK_SET, SEEK_CUR, SEEK_END)
-from multiprocessing import Queue
-from queue import (Empty)
 from threading import (Thread, Event, Condition)
-from threading import Lock
+
 
 class StringQueue(object):
     """ Class used to store the buffered consoles data:

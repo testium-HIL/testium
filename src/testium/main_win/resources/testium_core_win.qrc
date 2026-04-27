@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/black">
         <file alias="testium_logo.png">testium_logo.png</file>
+        <file alias="run.png">black/run.png</file>
         <file alias="red.png">red.png</file>
         <file alias="gray.png">gray.png</file>
         <file alias="green.png">green.png</file>
@@ -47,6 +48,7 @@
     </qresource>
     <qresource prefix="/white">
         <file alias="testium_logo.png">testium_logo.png</file>
+        <file alias="run.png">white/run.png</file>
         <file alias="red.png">red.png</file>
         <file alias="gray.png">gray.png</file>
         <file alias="green.png">green.png</file>
@@ -93,6 +95,7 @@
     </qresource>
     <qresource prefix="/color">
         <file alias="testium_logo.png">testium_logo.png</file>
+        <file alias="run.png">color/run.png</file>
         <file alias="red.png">red.png</file>
         <file alias="gray.png">gray.png</file>
         <file alias="green.png">green.png</file>
