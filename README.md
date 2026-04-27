@@ -52,7 +52,7 @@ from the testium path, execute
 
 ## Install sphinx
 
-    pip install sphinx
+    pip install sphinx linuxdoc
 
 ## Generate the doc
 
