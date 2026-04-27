@@ -93,7 +93,6 @@ Icons are assigned once when the test file is loaded (not updated live on theme 
 
 ## Known issues / WIP
 - `-m` (terminal mode) is not functional yet.
-- `text_no_pyside` branch: work in progress on text mode improvements.
 
 ### `run` item
 `src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance (`-b` in batch mode, `-r` in GUI mode). Result:
