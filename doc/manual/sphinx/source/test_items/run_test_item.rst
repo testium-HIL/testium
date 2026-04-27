@@ -6,9 +6,9 @@ This test item executes a new instance of testium with the specified ``.tum`` fi
 * In **batch mode** (``-b``): the sub-instance is started with ``-b``.
 * In **GUI mode**: the sub-instance is started with ``-r`` (run and close).
 
-The item result is **SUCCESS** if the sub-instance launched and ran to completion,
+The item result is **PASS** if the sub-instance launched and ran to completion,
 regardless of whether the sub-tests passed or failed.
-It is **FAILURE** if the file could not be found, the sub-instance could not be
+It is **FAIL** if the file could not be found, the sub-instance could not be
 launched, or the time window was not reached (see ``start_time`` / ``end_time``).
 
 .. code-block:: yaml
