@@ -21,10 +21,8 @@ def main():
                         help="Returns the version of testium", action='store_true')
     parser.add_argument("-b", "--batch-execution",
                         help="Executes the test in batch mode", action='store_true')
-    parser.add_argument("-m", "--terminal",
-                        help="Starts terminal mode", action='store_true')
     parser.add_argument("-o", "--no-color",
-                        help="Deactivates stdout colors in batch and terminal mode", action='store_true')
+                        help="Deactivates stdout colors in batch mode", action='store_true')
     parser.add_argument("-c", "--config-file", help="Configuration file",
                         nargs='+',
                         default=[])
@@ -94,30 +92,6 @@ def main():
 
         from interpreter.utils.version import get_testium_version
         print(get_testium_version())
-
-    elif args.terminal:
-        import select
-        from interpreter.terminal import Terminal
-
-        if (lf != '') or (rf != '') or (tf != '') or (pn != []):
-            print('"-l", "-p", "-t", "-n" options are not supported in this mode.')
-
-        t = Terminal(os.getcwd(), cf, defines, args.no_color, text_mode=True)
-
-        loop = 1
-        while loop:
-            try:
-                loop = 0
-                t.cmdloop()
-            except KeyboardInterrupt:
-                print("\n<ctrl-c>")
-                loop = 1
-            except Exception as exc:
-                if str(exc) == 'quit':
-                    break
-                print(exc)
-                loop = 1
-
 
     elif args.batch_execution:
         if (lf != ''):

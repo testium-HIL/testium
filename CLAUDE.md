@@ -2,26 +2,25 @@
 
 ## What is testium
 
-Testium is a test sequencer/runner written in Python. It executes YAML-based test scripts ("`.tum`" files) and supports three execution modes:
+Testium is a test sequencer/runner written in Python. It executes YAML-based test scripts ("`.tum`" files) and supports two execution modes:
 
 - **GUI mode** (default, no flag): PySide6 Qt application (`src/testium/main_win/`)
 - **Batch mode** (`-b` / `--batch-execution`): headless, non-interactive, runs tests and exits
-- **Terminal mode** (`-m` / `--terminal`): interactive REPL in the terminal (partially implemented / work-in-progress)
 
 Run from repo root: `./run.sh` (Linux) or `run.bat` / `run.ps1` (Windows).  
-Direct invocation: `python3 -m src/testium [-b|-m] <test_file.tum>`
+Direct invocation: `python3 -m src/testium [-b] <test_file.tum>`
 
 ## Architecture
 
 ### Entry point
-`src/testium/__init__.py` — parses CLI args, dispatches to the three modes.  
+`src/testium/__init__.py` — parses CLI args, dispatches to the two modes.  
 `multiprocessing.set_start_method('spawn')` is called early (required for Linux dialog subprocesses).
 
 ### Core execution
 - `src/testium/interpreter/process.py` — `TestProcess(multiprocessing.Process)`: runs the test in a child process. Stdout is redirected via a `StringQueue` → pipe → parent thread (`capture_stdout`) that writes to real stdout.
 - `src/testium/interpreter/batch.py` — `Batch`: parent-side orchestrator for `-b` mode. Creates the `msg_queue`, starts `TestProcess`, waits for the "finished" signal.
 - `src/testium/interpreter/test_set.py` — `TestSet`: builds and executes the tree of test items.
-- `src/testium/interpreter/test_items/test_item*.py` — one file per test item type (check, cycle, group, let, unittest, py_func, lua_func, console, git, dialogs, report, …).
+- `src/testium/interpreter/test_items/test_item*.py` — one file per test item type (check, cycle, group, let, unittest, py_func, lua_func, console, git, dialogs, report, parallel, …).
 
 ### Communication channels (parent ↔ child process)
 - `msg_queue` (`multiprocessing.Queue`): carries status messages from child to parent.
@@ -44,7 +43,7 @@ test item print()
 `src/testium/interpreter/utils/globdict.py` — shared state accessible from test scripts via `tm.gd()` / `tm.setgd()`. When `set_update_queue()` is active (during test execution), every `setgd`/`delgd` on a non-`_`-prefixed key pushes a message to `msg_queue`.
 
 ### Coloring (`-o` disables it)
-`src/testium/interpreter/utils/termlog.py` — `TermLog` wraps stdout with colorama-based line coloring (PASS=green, FAIL=red, WARN=yellow, …). Applied in parent process for batch/terminal modes. Auto-detects light/dark terminal background via (in order): `COLORFGBG` env var, OSC 11 query, default dark.
+`src/testium/interpreter/utils/termlog.py` — `TermLog` wraps stdout with colorama-based line coloring (PASS=green, FAIL=red, WARN=yellow, …). Applied in parent process for batch mode. Auto-detects light/dark terminal background via (in order): `COLORFGBG` env var, OSC 11 query, default dark.
 
 ### Dialog items in batch mode
 All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialog_value`, `dialog_message`, `dialog_choices`, `dialog_note`) follow this rule in non-interactive text mode (`-b`):
@@ -54,6 +53,50 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 
 `auto_result` (and `auto_value` for value/note dialogs) is intended for the validation test suite (`test/validation/`) only.
 
+### `parallel` item
+`src/testium/interpreter/test_items/test_item_parallel.py` — runs multiple branches concurrently.
+
+```yaml
+- parallel:
+    name: My parallel block
+    sync: all        # all: wait for all; any: stop as soon as one finishes
+    no_fail: true    # (optional) don't propagate branch failures to parent
+    branches:
+      - name: Branch A
+        wait_for:              # (optional) poll condition before starting
+          condition: <| expr |>
+          timeout: 10
+        steps:
+          - ...
+      - name: Branch B
+        steps:
+          - ...
+```
+
+- `TestItemParallel(TestItemContainer)`: mutates `dict_item["steps"]` to inject synthetic `parallel_branch` items so `load_test_recursively` loads branches normally as children.
+- `TestItemParallelBranch(TestItemContainer)`: container for one branch. `wait_for` polls every 0.1s up to `timeout` seconds before running steps.
+- `sync: any` calls `_stop_branch_recursively()` on all other branches when one *actually runs* (SUCCESS/FAILURE). A `NORUN` branch (disabled, condition not met) never wins the race.
+- Each branch runs in a daemon thread; the parent waits with `.join()`.
+- Branches stopped late (e.g. user disabled them in the GUI, or another sync:any branch already won) go through the normal `branch.stop() + branch.execute()` path so they always produce a clean DB entry via `addTest()`.
+- Exceptions raised in a branch's `execute()` are caught by `run_branch`, logged to stdout, and converted to a `FAILURE` result so they never disappear silently.
+- `sync: all` ignores `NORUN` branches when computing success (matches Group/Cycle semantics): only an actual `FAILURE` fails the parallel.
+- `TestItemSleep` is interruptible (polls `self._is_stopped` in a loop) so `sync: any` can stop slow branches quickly. `py_func` and `console` items are not interruptible; their full duration is observed before the branch returns.
+
+### `TestItemContainer` base class
+`src/testium/interpreter/test_items/test_item_container.py` — shared base for Group, Cycle, Parallel, and ParallelBranch. Provides `_run_children_sequentially()` which handles stop-on-failure, `executedOnStop` items, and returns `(TestResult, stopped_bool)`.
+
+### Report threading
+`src/testium/interpreter/test_report/test_report.py` — SQLite report with thread-safe writes:
+- `sqlite3.connect(..., check_same_thread=False)`
+- `self._lock = threading.Lock()` guards the SQLite `INSERT` only.
+- Per-item log capture (`stdio_redir.read()`) is naturally race-free thanks to per-thread buffers (see `StdoutProxy`).
+
+### Thread-aware stdout (`StdoutProxy`)
+`src/lib/stdout_redirect.py` — when `log_stored: True`, `intercept()` installs a `StdoutProxy` as `sys.stdout`/`sys.stderr` instead of a single shared `StringQueue`. The proxy:
+- Holds one `StringQueue` per thread (registered via `register_thread(buffer=...)`). The main thread uses a default buffer; each parallel branch's thread registers its own at start and unregisters at end. `stdio_redir.read()` reads the calling thread's buffer → `addTest()` of an item running in branch X reads X's clean, non-interleaved output.
+- For the live stream (terminal in batch / GUI panel), prefixes every line emitted from a branch's thread with `[<branch_name>] ` so concurrent branches stay readable.
+- Exposes `write` / `writeln` / `flush` (Python 3.14's `unittest` calls `stream.writeln()` directly without `_WritelnDecorator`).
+
 ## Key files
 
 | Path | Role |
@@ -61,8 +104,9 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 | `src/testium/__init__.py` | CLI entry, mode dispatch |
 | `src/testium/interpreter/batch.py` | `-b` mode orchestrator |
 | `src/testium/interpreter/process.py` | Child test process |
-| `src/testium/interpreter/terminal.py` | `-m` mode (WIP) |
 | `src/testium/interpreter/test_set.py` | Test tree builder/executor |
+| `src/testium/interpreter/test_items/test_item_container.py` | Base class for container items |
+| `src/testium/interpreter/test_items/test_item_parallel.py` | `parallel` and `parallel_branch` items |
 | `src/testium/interpreter/utils/globdict.py` | Global variable dict |
 | `src/testium/interpreter/utils/termlog.py` | Terminal color output |
 | `src/lib/stdout_redirect.py` | `StdioRedirect` singleton (`stdio_redir`) |
@@ -91,15 +135,21 @@ pyside6-rcc testium_core_win.qrc -o testium_core_win_rc.py
 
 Icons are assigned once when the test file is loaded (not updated live on theme change — a file reload is required).
 
-## Known issues / WIP
-- `-m` (terminal mode) is not functional yet.
-
 ### `run` item
 `src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance (`-b` in batch mode, `-r` in GUI mode). Result:
 - **SUCCESS** if the sub-instance launched and ran to completion (exit code is ignored)
 - **FAILURE** if the file is not found, `wait_for_exec` is set without `start_time`/`end_time`, the time window was not reached, or any other launch error
 
 The sub-test's own pass/fail result is intentionally not propagated.
+
+## Recent fixes (branch `parallel_execution`)
+- `test_item_parallel.py`: new `parallel` item with `sync: all|any`, `wait_for`, daemon threads, `_stop_branch_recursively()`. Each branch thread registers a per-thread stdout buffer with `stdio_redir.register_thread(...)` so its log capture and live-output prefix work in isolation.
+- `test_item_container.py`: new `TestItemContainer` base class extracted from Group/Cycle patterns
+- `test_item_sleep.py`: interruptible loop (checks `self._is_stopped`) instead of blocking `time.sleep()` so `sync: any` can stop slow branches quickly
+- `stdout_redirect.py`: rewrote `intercept()` to install a `StdoutProxy` (thread-aware: per-thread capture buffers + branch-prefixed live output). Adds `writeln()` for Python 3.14 unittest compatibility.
+- `test_report.py`: `check_same_thread=False` + lock around the SQLite `INSERT` for parallel branch concurrency. Log capture itself is race-free thanks to per-thread buffers.
+- `__init__.py`: removed `-m`/`--terminal` mode
+- `terminal.py`: deleted
 
 ## Recent fixes (branch `text_no_pyside`)
 - `batch.py`: premature loop exit when `gd_update` messages (no `"id"` key) were mistaken for the "finished" signal — fix: `"id" in m and m["id"] is None`
@@ -109,7 +159,11 @@ The sub-test's own pass/fail result is intentionally not propagated.
 - `run` item: removed `stdout=PIPE` (caused deadlock with `multiprocessing` spawn); simplified result to SUCCESS on any completed subprocess.
 
 ## Validation tests
-Located in `test/validation/`. Run with `-b` flag against each `.tum` file.
+Located in `test/validation/`. Run with `-b` flag:
+```
+./run.sh -b -l mon_log.log -- test/validation/main.tum
+```
+Parallel item tests: `test/validation/items/parallel/test.tum`
 
 ## Dependencies
 See `src/requirements.txt`. Key ones: `pyside6`, `pyyaml`, `jinja2`, `colorama`, `gitpython`, `pexpect`, `matplotlib`.

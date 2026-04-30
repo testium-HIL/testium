@@ -76,5 +76,8 @@ class TestItemSleep(TestItem):
         else:
             if not isinstance(timeout, (int, float)):
                 raise ETUMRuntimeError(f"Timeout value of sleep test item \"{self.name}\" is not valid: \"{timeout}\".")
-            sleep(timeout)
+            import time as _time
+            end_time = _time.time() + float(timeout)
+            while _time.time() < end_time and not self._is_stopped:
+                sleep(min(0.05, end_time - _time.time()))
             self.result.set(TestValue.SUCCESS, 'Sleep %s sec' % (str(timeout)))

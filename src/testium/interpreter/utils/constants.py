@@ -33,6 +33,8 @@ class TestItemType(Enum):
     TYPE_RUN                = TestItemEnum("run", "Run tum")
     TYPE_JSON_RPC           = TestItemEnum("json_rpc", "JSON-RPC")
     TYPE_JSON_RPC_ACTION    = TestItemEnum("json_rpc_action", "JSON-RPC action")
+    TYPE_PARALLEL           = TestItemEnum("parallel", "Parallel")
+    TYPE_PARALLEL_BRANCH    = TestItemEnum("parallel_branch", "Parallel branch")
     TYPE_ROOT               = TestItemEnum("default", "default")
 
     @staticmethod

@@ -255,6 +255,7 @@ step list attributes.
    test_items/let_test_item.rst
    test_items/loop_test_item.rst
    test_items/lua_func_test_item.rst
+   test_items/parallel_test_item.rst
    test_items/plot_test_item.rst
    test_items/report_test_item.rst
    test_items/run_test_item.rst

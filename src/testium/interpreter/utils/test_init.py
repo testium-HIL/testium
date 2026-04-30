@@ -44,6 +44,7 @@ from interpreter.test_items.test_item_choices_dialog import TestItemChoicesDialo
 from interpreter.test_items.test_item_console import TestItemConsole
 from interpreter.test_items.test_item_run import TestItemRun
 from interpreter.test_items.test_item_report import TestItemReport
+from interpreter.test_items.test_item_parallel import TestItemParallel, TestItemParallelBranch
 
 
 def _constants_init():
@@ -69,6 +70,8 @@ def _constants_init():
     cst.TYPE_SLEEP.item_class = TestItemSleep
     cst.TYPE_UNITTEST.item_class = TestItemUnittestFile
     cst.TYPE_VALUE_DLG.item_class = TestItemValueDialog
+    cst.TYPE_PARALLEL.item_class = TestItemParallel
+    cst.TYPE_PARALLEL_BRANCH.item_class = TestItemParallelBranch
 
 
 def locate_report_file(rep_file):

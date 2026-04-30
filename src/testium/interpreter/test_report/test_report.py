@@ -1,4 +1,5 @@
 import os
+import threading
 from functools import wraps
 import sqlite3
 from time import (time, sleep)
@@ -143,6 +144,7 @@ class TestReport:
         self._level = 0
         self._log_stored = False
         self._con = None
+        self._lock = threading.Lock()
 
         if dict_report is None:
             self._active = False
@@ -231,7 +233,7 @@ class TestReport:
             prepare_file_to_save(rep_path)
             if not os.path.exists(os.path.dirname(rep_path)):
                 raise ETUMRuntimeError("Report path does not exist: " + rep_path)
-        self._con = sqlite3.connect(rep_path)
+        self._con = sqlite3.connect(rep_path, check_same_thread=False)
         self.createHeader(header)
         self.createTestTable()
         self._con.commit()
@@ -334,7 +336,8 @@ class TestReport:
             req = req + '?,'
         req = req[:-1] + ')'
 
-        self._con.execute(req, param)
+        with self._lock:
+            self._con.execute(req, param)
 
     def incLevel(self):
         self._level = self._level + 1
