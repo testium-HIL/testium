@@ -95,8 +95,10 @@ class TestItemParallel(TestItemContainer):
                 dict_item.get("seq_filename", ""),
             )
         # Inject a synthetic 'steps' key so load_test_recursively can load branches
-        # as TestItemParallelBranch children. The original 'branches' key is kept
-        # for display in the GUI (it's included by _filter_dict_item, 'steps' is not).
+        # as TestItemParallelBranch children. The base class' _filter_dict_item
+        # drops 'steps'; we also drop 'branches' (overridden below) so the F1
+        # panel shows only the parallel's own attributes, not the duplicated
+        # tree of branches/steps already displayed in the test tree.
         dict_item["steps"] = [{"parallel_branch": b} for b in branches]
 
         super().__init__(cst.TYPE_PARALLEL, dict_item, parent, status_queue, filename=filename)
@@ -106,6 +108,22 @@ class TestItemParallel(TestItemContainer):
                 f"'sync' must be 'all' or 'any', got '{self._sync}'",
                 self.seqFilename(),
             )
+
+    def _filter_dict_item(self, dict_item):
+        c = super()._filter_dict_item(dict_item)
+        # Keep 'branches' so the F1 panel shows the branch list and their
+        # per-branch attributes (name, wait_for, condition, ...), but strip
+        # the 'steps' inside each branch — the steps are already visible as
+        # children in the test tree and would just duplicate the information.
+        if isinstance(c, dict) and isinstance(c.get("branches"), list):
+            stripped = []
+            for b in c["branches"]:
+                if isinstance(b, dict):
+                    stripped.append({k: v for k, v in b.items() if k != "steps"})
+                else:
+                    stripped.append(b)
+            c["branches"] = stripped
+        return c
 
     def _stop_branch_recursively(self, item):
         item.stop()
