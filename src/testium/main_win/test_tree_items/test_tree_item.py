@@ -35,8 +35,8 @@ _ITEM_CONFIG = {
     "Run tum":              {"icon": "run.png"},
     "JSON-RPC":             {"icon": "json.png",           "unfoldable": False},
     "JSON-RPC action":      {"icon": "json.png"},
-    "Parallel":             {"icon": "parallel.png",       "expanded": True},
-    "Parallel branch":      {"icon": "parallel.png",       "expanded": True},
+    "Parallel":             {"icon": "parallel.png",        "expanded": True},
+    "Parallel branch":      {"icon": "parallel_branch.png", "expanded": True},
 }
 
 

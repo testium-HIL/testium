@@ -46,6 +46,7 @@
         <file alias="verif.png">black/verif.png</file>
         <file alias="view-refresh.png">black/view-refresh.png</file>
         <file alias="parallel.png">black/parallel.png</file>
+        <file alias="parallel_branch.png">black/parallel_branch.png</file>
     </qresource>
     <qresource prefix="/white">
         <file alias="testium_logo.png">testium_logo.png</file>
@@ -94,6 +95,7 @@
         <file alias="verif.png">white/verif.png</file>
         <file alias="view-refresh.png">white/view-refresh.png</file>
         <file alias="parallel.png">white/parallel.png</file>
+        <file alias="parallel_branch.png">white/parallel_branch.png</file>
     </qresource>
     <qresource prefix="/color">
         <file alias="testium_logo.png">testium_logo.png</file>
@@ -142,5 +144,6 @@
         <file alias="verif.png">color/verif.png</file>
         <file alias="view-refresh.png">color/view-refresh.png</file>
         <file alias="parallel.png">color/parallel.png</file>
+        <file alias="parallel_branch.png">color/parallel_branch.png</file>
     </qresource>
 </RCC>
