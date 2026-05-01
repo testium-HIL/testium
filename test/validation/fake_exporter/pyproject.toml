@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "testium-fake-exporter"
+version = "0.1.0"
+description = "Fake report exporter used by testium validation suite"
+
+[project.entry-points."testium.exporters"]
+fake_format = "fake_exporter:FakeExporter"
+
+[tool.setuptools.packages.find]
+where = ["."]

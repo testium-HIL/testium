@@ -20,6 +20,53 @@ sqlite3.register_converter('JSON', convert_json)
 TEST_REPORT_FILE_REV = '0.1'
 
 
+def _load_text():
+    from interpreter.test_report.report_export_txt import ReportExportTxt
+    return ReportExportTxt
+
+def _load_json():
+    from interpreter.test_report.report_export_json import ReportExportJSON
+    return ReportExportJSON
+
+def _load_junit():
+    try:
+        from interpreter.test_report.report_export_junit import ReportExportJUnit
+        return ReportExportJUnit
+    except ModuleNotFoundError:
+        raise ETUMRuntimeError(
+            'Report format "junit" requires "junit_xml" — pip install junit-xml')
+
+def _load_html():
+    try:
+        from interpreter.test_report.report_export_html import ReportExportHTML
+        return ReportExportHTML
+    except ModuleNotFoundError:
+        raise ETUMRuntimeError(
+            'Report format "html" requires "lxml" — pip install lxml')
+
+_EXPORTER_REGISTRY: dict = {
+    cst.REP_TYPE_TEXT:  _load_text,
+    cst.REP_TYPE_JSON:  _load_json,
+    cst.REP_TYPE_JUNIT: _load_junit,
+    cst.REP_TYPE_HTML:  _load_html,
+}
+
+def _discover_plugins():
+    try:
+        from importlib.metadata import entry_points
+        for ep in entry_points(group='testium.exporters'):
+            try:
+                cls = ep.load()
+                _EXPORTER_REGISTRY[ep.name] = lambda c=cls: c
+                print(f'[testium] Loaded report exporter plugin: "{ep.name}"')
+            except Exception as e:
+                print(f'[testium] Failed to load report exporter plugin "{ep.name}": {e}')
+    except Exception:
+        pass
+
+_discover_plugins()
+
+
 def tr_procedure(f):
     @wraps(f)
     def wrapper(self, *args, **kwds):
@@ -82,28 +129,19 @@ class Export:
         else:
             path = os.path.join(path, fname)
 
-        if et == cst.REP_TYPE_TEXT:
-            from interpreter.test_report.report_export_txt import ReportExportTxt
-            ReportExportTxt(name, con, path, pats, keys, no_header)
-        elif et == cst.REP_TYPE_JSON:
-            from interpreter.test_report.report_export_json import ReportExportJSON
-            ReportExportJSON(name, con, path, pats, keys, no_header)
-        elif et == cst.REP_TYPE_JUNIT:
-            try:
-                from interpreter.test_report.report_export_junit import ReportExportJUnit
-                ReportExportJUnit(name, con, path, pats, keys, no_header)
-            except ModuleNotFoundError:
-                raise ETUMRuntimeError('"junit_xml" module not available')
-        elif et == cst.REP_TYPE_HTML:
-            try:
-                from interpreter.test_report.report_export_html import ReportExportHTML
-                ReportExportHTML(name, con, path, pats, keys, no_header)
-            except ModuleNotFoundError:
-                raise ETUMRuntimeError('"lxml" module not available')
-        elif et == cst.REP_TYPE_SQLITE:
+        if et == cst.REP_TYPE_SQLITE:
             pass
+        elif et in _EXPORTER_REGISTRY:
+            try:
+                cls = _EXPORTER_REGISTRY[et]()
+                cls(name, con, path, pats, keys, no_header)
+            except ETUMRuntimeError as e:
+                print(f'[report] Export skipped: {e}')
         else:
-            raise ETUMSyntaxError('Report export not recognized')
+            available = ', '.join(
+                sorted(_EXPORTER_REGISTRY.keys()) + [cst.REP_TYPE_SQLITE])
+            print(f'[report] Export skipped: format "{et}" not found. '
+                  f'Available: {available}')
 
 class TestReport:
     TEST_COLS = [[cst.DB_TEST_TIMESTAMP_START, 'INT'],

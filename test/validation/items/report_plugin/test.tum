@@ -1,0 +1,23 @@
+- report:
+    name: Unknown exporter is skipped (must pass)
+    key: $(test)_PASS
+    export:
+        - definitely_not_a_format:
+            path: $(validation_report_path)$(psep)$(test)_unknown.txt
+
+- report:
+    name: Plugin exporter from entry-points (fake_format CSV)
+    key: $(test)_PASS
+    export:
+        - fake_format:
+            path: $(validation_report_path)$(psep)$(test)_fake.csv
+
+- py_func:
+    name: Check fake_format CSV content
+    file: $(test_path)$(psep)file_check.py
+    func_name: file_contains
+    key: $(test)_PASS
+    param:
+        - $(validation_report_path)$(psep)$(test)_fake.csv
+        - "Test preparation,Group"
+    expected_result: True

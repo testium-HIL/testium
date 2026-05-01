@@ -27,4 +27,10 @@ if [ ! -d "$PY_VENV_DIR" ]; then
     python3 -m venv "$PY_VENV_DIR"
     source "$PY_VENV_DIR/bin/activate"
     pip install --extra-index-url https://pypi.python.org/pypi -r $REQ_PATH
+    # Validation suite plugin used to verify the report-exporter
+    # entry-points discovery end-to-end.
+    FAKE_EXPORTER_DIR="$(dirname "$REQ_PATH")/../test/validation/fake_exporter"
+    if [ -d "$FAKE_EXPORTER_DIR" ]; then
+        pip install -e "$FAKE_EXPORTER_DIR"
+    fi
 fi
