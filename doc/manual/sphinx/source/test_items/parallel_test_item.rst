@@ -59,7 +59,8 @@ Each entry of ``branches`` is a dict with the following attributes:
 
 * ``name``: required. The branch name. Used in reports and as a prefix
   in the live log output (each line printed by the branch is prefixed
-  with ``[<name>] `` so concurrent branches stay readable).
+  with the branch name in square brackets, e.g. ``[Branch A]``, so
+  concurrent branches stay readable).
 * ``steps``: required. The list of test items executed sequentially
   inside the branch.
 * ``wait_for``: optional. Forces the branch to wait until a condition is
@@ -79,8 +80,8 @@ Each branch produces its own row in the SQLite report (with type
 branch's thread, so logs are never mixed between concurrent branches.
 
 In the live (terminal / GUI) output, lines emitted from a branch are
-prefixed with ``[<branch name>] ``. The prefix is not stored in the
-SQLite log column.
+prefixed with the branch name in square brackets (e.g. ``[Branch A]``).
+The prefix is not stored in the SQLite log column.
 
 Notes
 --------------------

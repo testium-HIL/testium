@@ -23,23 +23,3 @@ graphical interface.
     :caption: call a test in batch mode
 
     testium -b test/my_test/main.tum
-
-Terminal mode
--------------
-
-The terminal mode starts *testium* in interactive mode. From this console, some tests and
-sequences of tests can be called interactively.
-
-.. code-block:: text
-    :caption: call a test in terminal mode
-
-    $ testium -m
-    Configuration file loaded: /my/execution/path/param.yaml
-    [...]
-    ================================================================================
-    ====== Test configuration
-    ================================================================================
-    Test executed with testium    : 2.4.0 (binary release)
-
-
-    (testium)~

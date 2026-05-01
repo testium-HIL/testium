@@ -33,7 +33,7 @@ if not provided is given in the table as well.
     |                       |                   | It depends on the test item to take it                |
     |                       |                   | into account or not.                                  |
     |                       |                   | For example it makes sense to use it                  |
-    |                       |                   | for ``unittest`` test type                       |
+    |                       |                   | for ``unittest`` test type                            |
     |                       |                   | because it  can contain many sub-tests,               |
     |                       |                   | but not for sleep test type.                          |
     |                       |                   | In cycles, it means that the child                    |

@@ -6,7 +6,7 @@ This software is developed in python and it implements the Qt6 graphical framewo
 
 It has been developed since 2013 with production and development testing in mind.
 
-It's function is to automate the execution of tests. It can be invoked either as command line terminal application or as a graphical interface application.
+It's function is to automate the execution of tests. It can be invoked either as command line application or as a graphical interface application.
 
 Tests reports generation and customization are also in this tool's scope.
 

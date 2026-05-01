@@ -3,7 +3,7 @@ Command Line Interface
 
 .. code-block:: text
 
-    usage: testium.pyw [-h] [--version] [-b] [-m] [-c CONFIG_FILE [CONFIG_FILE ...]] [-r] [-l LOG_FILE]
+    usage: testium.pyw [-h] [--version] [-b] [-c CONFIG_FILE [CONFIG_FILE ...]] [-r] [-l LOG_FILE]
                         [-d DEFINE [DEFINE ...]] [-p REPORT_FILE] [-t {sqlite,json,junit,html,text}]
                         [-n REPORT_PATTERN [REPORT_PATTERN ...]] [-i INCLUDE_PATH [INCLUDE_PATH ...]] [-o] [-g]
                         [test_file]
@@ -16,9 +16,8 @@ Command Line Interface
     --version             Returns the version of testium
     -b, --batch-execution
                             Executes the test in batch mode
-    -m, --terminal        Starts terminal mode
     -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...]
-    -o, --no-color        Deactivates stdout colors in batch and terminal mode
+    -o, --no-color        Deactivates stdout colors in batch mode
                             Configuration file
     -r, --run-and-close   Runs the test then closes the application
     -l LOG_FILE, --log-file LOG_FILE
@@ -45,17 +44,10 @@ Returns what's in the previous section.
 
 Executes the test in text mode. No need to have QT installed in that case.
 
-``-m, --terminal``
-------------------
-
-Starts a testium interactive console. It allows to run commands and sub-tests manually
-in a console.
-
-
 ``-o, --no-color``
 ------------------
 
-Switch allowing to disable the colored output in terminal or batch modes.
+Switch allowing to disable the colored output in batch mode.
 
 ``-c, --config-file``
 ---------------------
