@@ -6,98 +6,79 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>247</height>
+    <width>500</width>
+    <height>220</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>A propos</string>
+   <string>À propos</string>
   </property>
-  <widget class="QDialogButtonBox" name="buttonBox">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>200</y>
-     <width>341</width>
-     <height>32</height>
-    </rect>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>20</number>
    </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
+   <property name="topMargin">
+    <number>16</number>
    </property>
-   <property name="standardButtons">
-    <set>QDialogButtonBox::Ok</set>
+   <property name="rightMargin">
+    <number>20</number>
    </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>20</y>
-     <width>341</width>
-     <height>31</height>
-    </rect>
+   <property name="bottomMargin">
+    <number>16</number>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>14</pointsize>
-    </font>
+   <property name="spacing">
+    <number>6</number>
    </property>
-   <property name="text">
-    <string>Testium</string>
-   </property>
-   <property name="wordWrap">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QLabel" name="labelVersion">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>60</y>
-     <width>341</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Version</string>
-   </property>
-  </widget>
-  <widget class="QPlainTextEdit" name="plainTextEdit">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>100</y>
-     <width>341</width>
-     <height>91</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::NoFrame</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Sunken</enum>
-   </property>
-   <property name="readOnly">
-    <bool>true</bool>
-   </property>
-   <property name="plainText">
-    <string>This gui was developed with the help of Qt by François Dausseur.</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="labelCesUnitVersion">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>70</y>
-     <width>341</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Version</string>
-   </property>
-  </widget>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="font">
+      <font>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Testium</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelVersion">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelCopyright">
+     <property name="text">
+      <string>© 2025-2026 François Dausseur</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelLicence">
+     <property name="text">
+      <string>Licensed under &lt;a href=&quot;https://eupl.eu/1.2/en/&quot;&gt;EUPL-1.2&lt;/a&gt;</string>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources>
   <include location="../resources/about_win.qrc"/>

@@ -40,11 +40,11 @@ from main_win.test_run.test_run import ThreadTestStatus
 import interpreter.utils.settings as prefs
 from lib.stdout_redirect import stdio_redir
 import libs.testium as tm
-from interpreter.utils.version import get_testium_version
 from interpreter.utils.test_init import (
     env_init,
     locate_report_file,
 )
+from interpreter.utils.version import get_testium_version
 from lib.tum_except import ETUMFileError, ETUMRuntimeError
 from main_win.test_controller_service import TestControllerService
 from main_win.test_runner import TestRunner, TestState
@@ -206,8 +206,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.d_about_win = QDialog()
         self.about_win = Ui_About()
         self.about_win.setupUi(self.d_about_win)
-        self.about_win.labelVersion.setText("testium - " + get_testium_version())
-        self.about_win.labelCesUnitVersion.setText("")
+        self.about_win.labelVersion.setText(get_testium_version())
         self.d_about_win.setModal(True)
 
         self.d_f1_win = DialogF1(self)
