@@ -8,9 +8,12 @@ requires-python = ">=3.11"
 authors = [
   {name = "François Dausseur", email = "francois@beafrancois.fr"},
 ]
+license = "EUPL-1.2"
+license-files = ["../LICENSE"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
-  "Programming Language :: Python"
+  "Programming Language :: Python",
+  "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
 ]
 dependencies = [
     "setuptools",

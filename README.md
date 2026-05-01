@@ -2,6 +2,18 @@
 
 [See here](doc/manual/testium_manual.pdf).
 
+# License
+
+Copyright (c) 2025-2026 François Dausseur.
+
+testium is distributed under the **European Union Public Licence v. 1.2
+(EUPL-1.2)** — see the [LICENSE](LICENSE) file for the full text.
+
+SPDX identifier: `EUPL-1.2`
+
+Contributions are accepted under the same licence (inbound = outbound). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
 # run testium
 
 From the root path, on windows `cmd`:
