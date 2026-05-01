@@ -137,26 +137,28 @@ Icons are assigned once when the test file is loaded (not updated live on theme 
 
 ### `run` item
 `src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance (`-b` in batch mode, `-r` in GUI mode). Result:
-- **SUCCESS** if the sub-instance launched and ran to completion (exit code is ignored)
-- **FAILURE** if the file is not found, `wait_for_exec` is set without `start_time`/`end_time`, the time window was not reached, or any other launch error
+- **PASS** if the sub-instance launched and ran to completion (exit code is ignored)
+- **FAIL** if the file is not found, `wait_for_exec` is set without `start_time`/`end_time`, the time window was not reached, or any other launch error
 
 The sub-test's own pass/fail result is intentionally not propagated.
 
-## Recent fixes (branch `parallel_execution`)
-- `test_item_parallel.py`: new `parallel` item with `sync: all|any`, `wait_for`, daemon threads, `_stop_branch_recursively()`. Each branch thread registers a per-thread stdout buffer with `stdio_redir.register_thread(...)` so its log capture and live-output prefix work in isolation.
+## Recent fixes / notable changes
+- `parallel` item: new item with `sync: all|any`, `wait_for`, daemon threads, `_stop_branch_recursively()`. Each branch thread registers a per-thread stdout buffer with `stdio_redir.register_thread(...)` so its log capture and live-output prefix work in isolation.
+- `parallel_branch` icon: distinct single-arrow icon (`parallel_branch.png`) separate from the parallel container's three-arrow icon.
+- `parallel` F1 panel: `steps` stripped from each branch dict so the panel shows per-branch attributes without duplicating the tree.
 - `test_item_container.py`: new `TestItemContainer` base class extracted from Group/Cycle patterns
 - `test_item_sleep.py`: interruptible loop (checks `self._is_stopped`) instead of blocking `time.sleep()` so `sync: any` can stop slow branches quickly
 - `stdout_redirect.py`: rewrote `intercept()` to install a `StdoutProxy` (thread-aware: per-thread capture buffers + branch-prefixed live output). Adds `writeln()` for Python 3.14 unittest compatibility.
 - `test_report.py`: `check_same_thread=False` + lock around the SQLite `INSERT` for parallel branch concurrency. Log capture itself is race-free thanks to per-thread buffers.
-- `__init__.py`: removed `-m`/`--terminal` mode
-- `terminal.py`: deleted
-
-## Recent fixes (branch `text_no_pyside`)
+- `terminal.py`: deleted — `-m`/`--terminal` mode removed.
 - `batch.py`: premature loop exit when `gd_update` messages (no `"id"` key) were mistaken for the "finished" signal — fix: `"id" in m and m["id"] is None`
 - `batch.py`: `control("loaded")` deadlock if `TestProcess` crashed before `cmd_th` started — fix: daemon thread + `threading.Event` + `is_alive()` polling
 - `termlog.py`: `COLOR_DEFAULT = Fore.WHITE` invisible on light terminals; added auto-detection + light palette. Also fixed `write()` residue accumulation bug (`s[pos:]` → `s[pos+1:]`).
 - Dialog items: `auto_result`/`auto_value` now used in non-interactive text mode; dialogs without `auto_result` FAIL immediately in batch mode.
-- `run` item: removed `stdout=PIPE` (caused deadlock with `multiprocessing` spawn); simplified result to SUCCESS on any completed subprocess.
+- `run` item: renamed `tum_fime` → `tum`; removed `stdout=PIPE` (caused deadlock with `multiprocessing` spawn); result simplified to PASS on any completed subprocess.
+- `unittest` item: renamed from `unittest_file` (cmd key, display name, Python constant `TYPE_UNITTEST_FILE` → `TYPE_UNITTEST`).
+- GUI test tree: check and fold state preserved across same-file reloads (`test_file_manager.py`).
+- Licence: EUPL-1.2 (`LICENSE`, `CONTRIBUTING.md`, `pyproject.toml`).
 
 ## Validation tests
 Located in `test/validation/`. Run with `-b` flag:
