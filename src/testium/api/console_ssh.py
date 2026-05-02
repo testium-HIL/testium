@@ -8,7 +8,7 @@ import os
 import pexpect
 from pexpect import ExceptionPexpect, TIMEOUT, EOF, spawn
 
-from libs.console import Console
+from api.console import Console
 
 # Exception classes used by this module.
 

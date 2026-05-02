@@ -6,9 +6,9 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import eval_to_boolean
-from lib.tum_except import ETUMSyntaxError
-from lib.string_queue import StringQueue
-from lib.stdout_redirect import stdio_redir
+from runtime.tum_except import ETUMSyntaxError
+from runtime.string_queue import StringQueue
+from runtime.stdout_redirect import stdio_redir
 
 
 class TestItemParallelBranch(TestItemContainer):

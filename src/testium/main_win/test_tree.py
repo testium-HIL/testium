@@ -10,12 +10,12 @@ from PySide6.QtGui import (QFont, QFontInfo)
 from time import (time)
 
 from main_win.test_tree_items.common import (TEST_COLS, TEST_COLS_WITH_TIME)
-from lib.tum_except import (ETUMFileError, ETUMSyntaxError)
+from runtime.tum_except import (ETUMFileError, ETUMSyntaxError)
 from main_win.test_controller_service import TestControllerService
 from main_win.test_tree_items.test_tree_item import make_tree_item
 
 from interpreter.test_items.test_result import (TestValue)
-import libs.testium as tm
+import api.testium as tm
 import interpreter.utils.settings as prefs
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.icons import icon_prefix

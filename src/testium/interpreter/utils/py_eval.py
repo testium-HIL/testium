@@ -1,6 +1,6 @@
 from interpreter.utils.py_process import PyProcessBase
-from lib.tum_except import ETUMRuntimeError
-import libs.testium as tm
+from runtime.tum_except import ETUMRuntimeError
+import api.testium as tm
 
 
 eval_process = None

@@ -2,7 +2,7 @@ import os
 import configparser
 import json
 import platform
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 
 SettingsCompany = 'Testium'
 SettingsApplication = 'testium'

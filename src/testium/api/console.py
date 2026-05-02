@@ -245,7 +245,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
 if not sys.platform.startswith('win'):
     # import SshConsole if pexpect is installed
     try:
-        from libs.console_ssh import SshConsole
+        from api.console_ssh import SshConsole
 
     except ImportError:
         pass

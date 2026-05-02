@@ -3,10 +3,10 @@ import shutil
 import sys
 import subprocess
 import socket
-from lib.jrpc import JsonRpcClient
-import libs.testium as tm
+from runtime.jrpc import JsonRpcClient
+import api.testium as tm
 from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.paths import testium_path, subproc_path
 
 

@@ -4,8 +4,8 @@ from functools import wraps
 import sqlite3
 from time import (time, sleep)
 import traceback
-from lib.tum_except import (ETUMRuntimeError, ETUMSyntaxError)
-from lib.stdout_redirect import stdio_redir
+from runtime.tum_except import (ETUMRuntimeError, ETUMSyntaxError)
+from runtime.stdout_redirect import stdio_redir
 from interpreter.utils.params import (expanse)
 from interpreter.utils.paths import prepare_file_to_save
 import interpreter.utils.constants as cst

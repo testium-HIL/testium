@@ -6,7 +6,7 @@ from PySide6.QtGui import QCursor, QDesktopServices, QFont
 
 from main_win.text_log_highlighter import TextLogHighlighter
 
-import libs.testium as tm
+import api.testium as tm
 
 class QTextLog(QPlainTextEdit):
     def __init__(self, parent):

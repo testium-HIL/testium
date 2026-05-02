@@ -3,7 +3,7 @@ import os
 import interpreter.test_report.test_report as tr
 from interpreter.utils.paths import prepare_file_to_save
 import interpreter.utils.constants as cst
-import libs.testium as tm
+import api.testium as tm
 
 
 class ReportExport:

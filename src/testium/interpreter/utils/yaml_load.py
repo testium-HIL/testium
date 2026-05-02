@@ -1,8 +1,8 @@
 from yaml.parser import ParserError
 from yaml import load, Loader
 from yaml.scanner import ScannerError
-from libs.testium import print_debug
-from lib.tum_except import ETUMSyntaxError
+from api.testium import print_debug
+from runtime.tum_except import ETUMSyntaxError
 import io
 
 

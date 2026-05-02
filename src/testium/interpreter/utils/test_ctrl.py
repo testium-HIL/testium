@@ -1,6 +1,6 @@
 from multiprocessing import Queue
 from queue import Empty
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 
 
 class TestSetController:

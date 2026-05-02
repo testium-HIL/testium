@@ -3,7 +3,7 @@ import sys
 from importlib import import_module
 
 import interpreter.utils.settings as prefs
-import libs.testium as tm
+import api.testium as tm
 
 _cached_versions = {}
 

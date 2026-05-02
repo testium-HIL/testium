@@ -5,7 +5,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import item_load_context
+from runtime.tum_except import item_load_context
 
 
 class TestItemMsgDialog(TestItemDialogBase):

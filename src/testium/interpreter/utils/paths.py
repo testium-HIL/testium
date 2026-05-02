@@ -5,7 +5,7 @@ from pathlib import Path
 import testium
 from interpreter.utils.params import expanse
 import subprocess
-import libs.testium as tm
+import api.testium as tm
 
 
 def testium_path():
@@ -18,12 +18,9 @@ def testium_path():
     return str(Path(tp).parent.resolve())
 
 def subproc_path():
-    if getattr(sys, 'frozen', False):
-        # Exécuté depuis le .exe
-        return sys._MEIPASS
-
-    tp = inspect.getfile(inspect.getmodule(testium))
-    return str(Path(tp).parent.parent.resolve())
+    # py_func and lua_func now live inside the testium package; their cwd
+    # is the testium package root, same as testium_path().
+    return testium_path()
 
 def prepare_file_to_save(file_name, file_ext=""):
     iname = file_name

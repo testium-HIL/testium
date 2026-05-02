@@ -16,9 +16,9 @@ import numpy as np
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta, timezone
 
-import libs.testium as tm
+import api.testium as tm
 from interpreter.test_items.test_result import TestValue
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.eval import post_evaluate

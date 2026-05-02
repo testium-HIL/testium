@@ -7,8 +7,8 @@ import math
 import json
 import traceback
 
-from lib.jrpc import JsonRpcSrv
-from lib.tum_except import ETUMRuntimeError, print_exception
+from runtime.jrpc import JsonRpcSrv
+from runtime.tum_except import ETUMRuntimeError, print_exception
 import py_func.tm as tm
 from py_func.func_call import func_exec
 

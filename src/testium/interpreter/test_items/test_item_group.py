@@ -1,8 +1,8 @@
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.utils.constants import TestItemType as cst
-from lib.tum_except import ETUMSyntaxError
-import libs.testium as tm
+from runtime.tum_except import ETUMSyntaxError
+import api.testium as tm
 
 class TestItemGroup(TestItem):
     def __init__(self, dict_cycle, parent = None, status_queue=None, filename=""):

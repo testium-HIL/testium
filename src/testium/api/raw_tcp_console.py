@@ -3,7 +3,7 @@ import sys
 import socket
 import traceback
 
-from libs.console import *
+from api.console import *
 
 class RawTCPConsole(Console):
     TYPE = 'rawtcp'

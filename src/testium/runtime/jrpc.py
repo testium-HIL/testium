@@ -6,11 +6,11 @@ import itertools
 from time import sleep
 from typing import Callable, Any
 try:
-    import libs.testium as tm
+    import api.testium as tm
 except:
     import py_func.tm as tm
 
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 
 """Lightweight JSON-RPC 2.0 helpers over TCP sockets.
 

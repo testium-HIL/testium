@@ -10,7 +10,7 @@ from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
 from main_win.test_controller_service import TestControllerService
 import interpreter.utils.settings as prefs
-from lib.tum_except import ETUMFileError, ETUMRuntimeError
+from runtime.tum_except import ETUMFileError, ETUMRuntimeError
 
 
 class TestFileManager:

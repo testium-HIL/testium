@@ -3,8 +3,8 @@ import importlib
 import traceback
 from functools import wraps
 
-import libs.testium as tm
-from lib.tum_except import ETUMSyntaxError, item_load_context
+import api.testium as tm
+from runtime.tum_except import ETUMSyntaxError, item_load_context
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.item_actions import TestItemActions
@@ -235,4 +235,4 @@ class TestItemPlot(TestItemActions):
         self.actions_token = self._prms.getParam("plot_name", required=True)
 
         global runtime_plot
-        runtime_plot = importlib.import_module("libs.runtime_plot")
+        runtime_plot = importlib.import_module("api.runtime_plot")

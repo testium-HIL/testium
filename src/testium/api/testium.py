@@ -4,7 +4,7 @@ import sys
 import textwrap
 from time import monotonic
 import interpreter.utils.globdict as globdict
-from lib.tum_except import (ETUMSyntaxError)
+from runtime.tum_except import (ETUMSyntaxError)
 
 ###############################################################################
 # Console helper functions
@@ -14,7 +14,7 @@ def add_console(console):
     ''' Function which adds a ``Console`` class instance to *testium*
 
     :param console: The ``Console`` instance.
-    :type console: ``libs.console.Console`` or child class instance
+    :type console: ``api.console.Console`` or child class instance
     :return: No returned value
 
     '''
@@ -48,7 +48,7 @@ def console(name):
     :param name: The name of the ``Console`` instance.
     :type name: str
     :return: The ``Console`` or child class object
-    :rtype: ``libs.console.Console`` or child class instance
+    :rtype: ``api.console.Console`` or child class instance
     """
     cons = None
     for c in globdict.gd('console_instances', []):
@@ -65,7 +65,7 @@ def add_plot(plot: object) -> None:
     ''' Function which adds a ``RuntimePlot`` class instance to *testium*
 
     :param plot: The ``RuntimePlot`` instance.
-    :type plot: ``libs.runtime_plot.RuntimePlot`` or child class instance
+    :type plot: ``api.runtime_plot.RuntimePlot`` or child class instance
     :return: No returned value
 
     '''
@@ -99,7 +99,7 @@ def plot(name: str) -> object:
     :param name: The name of the ``RuntimePlot`` instance.
     :type name: str
     :return: The ``RuntimePlot`` or child class object
-    :rtype: ``libs.runtime_plot.RuntimePlot`` or child class instance
+    :rtype: ``api.runtime_plot.RuntimePlot`` or child class instance
     """
     plot = None
     for g in globdict.gd('plot_instances', []):

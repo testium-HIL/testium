@@ -3,9 +3,9 @@ import socket
 import re
 import struct
 
-from lib.tum_except import ETUMRuntimeError
-import libs.testium as tm
-from libs.console import Console
+from runtime.tum_except import ETUMRuntimeError
+import api.testium as tm
+from api.console import Console
 
 
 def is_ip_address(address):

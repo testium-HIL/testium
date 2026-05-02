@@ -1,4 +1,4 @@
-import libs.testium as tm
+import api.testium as tm
 
 def RetreiveData(console_name):
     print("--------------- retrieving data ---------------")

@@ -3,11 +3,11 @@ from time import sleep
 import yaml
 from copy import deepcopy
 from interpreter.test_items.test_result import TestResult, TestValue
-import libs.testium as tm
+import api.testium as tm
 from interpreter.utils.params import TestItemParams
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
-from lib.tum_except import ETUMSyntaxError, item_load_context
+from runtime.tum_except import ETUMSyntaxError, item_load_context
 
 LOG_TEST_STOP = '<----- step "{}" finished'
 LOG_TEST_START = '-----> step "{}" started'

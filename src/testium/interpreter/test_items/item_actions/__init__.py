@@ -1,4 +1,4 @@
-from lib.tum_except import ETUMSyntaxError
+from runtime.tum_except import ETUMSyntaxError
 from interpreter.test_items.test_item import TestItem, test_run, test_data
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.item_actions.action import TestItemAction

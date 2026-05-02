@@ -1,5 +1,5 @@
 from junit_xml import (TestSuite, TestCase)
-import libs.testium as tm
+import api.testium as tm
 from interpreter.test_items.test_result import (TestValue)
 import interpreter.test_report.report_export as rpe
 import interpreter.test_report.test_report as tr

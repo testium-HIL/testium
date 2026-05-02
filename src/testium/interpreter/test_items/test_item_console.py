@@ -3,9 +3,9 @@ import os
 import importlib
 import traceback
 
-import libs.testium as tm
-from lib.tum_except import ETUMSyntaxError
-from lib.stdout_redirect import stdio_redir
+import api.testium as tm
+from runtime.tum_except import ETUMSyntaxError
+from runtime.stdout_redirect import stdio_redir
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
@@ -345,17 +345,17 @@ class TestItemConsole(TestItemActions):
         self.actions_token = {}
 
         global console
-        console = importlib.import_module("libs.console")
+        console = importlib.import_module("api.console")
 
         if not sys.platform.startswith("win"):
             global console_ssh
-            console_ssh = importlib.import_module("libs.console_ssh")
+            console_ssh = importlib.import_module("api.console_ssh")
 
         global termconsole
-        termconsole = importlib.import_module("libs.termconsole")
+        termconsole = importlib.import_module("api.termconsole")
 
         global raw_tcp_console
-        raw_tcp_console = importlib.import_module("libs.raw_tcp_console")
+        raw_tcp_console = importlib.import_module("api.raw_tcp_console")
 
         self.actions_token["console_name"] = self._prms.getParam(
             "console_name", required=True

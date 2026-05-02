@@ -9,8 +9,8 @@ from multiprocessing import Queue
 
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
-from lib.tum_except import ETUMFileError, ETUMRuntimeError
-from lib.stdout_redirect import stdio_redir
+from runtime.tum_except import ETUMFileError, ETUMRuntimeError
+from runtime.stdout_redirect import stdio_redir
 
 
 class Batch:

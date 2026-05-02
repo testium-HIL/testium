@@ -30,7 +30,7 @@ from main_win.f1_win.d_f1_win import DialogF1
 from main_win.test_tree import QTestTree
 
 from main_win.test_run.thread_output import ThreadTestOutput
-from lib.string_queue import StringQueue
+from runtime.string_queue import StringQueue
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.icons import icon_prefix
@@ -38,14 +38,14 @@ from interpreter.utils.icons import icon_prefix
 from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
 import interpreter.utils.settings as prefs
-from lib.stdout_redirect import stdio_redir
-import libs.testium as tm
+from runtime.stdout_redirect import stdio_redir
+import api.testium as tm
 from interpreter.utils.test_init import (
     env_init,
     locate_report_file,
 )
 from interpreter.utils.version import get_testium_version
-from lib.tum_except import ETUMFileError, ETUMRuntimeError
+from runtime.tum_except import ETUMFileError, ETUMRuntimeError
 from main_win.test_controller_service import TestControllerService
 from main_win.test_runner import TestRunner, TestState
 from main_win.test_file_manager import TestFileManager

@@ -5,7 +5,7 @@ from PySide6.QtGui import (QIcon, QPixmap, QBrush, QColor)
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QTreeWidgetItem)
 from interpreter.utils.icons import icon_prefix
-from libs.testium import print_warn
+from api.testium import print_warn
 
 # Maps item_name (from TestItemType.item_name) to visual config.
 # Keys: icon (required), icon_on (optional 2nd state), expanded, unfoldable, no_breakpoint

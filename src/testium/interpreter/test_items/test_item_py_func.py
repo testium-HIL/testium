@@ -4,10 +4,10 @@ import time
 import pprint
 import textwrap
 
-from lib.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
+from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
-import libs.testium as tm
+import api.testium as tm
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.constants import TestItemType as cst

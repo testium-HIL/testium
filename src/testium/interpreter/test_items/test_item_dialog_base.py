@@ -1,6 +1,6 @@
 import multiprocessing
 
-import libs.testium as tm
+import api.testium as tm
 from interpreter.test_items.test_item import TestItem
 
 

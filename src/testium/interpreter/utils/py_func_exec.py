@@ -1,6 +1,6 @@
 
 from interpreter.utils.py_process import PyProcessBase
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 from interpreter.test_items.test_result import TestValue
 
 

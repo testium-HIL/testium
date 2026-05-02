@@ -10,7 +10,7 @@ import os
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(ourPath)
-from libs.console import (Console, BytesStore, TIMEOUT_NULL)
+from api.console import (Console, BytesStore, TIMEOUT_NULL)
 
 class TermConsole(Console):
     TYPE = 'term'

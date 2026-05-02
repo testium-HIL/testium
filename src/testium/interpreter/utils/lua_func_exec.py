@@ -1,6 +1,6 @@
 
 from interpreter.utils.lua_process import LuaProcessBase
-from lib.tum_except import ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 from interpreter.test_items.test_result import TestValue
 
 

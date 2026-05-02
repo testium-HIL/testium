@@ -5,8 +5,8 @@ import time
 
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestResult, TestValue)
-from lib.tum_except import ETUMSyntaxError, item_load_context
-import libs.testium as tm
+from runtime.tum_except import ETUMSyntaxError, item_load_context
+import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
 
 class TestItemLet(TestItem):

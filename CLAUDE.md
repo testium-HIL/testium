@@ -109,9 +109,28 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 | `src/testium/interpreter/test_items/test_item_parallel.py` | `parallel` and `parallel_branch` items |
 | `src/testium/interpreter/utils/globdict.py` | Global variable dict |
 | `src/testium/interpreter/utils/termlog.py` | Terminal color output |
-| `src/lib/stdout_redirect.py` | `StdioRedirect` singleton (`stdio_redir`) |
-| `src/lib/string_queue.py` | Thread-safe string buffer used for stdout redirection |
-| `src/testium/libs/testium.py` | Public API for test scripts (`tm.*`) |
+| `src/testium/runtime/stdout_redirect.py` | `StdioRedirect` singleton (`stdio_redir`) |
+| `src/testium/runtime/string_queue.py` | Thread-safe string buffer used for stdout redirection |
+| `src/testium/api/testium.py` | Public API for test scripts (`tm.*`) |
+| `src/testium/py_func/` | Python subprocess for `py_func` items (sandboxed: imports only `runtime/` and `py_func/`) |
+| `src/testium/lua_func/` | Lua subprocess scripts for `lua_func` items |
+
+## Package layout
+
+The whole project is a single Python package under `src/testium/`:
+
+```
+src/testium/
+├── __init__.py / __main__.py
+├── runtime/      internal plumbing (jrpc, stdout_redirect, string_queue, tum_except, api)
+├── api/          public SDK exposed to test scripts (`import api.testium as tm`)
+├── interpreter/  test execution engine (NOT visible to py_func/lua_func)
+├── main_win/     GUI (NOT visible to py_func/lua_func)
+├── py_func/      subprocess code for python_func items
+└── lua_func/     subprocess scripts for lua_func items (data files)
+```
+
+`subproc_path()` and `testium_path()` both return the package directory. The py_func subprocess is launched with cwd=that directory and `python3 py_func`. The contract that `py_func/` and `lua_func/` only depend on `runtime/` (no `interpreter`, `main_win`, `api`, `testium`) is enforced by `test/validation/items/isolation/`.
 
 ## GUI icons (main_win)
 

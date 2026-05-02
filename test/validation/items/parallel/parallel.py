@@ -1,5 +1,5 @@
 import time
-import libs.testium as tm
+import api.testium as tm
 
 
 def sleep_func(duration):

@@ -2,8 +2,8 @@
 import json
 import sys
 from py_func.handle import FuncHandler
-from lib.tum_except import ETUMRuntimeError
-from lib.api import SUPPORTED_API
+from runtime.tum_except import ETUMRuntimeError
+from runtime.api import SUPPORTED_API
 
 thismodule = sys.modules[__name__]
 _func_call_thread = None

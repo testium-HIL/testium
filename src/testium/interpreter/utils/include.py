@@ -1,8 +1,8 @@
 import yaml
 import os.path
-import libs.testium as tm
+import api.testium as tm
 from interpreter.utils.params import expanse
-from lib.tum_except import ETUMFileError
+from runtime.tum_except import ETUMFileError
 from interpreter.utils.template import template_to_test
 from copy import copy
 from interpreter.utils.globdict import global_dict

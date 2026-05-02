@@ -6,9 +6,9 @@ from threading import Thread
 from time import sleep
 import copy
 
-from lib.string_queue import StringQueue
-from lib.tum_except import print_exception, ETUMRuntimeError, ETUMSyntaxError
-import libs.testium as tm
+from runtime.string_queue import StringQueue
+from runtime.tum_except import print_exception, ETUMRuntimeError, ETUMSyntaxError
+import api.testium as tm
 import interpreter.utils.globdict as globdict
 from interpreter.utils.params import expanse
 from interpreter.utils.test_ctrl import TestSetController
@@ -26,7 +26,7 @@ from interpreter.utils.test_init import (
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.test_set import TestSet
 from interpreter.utils.include import TUMLoader, TUMLoaderNoIncludes, TUMLoaderRawIncludes
-from lib.stdout_redirect import stdio_redir
+from runtime.stdout_redirect import stdio_redir
 from interpreter.utils.template import template_to_test
 from interpreter.utils.yaml_load import yaml_load
 from interpreter.utils.py_eval import eval_process_init

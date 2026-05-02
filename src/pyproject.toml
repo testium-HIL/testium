@@ -13,7 +13,6 @@ license-files = ["../LICENSE"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python",
-  "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
 ]
 dependencies = [
     "setuptools",
@@ -36,7 +35,9 @@ testium = "testium:main"
 
 [tool.setuptools.packages.find]
 where=["."]
-exclude=["lua_func", "py_func"]
+
+[tool.setuptools.package-data]
+"testium.lua_func" = ["*.lua"]
 
 [tool.setuptools.dynamic]
 version = {file = ["VERSION"]}

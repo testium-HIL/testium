@@ -1,0 +1,8 @@
+- py_func:
+    name: py_func/lua_func do not depend on testium internals
+    file: $(test_path)$(psep)check_isolation.py
+    func_name: check_isolation
+    key: $(test)_PASS
+    param:
+        - $(testium_path)
+    expected_result: True

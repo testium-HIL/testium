@@ -1,6 +1,6 @@
-from lib.api import SUPPORTED_API
+from runtime.api import SUPPORTED_API
 
-import libs.testium as tm
+import api.testium as tm
 
 # Fill the api_dict with the function of tm
 api_dict = {k: getattr(tm, k) for k in SUPPORTED_API if hasattr(tm, k)}
