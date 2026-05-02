@@ -5,8 +5,14 @@ a = Analysis(
     pathex=['../../src/testium',
             '../../src/testium/main_win/resources'],
     binaries=[],
+    # py_func/ and runtime/ are bundled at the _MEIPASS root because the
+    # py_func subprocess is launched with the *host* Python (not the
+    # frozen interpreter): it needs the source files on disk to find them
+    # via cwd=subproc_path() and `python3 py_func` + `from runtime.*`.
     datas=[('../../src/VERSION', '.'),
-           ('../../src/testium/lua_func', 'lua_func')],
+           ('../../src/testium/lua_func', 'lua_func'),
+           ('../../src/testium/py_func', 'py_func'),
+           ('../../src/testium/runtime', 'runtime')],
     hiddenimports=["git",
                    "interpreter",
                    "main_win",
