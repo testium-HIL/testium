@@ -270,7 +270,7 @@ class RuntimePlotPeriodic(PeriodicTimer):
         self.func_name = func_name
         self.args = args
         self.post_eval = post_eval
-        self.proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+        self.proc = PyFuncExecEngine(api_request, 10)
         self.proc.start()
         if not self.proc.wait_ready(10):
             raise ETUMRuntimeError(

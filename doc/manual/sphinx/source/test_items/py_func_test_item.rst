@@ -13,7 +13,7 @@ class ``py_func`` item
 
 This is the normal way of calling some custom python code.
 
-A class must be defined and derived from ``FunctionItem`` from the ``libs.testium`` module.
+A class must be defined and derived from ``FunctionItem`` from the ``py_func.tm`` module.
 
 From this class it is possible to define some custom reported values with the following API
 

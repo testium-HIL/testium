@@ -1,5 +1,5 @@
 
-import api.testium as tm
+import py_func.tm as tm
 
 def post_exec():
     print('Success !!!!')

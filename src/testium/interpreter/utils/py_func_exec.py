@@ -29,7 +29,7 @@ class PyFuncExecEngine(PyProcessBase):
 
             # In case an error was encountered in the called function
             elif "error" in answer:
-                msg = f"{answer["error"]}"
+                msg = f"{answer['error']}"
                 return TestValue.FAILURE, msg
 
             else:

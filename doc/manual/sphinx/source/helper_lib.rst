@@ -4,7 +4,12 @@ Python helper library
 ======================
 
 A python library including helper function for python modules called from
-testium.
+testium ``py_func`` items.
+
+User scripts run inside the ``py_func`` subprocess and interact with testium
+through a JSON-RPC bridge — the ``py_func.tm`` module. They must **not**
+import ``api.testium`` or ``interpreter.*`` directly: those are main-process
+modules and may not even be reachable in a packaged build (PyInstaller, .deb).
 
 To include the support of this library in a python script, the following
 line must be included in the script header:
@@ -18,58 +23,38 @@ line must be included in the script header:
 
 Global variables helper functions
 ----------------------------------
-To manage values in the global variables dataset, the following testium library API
-must be used:
+To manage values in the global variables dataset:
 
 .. automodule:: py_func.tm
    :members: gd, setgd, delgd
    :undoc-members:
    :no-index:
 
-Console helper functions
-------------------------
-
-Every opened console instance is added to a list with the
-key ``console_instances`` of the global variables.
-
-The instance is removed from the list on close step of the ``console`` test item.
-
-To manage consoles from within ``py_func`` python functions,
-the following testium library API can be used:
-
-.. automodule:: libs.testium
-   :members: add_console, remove_console, console
-   :undoc-members:
-   :no-index:
-
 Plot helper functions
 ------------------------
 
-Every opened plot window instance is added to a list with the
-key ``plot_instances`` of the global variables.
+Add values to a running plot or read the last value from it:
 
-The instance is removed from the list on close step of the ``plot`` test item.
-
-To manage plots from within ``py_func`` python functions,
-the following testium library API can be used:
-
-.. automodule:: libs.testium
-   :members: add_plot, remove_plot, plot, add_plot_values, last_plot_value
+.. automodule:: py_func.tm
+   :members: add_plot_values, last_plot_value
    :undoc-members:
    :no-index:
+
+Console and plot **lifecycle** management (``add_console``, ``remove_console``,
+``console``, ``add_plot``, ``remove_plot``, ``plot``) is performed by the
+``console`` and ``plot`` test items themselves — not from user ``py_func``
+scripts. Use those test items to open/close consoles and plots.
 
 Other helper functions
 ------------------------
 
-.. automodule:: libs.testium
-   :members: OS, get_main_dir, timestamp, timestamp_as_sec
+.. automodule:: py_func.tm
+   :members: OS, get_main_dir, init_timestamp, timestamp, timestamp_as_sec, text_mode
    :undoc-members:
    :no-index:
 
 Debug mode
 ------------------------
 
-.. automodule:: libs.testium
-   :members: debug_enabled, enable_debug, print_debug, print_info, print_warn
-   :undoc-members:
-   :no-index:
+The ``test_debug`` global variable controls debug-only output. Read or write
+it via ``tm.gd("test_debug")`` / ``tm.setgd("test_debug", True)``.

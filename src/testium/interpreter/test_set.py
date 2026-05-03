@@ -8,6 +8,7 @@ import interpreter.utils.settings as prefs
 from interpreter.test_report.test_report import TestReport
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
+from interpreter.utils import bins
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst_type
 import interpreter.utils.constants as cst
@@ -49,6 +50,28 @@ class TestSet:
         self._tree = self.__loadTestTree(tum_fime)
         self.dict_report = self._testdict.get("report", None)
         self.set_post_exec()
+        self._validate_runtime_deps()
+
+    def _validate_runtime_deps(self):
+        """Resolve external interpreters needed by this test tree and fail
+        early with a clear message if any is missing.
+
+        Python is always required (the eval engine always runs). Lua is
+        only required when at least one ``lua_func`` item is present.
+        """
+        needed = ["python"]
+        if self.__has_item_type(self._rootItem, cst_type.TYPE_LUA_FUNCTION):
+            needed.append("lua")
+        bins.ensure(*needed)
+
+    def __has_item_type(self, parent, item_type):
+        for i in range(parent.childCount()):
+            child = parent.child(i)
+            if child.type() == item_type.item_name:
+                return True
+            if self.__has_item_type(child, item_type):
+                return True
+        return False
 
     def execute(self):
         self._report = TestReport(self.dict_report)
@@ -352,7 +375,7 @@ class TestSet:
             tm.print_debug(f'  No file: "{post_exec_file}".')
             return
 
-        proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+        proc = PyFuncExecEngine(api_request, 10)
         # start the process for executing external python
         proc.start()
         try:
@@ -367,13 +390,13 @@ class TestSet:
                 # tests backup is done here
                 succ, res = proc.func_call(post_exec_file, "post_exec", [])
                 if not succ == TestValue.SUCCESS:
-                    tm.print_debug(
+                    tm.print_warn(
                         f"Test success but the \"post_exec\" function failed: {res}"
                     )
             else:
                 succ, res = proc.func_call(post_exec_file, "post_exec_fail", [])
                 if not succ == TestValue.SUCCESS:
-                    tm.print_debug(
+                    tm.print_warn(
                         f"Test failed but the \"post_exec_fail\" function failed: {res}"
                     )
         finally:

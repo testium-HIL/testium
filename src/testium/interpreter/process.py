@@ -211,7 +211,7 @@ class TestProcess(Process):
                 env_init()
 
                 # Creation of the python evaluation process for loading of the complete test
-                eval_proc = eval_process_init("", api_request, 10, test_dir)
+                eval_proc = eval_process_init(api_request, 10, test_dir)
                 eval_proc.start()
                 tm.print_debug(f"python bin is: '{eval_proc.python_bin}'.")
                 if not eval_proc.wait_ready(10):

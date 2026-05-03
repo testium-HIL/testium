@@ -31,7 +31,7 @@ class TestItemPyFunc(TestItem):
             self.func_name = self._prms.getParam("func_name", required=True)
             self.params = self._prms.getParamAll("param")
             self._context_id = self._prms.getParam("context_id", default=None, processed=False)
-        self._py_func_proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+        self._py_func_proc = PyFuncExecEngine(api_request, 10)
 
     def _get_engine(self):
         """Return (engine, persistent). If context_id is set, use a shared persistent engine."""
@@ -41,7 +41,7 @@ class TestItemPyFunc(TestItem):
         ctx_id = self._prms.expanse(self._context_id)
         contexts = tm.gd(_PY_FUNC_CONTEXTS_KEY, {})
         if ctx_id not in contexts:
-            contexts[ctx_id] = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+            contexts[ctx_id] = PyFuncExecEngine(api_request, 10)
             tm.setgd(_PY_FUNC_CONTEXTS_KEY, contexts)
         return contexts[ctx_id], True
 

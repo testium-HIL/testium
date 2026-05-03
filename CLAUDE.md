@@ -92,10 +92,32 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 - Per-item log capture (`stdio_redir.read()`) is naturally race-free thanks to per-thread buffers (see `StdoutProxy`).
 
 ### Thread-aware stdout (`StdoutProxy`)
-`src/lib/stdout_redirect.py` — when `log_stored: True`, `intercept()` installs a `StdoutProxy` as `sys.stdout`/`sys.stderr` instead of a single shared `StringQueue`. The proxy:
+`src/testium/runtime/stdout_redirect.py` — when `log_stored: True`, `intercept()` installs a `StdoutProxy` as `sys.stdout`/`sys.stderr` instead of a single shared `StringQueue`. The proxy:
 - Holds one `StringQueue` per thread (registered via `register_thread(buffer=...)`). The main thread uses a default buffer; each parallel branch's thread registers its own at start and unregisters at end. `stdio_redir.read()` reads the calling thread's buffer → `addTest()` of an item running in branch X reads X's clean, non-interleaved output.
 - For the live stream (terminal in batch / GUI panel), prefixes every line emitted from a branch's thread with `[<branch_name>] ` so concurrent branches stay readable.
 - Exposes `write` / `writeln` / `flush` (Python 3.14's `unittest` calls `stream.writeln()` directly without `_WritelnDecorator`).
+
+### Subprocess API contract (py_func / lua_func)
+
+User test scripts running inside a `py_func` or `lua_func` subprocess **must** use the JSON-RPC bridge to interact with testium state:
+
+- Python: `import py_func.tm as tm` — auto-generates wrappers for every function in `runtime/api.py:SUPPORTED_API`. `tm.gd`/`tm.setgd`/`tm.delgd` go through JSON-RPC to the parent.
+- Lua: `local tm = require("tm")` — same idea on the Lua side.
+
+`api.testium` is the *main-process* implementation; it is **not** exposed to subprocesses by design (not bundled in PyInstaller, not on the subprocess `PYTHONPATH` in pip-installed mode either when isolation is preserved). An import attempt from a subprocess script is a code smell and is detected by `test/validation/items/isolation/`.
+
+To add a new API call usable from subprocesses:
+1. Add the function to `api/testium.py`
+2. Add its name to `SUPPORTED_API` in `runtime/api.py`
+3. It is auto-exposed via JSON-RPC by `interpreter/utils/api_srv.py` and auto-wrapped by `py_func/tm.py:_make_api`
+
+### External interpreter resolution (`bins.py`)
+`src/testium/interpreter/utils/bins.py` — single source of truth for the paths to the external Python and Lua interpreters used by subprocesses.
+
+- `python_bin()` / `lua_bin()` : resolve once, cache in memory. User can override via the `python_bin` / `lua_bin` global dict keys (typically populated from the YAML config). Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
+- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key.
+
+Engines (`PyProcessBase`, `LuaProcessBase`, `EvalExecEngine`) call `bins.python_bin()`/`bins.lua_bin()` themselves — call sites never pass an explicit binary path.
 
 ## Key files
 
@@ -161,23 +183,61 @@ Icons are assigned once when the test file is loaded (not updated live on theme 
 
 The sub-test's own pass/fail result is intentionally not propagated.
 
+### Report exporters & plugins
+`src/testium/interpreter/test_report/test_report.py` — `_EXPORTER_REGISTRY` dict maps a format name (cmd key in the YAML `report.export`) to a lazy loader. Built-ins: `text`, `json`, `junit` (needs `junit_xml`), `html` (needs `lxml`). `sqlite` is the storage layer, no-op as an export.
+
+Third-party plugins are discovered at module import via `importlib.metadata.entry_points(group="testium.exporters")` — installing a wheel that declares such an entry point is enough, no testium config change needed:
+```toml
+[project.entry-points."testium.exporters"]
+my_format = "my_pkg:MyExporter"
+```
+Exporter contract: `__init__(self, name, con, path, pats, keys, no_header=False)` — the class does its work in `__init__` and writes to `path`.
+
+Behaviour on errors:
+- Unknown format → info line `[report] Export skipped: format "X" not found. Available: ...`, run continues.
+- Optional dependency missing → same info line with a pip-install hint, run continues.
+
+A real-world test plugin lives at `test/validation/fake_exporter/` (CSV exporter, auto-installed by `scripts/build_env.sh` and exercised by `test/validation/items/report_plugin/`).
+
+## Packaging
+
+Three distribution channels coexist, sharing the single `src/testium/` package:
+
+| Channel | Where | Notes |
+|---------|-------|-------|
+| Wheel (`pip install`) | `src/pyproject.toml` | Vanilla Python package; entry point `testium = "testium:main"` |
+| PyInstaller binary | `package/pyinstaller/` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). |
+| Flatpak | `package/flatpak/` | (Existing recipe, not actively maintained in current refactor wave.) |
+
+The `.deb` work-in-progress lives in `package/deb/`:
+- `test_distro.sh debian:bookworm | debian:trixie | ubuntu:24.04` spins up a Docker/Podman container, reports system package availability, falls back to pip for what's missing (`pyside6` on bookworm/ubuntu, `telnetlib3`, `junit_xml`), runs the validation suite. Currently green on the three targets.
+
 ## Recent fixes / notable changes
-- `parallel` item: new item with `sync: all|any`, `wait_for`, daemon threads, `_stop_branch_recursively()`. Each branch thread registers a per-thread stdout buffer with `stdio_redir.register_thread(...)` so its log capture and live-output prefix work in isolation.
-- `parallel_branch` icon: distinct single-arrow icon (`parallel_branch.png`) separate from the parallel container's three-arrow icon.
-- `parallel` F1 panel: `steps` stripped from each branch dict so the panel shows per-branch attributes without duplicating the tree.
-- `test_item_container.py`: new `TestItemContainer` base class extracted from Group/Cycle patterns
-- `test_item_sleep.py`: interruptible loop (checks `self._is_stopped`) instead of blocking `time.sleep()` so `sync: any` can stop slow branches quickly
-- `stdout_redirect.py`: rewrote `intercept()` to install a `StdoutProxy` (thread-aware: per-thread capture buffers + branch-prefixed live output). Adds `writeln()` for Python 3.14 unittest compatibility.
-- `test_report.py`: `check_same_thread=False` + lock around the SQLite `INSERT` for parallel branch concurrency. Log capture itself is race-free thanks to per-thread buffers.
+- Restructure: single `src/testium/` Python package (was 4 sibling top-levels: `testium`, `lib`, `py_func`, `lua_func`). `lib/` → `runtime/`, `libs/` → `api/`. `pip install` now produces a clean `site-packages/testium/` with no top-level pollution; `.lua` files travel via `package_data`.
+- `bins.py`: centralised resolution + cache of external `python3` / `lua` binaries. Replaces the scattered `tm.gd("python_bin")`/`tm.gd("lua_bin")` dance and the duplicated discovery logic in `py_process.py`/`lua_process.py`. Validates at test load via `TestSet._validate_runtime_deps()` so missing interpreters fail fast.
+- Subprocess API contract: user scripts in `py_func`/`lua_func` use the JSON-RPC bridge (`py_func.tm` / Lua `tm`) — never `api.testium` / `interpreter.*` directly. `SUPPORTED_API` extended with `OS`, `get_main_dir`, `init_timestamp`, `timestamp`, `timestamp_as_sec` so subprocess scripts have the same surface as main-process code.
+- Report exporter plugin registry (`test_report.py`): `_EXPORTER_REGISTRY` + `entry_points("testium.exporters")` discovery. Missing format → info line, run continues.
+- About dialog rework: `QVBoxLayout` (resizable), version + dirty/branch info in a `QLabel` (auto-sized), copyright + clickable EUPL-1.2 link.
+- `test_ctrl.control()`: drain stale responses (left over from polled `loaded()` after `clear()` race) instead of failing on a wrong cmd key — fixes a "Unexpected return error in test set controller" seen in GUI mode after a fast reload.
+- `lua_process.py`: stderr no longer DEVNULL'd so actual Lua errors (missing `cjson`/`socket`) surface instead of "Connection refused".
+- `run_post_exec`: failure message uses `print_warn` (was `print_debug` — silent in non-debug runs).
+- Python 3.11 compat: replaced PEP 701 nested-quote f-strings (e.g. `f"... {d["k"]} ..."`) with single-quote inner strings or string concatenation.
+- `parallel` item: new item with `sync: all|any`, `wait_for`, daemon threads, `_stop_branch_recursively()`. Each branch thread registers a per-thread stdout buffer.
+- `parallel_branch` icon: distinct single-arrow icon (`parallel_branch.png`).
+- `parallel` F1 panel: `steps` stripped from each branch dict.
+- `test_item_container.py`: shared base class extracted from Group/Cycle.
+- `test_item_sleep.py`: interruptible loop so `sync: any` can stop slow branches quickly.
+- `stdout_redirect.py`: `StdoutProxy` (thread-aware buffers + branch-prefixed live output, `writeln()` for Python 3.14 unittest).
+- `test_report.py`: thread-safe SQLite INSERT for parallel branch concurrency.
 - `terminal.py`: deleted — `-m`/`--terminal` mode removed.
-- `batch.py`: premature loop exit when `gd_update` messages (no `"id"` key) were mistaken for the "finished" signal — fix: `"id" in m and m["id"] is None`
-- `batch.py`: `control("loaded")` deadlock if `TestProcess` crashed before `cmd_th` started — fix: daemon thread + `threading.Event` + `is_alive()` polling
-- `termlog.py`: `COLOR_DEFAULT = Fore.WHITE` invisible on light terminals; added auto-detection + light palette. Also fixed `write()` residue accumulation bug (`s[pos:]` → `s[pos+1:]`).
-- Dialog items: `auto_result`/`auto_value` now used in non-interactive text mode; dialogs without `auto_result` FAIL immediately in batch mode.
-- `run` item: renamed `tum_fime` → `tum`; removed `stdout=PIPE` (caused deadlock with `multiprocessing` spawn); result simplified to PASS on any completed subprocess.
-- `unittest` item: renamed from `unittest_file` (cmd key, display name, Python constant `TYPE_UNITTEST_FILE` → `TYPE_UNITTEST`).
-- GUI test tree: check and fold state preserved across same-file reloads (`test_file_manager.py`).
-- Licence: EUPL-1.2 (`LICENSE`, `CONTRIBUTING.md`, `pyproject.toml`).
+- `batch.py`: premature finish bug on `gd_update` (no `"id"` key) — fix uses `"id" in m and m["id"] is None`.
+- `batch.py`: `control("loaded")` deadlock on TestProcess crash — fix uses daemon thread + `threading.Event` + `is_alive()` polling.
+- `termlog.py`: light/dark terminal auto-detection (`COLORFGBG`, OSC 11) + write residue bug.
+- Dialog items: `auto_result`/`auto_value` for non-interactive text mode; dialogs without `auto_result` FAIL immediately in batch.
+- `run` item: renamed `tum_fime` → `tum`; removed `stdout=PIPE` deadlock; PASS on any completed subprocess.
+- `unittest` item: renamed from `unittest_file`.
+- GUI test tree: check and fold state preserved across same-file reloads.
+- Licence: EUPL-1.2.
 
 ## Validation tests
 Located in `test/validation/`. Run with `-b` flag:

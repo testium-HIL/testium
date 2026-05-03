@@ -41,7 +41,7 @@ class FuncHandler(JsonRpcSrv):
                 except Exception as e:
                     tb = traceback.format_exc()
                     return {
-                        "error": f"bad jrpc req handler 'func_call' arguments ({"\n".join(tb.splitlines())}). To be reported to testium support team."
+                        "error": "bad jrpc req handler 'func_call' arguments (" + "\n".join(tb.splitlines()) + "). To be reported to testium support team."
                     }
             if method == "eval":
                 try:
@@ -57,7 +57,7 @@ class FuncHandler(JsonRpcSrv):
                 except Exception as e:
                     tb = traceback.format_exc()
                     return {
-                        "error": f"bad jrpc req handler 'eval' arguments ({"\n".join(tb.splitlines())}). To be reported to testium support team."
+                        "error": "bad jrpc req handler 'eval' arguments (" + "\n".join(tb.splitlines()) + "). To be reported to testium support team."
                     }
             else:
                 return {

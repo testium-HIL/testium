@@ -207,7 +207,7 @@ then considered as 'False'""")
                         else:
                             pl = [self._currentLoop]
 
-                        proc = PyFuncExecEngine(tm.gd("python_bin", ""), api_request, 10)
+                        proc = PyFuncExecEngine(api_request, 10)
                         proc.start()
                         if not proc.wait_ready(10):
                             raise ETUMRuntimeError(

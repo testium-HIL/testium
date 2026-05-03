@@ -30,17 +30,10 @@ linux_prompt: "$ "
 inc_no_template: "inc no template"
 inc_with_template: "inc with template"
 
-lua_rev: 5.5
-
-LUA_PATH_Linux: /usr/share/lua/$(lua_rev)/?.lua;/usr/local/share/lua/$(lua_rev)/?.lua;/usr/local/share/lua/$(lua_rev)/?/init.lua;/usr/share/lua/$(lua_rev)/?/init.lua;/usr/local/lib/lua/$(lua_rev)/?.lua;/usr/local/lib/lua/$(lua_rev)/?/init.lua;/usr/lib/lua/$(lua_rev)/?.lua;/usr/lib/lua/$(lua_rev)/?/init.lua;./?.lua;./?/init.lua;/home/francois/.luarocks/share/lua/$(lua_rev)/?.lua;/home/francois/.luarocks/share/lua/$(lua_rev)/?/init.lua
-LUA_CPATH_Linux: /usr/local/lib/lua/$(lua_rev)/?.so;/usr/lib/lua/$(lua_rev)/?.so;/usr/local/lib/lua/$(lua_rev)/loadall.so;/usr/lib/lua/$(lua_rev)/loadall.so;./?.so;/home/francois/.luarocks/lib/lua/$(lua_rev)/?.so
-PATH_Linux:
-
-LUA_PATH_Windows: ;.\?.lua;C:\Lua\5.1\lua\?.lua;C:\Lua\5.1\lua\?\init.lua;C:\Lua\5.1\?.lua;C:\Lua\5.1\?\init.lua;C:\Lua\5.1\lua\?.luac
-LUA_CPATH_Windows: .\?.dll;C:\Lua\5.1\?.dll;C:\Lua\5.1\loadall.dll;C:\Lua\5.1\clibs\?.dll;C:\Lua\5.1\clibs\loadall.dll;.\?51.dll;C:\Lua\5.1\?51.dll;C:\Lua\5.1\clibs\?51.dll
-PATH_Windows: ""
-
-lua_env:
-  PATH: $(PATH_$(os))
-  LUA_PATH: $(LUA_PATH_$(os))
-  LUA_CPATH: $(LUA_CPATH_$(os))
+# LUA_PATH / LUA_CPATH are intentionally NOT set: the lua interpreter's
+# compiled-in defaults already point to the version-matching directories
+# (/usr/share/lua/X.Y, /usr/lib/.../lua/X.Y) where the system packages
+# lua-cjson and lua-socket install their files. Hard-coding a `lua_rev`
+# here would break as soon as the host's lua differs from that value
+# (which is exactly what happened on Debian Bookworm with lua5.5
+# vs. lua-cjson built for lua5.4).

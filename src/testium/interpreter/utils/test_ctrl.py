@@ -25,12 +25,17 @@ class TestSetController:
         if "timeout" in args:
             timeout = args.pop("timeout")
         self._test_ctrl.put({cmd: args})
-        res = self._test_resp.get(block, timeout)
-        if isinstance(res, tuple):
-            raise ETUMRuntimeError(f"Test set command '{cmd}' failed: '{res[1]}'")
-        if isinstance(res, dict) and not cmd in res.keys():
-            raise ETUMRuntimeError(f"Unexpected return error in test set controller")
-        return res[cmd]
+        # Drain stale responses (left over from earlier polled commands that
+        # we had given up on waiting). They can land in the queue after our
+        # clear() because the TestProcess may have pulled their request
+        # before the clear, processed them, and pushed the response after.
+        while True:
+            res = self._test_resp.get(block, timeout)
+            if isinstance(res, tuple):
+                raise ETUMRuntimeError(f"Test set command '{cmd}' failed: '{res[1]}'")
+            if isinstance(res, dict) and cmd in res.keys():
+                return res[cmd]
+            # Anything else is a stale response — discard and keep waiting.
 
     def clear(self):
         while True:

@@ -58,7 +58,6 @@ def _discover_plugins():
             try:
                 cls = ep.load()
                 _EXPORTER_REGISTRY[ep.name] = lambda c=cls: c
-                print(f'[testium] Loaded report exporter plugin: "{ep.name}"')
             except Exception as e:
                 print(f'[testium] Failed to load report exporter plugin "{ep.name}": {e}')
     except Exception:

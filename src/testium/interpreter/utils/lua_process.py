@@ -1,6 +1,5 @@
 import os
 import sys
-import shutil
 import subprocess
 import socket
 
@@ -8,85 +7,7 @@ import api.testium as tm
 from runtime.jrpc import JsonRpcClient
 from interpreter.utils.paths import subproc_path
 from runtime.tum_except import ETUMRuntimeError
-from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
-
-def _lua_version(path: str):
-    cmd = f'"{path}" -v'
-    try:
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            encoding=tm.sys_encoding(),
-            timeout=10,
-        )
-        # Under windows, the output is on stderr
-        data = result.stdout or result.stderr
-    except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired) as e:
-        data = ""
-    try:
-        vers = ((data.split(" "))[1]).split(".")
-        if len(vers) != 3:
-            vers = (0, 0, 0)
-    except:
-        vers = (0, 0, 0)
-    return tuple(vers)
-
-
-def _is_lua51(lua_bin):
-    res = False
-    v = _lua_version(lua_bin)
-    if (v[0] == "5") and (v[1] >= "1"):
-        res = True
-    return res
-
-
-def _sys_lua_bin():
-    sys_lua_bin = tm.gd("_sys_lua_bin", "")
-    if sys_lua_bin != "":
-        return sys_lua_bin
-
-    cur_os = tm.OS()
-    if cur_os == "Windows":
-        func = sys_app_path_win
-    else:
-        func = sys_app_path_lin
-
-    sys_lua_bin = func("lua")
-    if (sys_lua_bin != "") and not _is_lua51(sys_lua_bin):
-        tm.print_debug(f"'{sys_lua_bin}' not a lua 5.1 min.")
-        sys_lua_bin = ""
-
-    tm.print_debug(f"lua bin is: '{sys_lua_bin}'.")
-    tm.setgd("_sys_lua_bin", sys_lua_bin)
-    return sys_lua_bin
-
-
-def _is_lua_interpreter(path: str, timeout=2) -> bool:
-    """
-    Checks if the given path points to a valid Lua interpreter.
-
-    Args:
-        path (str): Path to the executable to check.
-        timeout (int, optional): Timeout for the subprocess in seconds. Defaults to 2.
-
-    Returns:
-        bool: True if the path is a Lua interpreter, False otherwise.
-    """
-    try:
-        result = subprocess.run(
-            [path, "-v"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=timeout,
-        )
-        return (result.returncode == 0) and (
-            (result.stdout.startswith("Lua") or result.stderr.startswith("Lua"))
-        )
-    except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
-        return False
+from interpreter.utils import bins
 
 
 class LuaProcessBase:
@@ -96,35 +17,15 @@ class LuaProcessBase:
         "LUA_CPATH": {"replace": True},
     }
 
-    def __init__(self, lua_bin="", request_handler=None, timeout=10):
-        """
-        Initializes the Lua function execution engine.
-
-        Args:
-            lua_bin (str, optional): Path to the Lua interpreter. Defaults to system path.
-            request_handler: Handler for JSON-RPC requests.
-            timeout (int, optional): Timeout for operations in seconds. Defaults to 10.
+    def __init__(self, request_handler=None, timeout=10):
+        """Initializes the Lua function execution engine.
 
         Raises:
-            ETUMRuntimeError: If the Lua path is invalid or no interpreter is found.
+            ETUMRuntimeError: If no Lua >= 5.1 interpreter is found.
         """
-        if lua_bin != "":
-            if shutil.which(lua_bin) is None:
-                raise ETUMRuntimeError(
-                    f"The passed lua path is not pointing to an executable: '{lua_bin}'"
-                )
-
-            if not _is_lua_interpreter(lua_bin):
-                raise ETUMRuntimeError(
-                    f"The passed executable is not a lua interpreter: '{lua_bin}'"
-                )
-        else:
-            lua_bin = _sys_lua_bin()
-            if lua_bin == "":
-                raise ETUMRuntimeError(f"No valid lua interpreter found")
-            tm.setgd("lua_bin", lua_bin)
-
-        self._lbin = lua_bin
+        self._lbin = bins.lua_bin()
+        if not self._lbin:
+            raise ETUMRuntimeError("No valid Lua 5.1+ interpreter found")
         self._req_handler = request_handler
         self._process = None
         self._port = 0

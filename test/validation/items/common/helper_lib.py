@@ -1,4 +1,4 @@
-import api.testium as libtm
+import py_func.tm as libtm
 
 
 def check_os(expected_os):

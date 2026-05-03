@@ -145,7 +145,7 @@ class JsonRpcConnection:
                 self.pending[msg["id"]]["response"] = msg
                 self.pending[msg["id"]]["event"].set()
             else:
-                self.print_info(f"msg id '{msg["id"]}' inconsistency")
+                self.print_info(f"msg id '{msg['id']}' inconsistency")
 
     # ---------- Handler ----------
     def _handle_request(self, meth, params, rid=None):

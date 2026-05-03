@@ -28,7 +28,7 @@ def _make_api(name):
             if "result" in res:
                 ret_val = res["result"]
             elif "error" in res:
-                raise ETUMRuntimeError(f"api call to 'tm.{name}' failed with error '{res["error"]}'")
+                raise ETUMRuntimeError(f"api call to 'tm.{name}' failed with error '{res['error']}'")
             else:
                 raise ETUMRuntimeError("api call failure in jrpc client to be reported to testium support team.")
             return ret_val

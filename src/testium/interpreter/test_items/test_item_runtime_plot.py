@@ -40,6 +40,7 @@ class TestItemPlotActionOpen(TestItemPlotAction):
         try:
             gname = self._prms.expanse(self.token)
             lpath = self._prms.expanse(self._log_path)
+            runtime_plot = importlib.import_module("api.runtime_plot")
             gr = runtime_plot.RuntimePlot(gname, lpath)
             tm.add_plot(gr)
 
@@ -233,6 +234,3 @@ class TestItemPlot(TestItemActions):
         )
 
         self.actions_token = self._prms.getParam("plot_name", required=True)
-
-        global runtime_plot
-        runtime_plot = importlib.import_module("api.runtime_plot")

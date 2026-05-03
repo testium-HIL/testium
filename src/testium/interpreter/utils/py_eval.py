@@ -6,9 +6,9 @@ import api.testium as tm
 eval_process = None
 
 
-def eval_process_init(python_bin, request_handler, timeout, python_path):
+def eval_process_init(request_handler, timeout, python_path):
     global eval_process
-    eval_process = EvalExecEngine(python_bin, request_handler, timeout, python_path)
+    eval_process = EvalExecEngine(request_handler, timeout, python_path)
     return eval_process
 
 
