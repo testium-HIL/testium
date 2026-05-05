@@ -242,7 +242,7 @@ The `.deb` work-in-progress lives in `package/deb/`:
 ## Validation tests
 Located in `test/validation/`. Run with `-b` flag:
 ```
-./run.sh -b -l mon_log.log -- test/validation/main.tum
+./run.sh -b -- test/validation/main.tum
 ```
 Parallel item tests: `test/validation/items/parallel/test.tum`
 
