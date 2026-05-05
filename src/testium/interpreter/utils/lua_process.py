@@ -8,6 +8,7 @@ from runtime.jrpc import JsonRpcClient
 from interpreter.utils.paths import subproc_path
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils import bins
+from interpreter.utils.proc_drain import drain_to_log
 
 
 class LuaProcessBase:
@@ -93,10 +94,14 @@ class LuaProcessBase:
         self._process = subprocess.Popen(
             params, env=env, cwd=func_proc_path,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             restore_signals=False,
         )
+        # Route subprocess stdout/stderr (lua require failures, syntax
+        # errors, anything written to fd 1/2 before the in-script
+        # remote_print is set up) into the parent's log.
+        drain_to_log(self._process, prefix="[lua_func] ")
 
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler

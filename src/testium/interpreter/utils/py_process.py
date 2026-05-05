@@ -7,6 +7,7 @@ import api.testium as tm
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.paths import testium_path, subproc_path
 from interpreter.utils import bins
+from interpreter.utils.proc_drain import drain_to_log
 
 
 class PyProcessBase:
@@ -77,10 +78,15 @@ class PyProcessBase:
         self._process = subprocess.Popen(
             params, env=env, cwd=func_proc_path,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             restore_signals=False,
         )
+        # Route subprocess stdout/stderr (early-startup errors,
+        # unhandled exceptions, anything written to fd 1/2 before the
+        # in-process JSON-RPC stdio_redir kicks in) into the parent's
+        # log.
+        drain_to_log(self._process, prefix="[py_func] ")
 
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler
