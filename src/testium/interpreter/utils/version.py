@@ -31,39 +31,42 @@ def get_version(path :str)-> str:
         return "Warning git not supported in your settings, version of {} unknown".format(path)
 
 def get_testium_version():
-    # case where we're executing from an Appimage
+    # AppImage
     if 'APPIMAGE' in os.environ:
-        ver = 'unknown'
-        if 'SEQUENCER_REV' in os.environ:
-            ver = os.getenv('SEQUENCER_REV')
-        return (ver + " (binary release)")
+        ver = os.getenv('SEQUENCER_REV', 'unknown')
+        return ver + " (binary release)"
 
-    # case where we're executing from pyinstaller exe
+    # PyInstaller frozen exe
     if getattr(sys, 'frozen', False):
         file_path = os.path.join(sys._MEIPASS, "VERSION")
-        with open(file_path, 'r') as file:
-            ver = file.read()
-        return (ver + " (binary release)")
+        try:
+            with open(file_path, 'r') as f:
+                ver = f.read().strip()
+            return ver + " (binary release)"
+        except OSError:
+            return "unknown (binary release)"
 
-    # Executed from sources
-    try:
-        if prefs.settings.git_supported:
+    # Source checkout: prefer git revision when available
+    if prefs.settings.git_supported:
+        try:
             git = import_module("git")
-            path = tm.get_main_dir()
-            try:
-                return repo_rev(path)
-            except git.InvalidGitRepositoryError:
-                pkg_rec = import_module("pkg_resources")
-                try:
-                    ret = pkg_rec.get_distribution("testium").version
-                    _cached_versions.update({path: ret})
-                    return str(ret) + " (wheel release)"
-                except:
-                    return "Warning : testium not versioned"
-        else:
-            return "Warning git not supported in your settings, version of testium is unknown."
-    except:
-        return ("Unknown")
+            return repo_rev(tm.get_main_dir())
+        except Exception:
+            # Not a git repo (typical pip install): fall through.
+            pass
+
+    # Pip-installed wheel: use the package metadata baked from VERSION
+    try:
+        from importlib.metadata import version as _pkg_version
+        from importlib.metadata import PackageNotFoundError
+        try:
+            return _pkg_version("testium") + " (wheel release)"
+        except PackageNotFoundError:
+            pass
+    except ImportError:
+        pass
+
+    return "unknown"
 
 def get_modifications(path : str)-> str:
 
