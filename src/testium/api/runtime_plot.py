@@ -1,5 +1,6 @@
 import sys
 import os
+import queue
 import multiprocessing as mp
 from threading import Timer
 from time import sleep, monotonic
@@ -367,7 +368,7 @@ class RuntimePlot:
             self.msg_queue_in.get()
         self.msg_queue_out.put({"command": "last_values"})
         try:
-            res = self.msg_queue_in.get(timeout=1)
-        except:
+            res = self.msg_queue_in.get(timeout=5)
+        except queue.Empty:
             raise ETUMRuntimeError(f"Impossible to retrieve the last values of the \"{self.name}\" plot")
         return res
