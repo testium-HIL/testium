@@ -183,6 +183,8 @@ Icons are assigned once when the test file is loaded (not updated live on theme 
 
 The sub-test's own pass/fail result is intentionally not propagated.
 
+The interpreter and entry point used to spawn the sub-instance are picked automatically by `_testium_launch_cmd()` based on how the parent was started (AppImage → `$APPIMAGE`; Flatpak → `flatpak run`; PyInstaller → the frozen binary; source/wheel → `[sys.executable, abspath(sys.argv[0])]`). The user cannot override either via the YAML — selecting a different testium binary or Python from a sub-test was removed because it was either ill-defined (bundle modes have no separable Python) or could mismatch the parent's environment in surprising ways.
+
 ### Report exporters & plugins
 `src/testium/interpreter/test_report/test_report.py` — `_EXPORTER_REGISTRY` dict maps a format name (cmd key in the YAML `report.export`) to a lazy loader. Built-ins: `text`, `json`, `junit` (needs `junit_xml`), `html` (needs `lxml`). `sqlite` is the storage layer, no-op as an export.
 
@@ -201,16 +203,37 @@ A real-world test plugin lives at `test/validation/fake_exporter/` (CSV exporter
 
 ## Packaging
 
-Three distribution channels coexist, sharing the single `src/testium/` package:
+Four distribution channels coexist, all sharing the single `src/testium/` package and the single `src/requirements.txt` dependency list:
 
-| Channel | Where | Notes |
-|---------|-------|-------|
-| Wheel (`pip install`) | `src/pyproject.toml` | Vanilla Python package; entry point `testium = "testium:main"` |
-| PyInstaller binary | `package/pyinstaller/` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). |
-| Flatpak | `package/flatpak/` | (Existing recipe, not actively maintained in current refactor wave.) |
+| Channel | Where | Build | Notes |
+|---------|-------|-------|-------|
+| Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. |
+| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). |
+| Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |
+| AppImage | `package/appimage/` | `build.sh` (Debian Bookworm container via Podman/Docker) | Bundles Python 3.11 for the main process; `py_func` / `lua_func` MUST run under the **host** interpreter. Build runs in a container so it works on Arch / any non-Debian host. |
 
 The `.deb` work-in-progress lives in `package/deb/`:
 - `test_distro.sh debian:bookworm | debian:trixie | ubuntu:24.04` spins up a Docker/Podman container, reports system package availability, falls back to pip for what's missing (`pyside6` on bookworm/ubuntu, `telnetlib3`, `junit_xml`), runs the validation suite. Currently green on the three targets.
+
+### Host-only py_func / lua_func in sandboxed bundles (Flatpak, AppImage)
+
+The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
+
+- `_in_flatpak()` (checks `/.flatpak-info`) and `_in_appimage()` (checks `APPIMAGE` env var) detect the sandbox.
+- `_which(name)` probes only host bin dirs in those modes:
+  - Flatpak: `/run/host/usr/{local/,}bin`, `/run/host/bin` (host mounted via `--filesystem=host-os`).
+  - AppImage: `/usr/local/bin`, `/usr/bin`, `/bin` (we are directly on the host filesystem).
+  - If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
+- User overrides (`python_bin`/`lua_bin` in globdict): bare names are resolved through `_which()` (host-only), absolute paths are accepted as-is.
+- `apply_host_libs(env)` is called by `py_process.py` / `lua_process.py` on the env passed to Popen:
+  - Flatpak: prepends host lib dirs to `LD_LIBRARY_PATH` so the dynamic linker finds host `.so`'s.
+  - AppImage: strips `$APPDIR`-prefixed entries from `LD_LIBRARY_PATH` / `PYTHONPATH` / `PATH` and drops `PYTHONHOME`, so the host Python doesn't try to load the bundled stdlib/site-packages.
+- `apply_host_lua_paths(env)` (Flatpak only) prepends `/run/host/usr/{lib,share}/lua/X.Y` to `LUA_PATH` / `LUA_CPATH` so `cjson`, `socket`, etc. resolve. Must be called **after** user `lua_env` overrides so host paths win. AppImage relies on host Lua's compiled-in defaults.
+- `py_process.py` additionally pops `PYTHONUSERBASE` (set to `/var/data/python` by the Flatpak runtime, which would hide `~/.local/lib/...`).
+
+### Version reporting (`interpreter/utils/version.py`)
+
+Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: launcher script in `org.testium.Testium.yaml`; AppImage: `runtime.env` in `AppImageBuilder.yml`). `get_testium_version()` checks `/.flatpak-info` / `APPIMAGE` and reads `TESTIUM_VERSION` rather than relying on package metadata or repo introspection.
 
 ## Recent fixes / notable changes
 - Restructure: single `src/testium/` Python package (was 4 sibling top-levels: `testium`, `lib`, `py_func`, `lua_func`). `lib/` → `runtime/`, `libs/` → `api/`. `pip install` now produces a clean `site-packages/testium/` with no top-level pollution; `.lua` files travel via `package_data`.
