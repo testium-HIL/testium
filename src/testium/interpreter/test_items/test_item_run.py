@@ -13,6 +13,32 @@ from interpreter.utils.constants import TestItemType as cst
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 
+def _testium_launch_cmd():
+    """Command prefix to launch a fresh testium instance, runtime-aware.
+
+    AppImage / Flatpak / PyInstaller / wheel / source all need a different
+    entry point than just the path to __main__.py (which may be a .py inside
+    a read-only bundle, or unreachable from the sub-instance's cwd).
+    """
+    # AppImage: the env var holds the path to the .AppImage file itself.
+    appimage = os.environ.get("APPIMAGE")
+    if appimage:
+        return [appimage]
+    # Flatpak: re-launch via the Flatpak app id.
+    if os.path.isfile("/.flatpak-info"):
+        return ["flatpak", "run", "org.testium.Testium"]
+    # PyInstaller frozen exe: sys.executable is the binary itself.
+    if getattr(sys, "frozen", False):
+        return [sys.executable]
+    # Source / wheel: re-use the same Python with the same entry point that
+    # launched this instance, made absolute so cwd changes in the sub-instance
+    # don't break the lookup. argv[0] is either:
+    #  - the package directory (source: `python3 src/testium ...`)
+    #  - the console_scripts wrapper (wheel: `/usr/bin/testium`)
+    # Both are runnable as `python <argv0>`.
+    return [sys.executable, os.path.abspath(sys.argv[0])]
+
+
 def nowInBetween(start, end):
     """
     Check wether current time is within boundaries
@@ -33,8 +59,6 @@ class TestItemRun(TestItem):
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self.tum_file = self._prms.getParam('tum', required=True)
             self.param_file = self._prms.getParam('param_file', default='')
-            self.python_bin = self._prms.getParam('python_bin', default='')
-            self.testium_path = self._prms.getParam('testium_path', default='')
             self.log_path = self._prms.getParam('log_file', default='')
             self.report_path = self._prms.getParam('report_file', default='')
             self.start_time = self._prms.getParam('start_time')
@@ -52,18 +76,9 @@ class TestItemRun(TestItem):
                     '"{}" file could not be found'.format(file_path))
             self.tum_file = file_path
             pf = self._prms.expanse(self.param_file)
-            pp = self._prms.expanse(self.python_bin)
-            sp = self._prms.expanse(self.testium_path)
             lp = self._prms.expanse(self.log_path)
             rp = self._prms.expanse(self.report_path)
-            cmd = []
-            if sp == '':
-                sp = sys.argv[0]
-            if pp != '':
-                cmd.append(pp)
-            elif not os.path.isfile(sp) or not os.access(sp, os.X_OK):
-                cmd.append(sys.executable)
-            cmd.append(sp)
+            cmd = _testium_launch_cmd()
             if tm.text_mode():
                 cmd.append("-b")
             else:
