@@ -8,14 +8,18 @@ def exception_handler(typ_exc, value, trbk):
     print(f"Critical failure : '{value}'.")
     tb = traceback.format_exception(typ_exc, value, trbk)
     print("".join(tb))
+    print(f"  python    : {sys.executable}")
+    print(f"  sys.path  : {sys.path}")
 
 sys.excepthook = exception_handler
 
-p = Path(__file__)
-p = p.parent / ".."
-p = p.resolve()
-
-sys.path.append(p)
+# Make the parent directory of py_func/ (= the testium package dir, which also
+# contains runtime/, lua_func/, …) the first entry on sys.path so `from py_func
+# import main` and `from runtime…` resolve regardless of cwd or how this script
+# was invoked. str() because some importers don't play well with PathLike entries.
+_pkg_parent = str((Path(__file__).resolve().parent / "..").resolve())
+if _pkg_parent not in sys.path:
+    sys.path.insert(0, _pkg_parent)
 
 from py_func import main
 
