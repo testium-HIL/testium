@@ -10,6 +10,8 @@ import os
 def setup():
     """Configure the Qt environment for dialog subprocess usage."""
     if sys.platform.startswith('linux'):
-        # On Linux/Wayland, force X11 (via XWayland) to avoid crashes
-        # when Qt is initialized inside a multiprocessing subprocess.
-        os.environ['QT_QPA_PLATFORM'] = 'xcb'
+        if os.environ.get('DISPLAY'):
+            # X11 available: force xcb to avoid crashes in multiprocessing subprocesses.
+            os.environ['QT_QPA_PLATFORM'] = 'xcb'
+        elif os.environ.get('WAYLAND_DISPLAY'):
+            os.environ['QT_QPA_PLATFORM'] = 'wayland'
