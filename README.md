@@ -27,7 +27,19 @@ Pre-built artifacts are published at
   runnable directly, no Python installation required on the host. Lua
   support still needs a system `lua` interpreter and the `lua-socket` /
   `lua-cjson` modules.
-* **Flatpak** — *coming soon.*
+* **Flatpak bundle** (`testium.flatpak`) — install with:
+
+  ```sh
+  # Add Flathub (once, to fetch the KDE/PySide runtimes)
+  flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+  # Install the bundle
+  flatpak install --user testium.flatpak
+  ```
+
+  After installation testium appears in the desktop application menu and the
+  `testium` command is available in the terminal (requires `~/.local/bin` in
+  `PATH`, which most modern distributions provide by default).
 
 ## Quick start
 

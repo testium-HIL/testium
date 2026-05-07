@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Testium
+GenericName=Test Sequencer
+Comment=YAML-based test sequencer and runner
+Exec=testium %f
+Icon=org.testium.Testium
+Type=Application
+Categories=Development;
+MimeType=application/x-testium;
+StartupNotify=true

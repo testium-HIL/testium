@@ -8,6 +8,8 @@ dist
 /.vscode
 .venv/
 .flatpak-builder/
+package/flatpak/repo/
+package/flatpak/*.flatpak
 crash.tx*
 report_test.tx*
 *.autosave

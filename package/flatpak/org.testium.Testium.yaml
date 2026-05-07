@@ -13,7 +13,9 @@ finish-args:
   - --socket=wayland
   - --device=dri
   - --share=network
-  - --filesystem=home # Optionnel : si votre testium doit lire des fichiers utilisateurs
+  - --filesystem=home
+  - --filesystem=/tmp
+  - --filesystem=host-os
 
 build-options:
   build-args:
@@ -41,18 +43,41 @@ modules:
     sources:
       - type: dir
         path: ../../src
+      - type: file
+        path: org.testium.Testium.desktop
+      - type: file
+        path: org.testium.Testium-mime.xml
+      - type: file
+        path: ../../package/testium.png
     build-commands:
-      # On installe le code source dans /app/lib/testium
+      # Code source
       - mkdir -p /app/lib
-      - cp -r . /app/lib/
+      - cp -r testium /app/lib/
+      - cp VERSION /app/lib/testium/VERSION
 
-      # Création du launcher exécutable
+      # Launcher exécutable
       - mkdir -p /app/bin
       - |
         cat <<EOF > /app/bin/testium
         #!/bin/sh
-        # On ajoute le code source et l'extension PySide6 au PYTHONPATH
+        export TESTIUM_VERSION="\$(cat /app/lib/testium/VERSION 2>/dev/null || echo unknown)"
         export PYTHONPATH="/app/lib/testium:/usr/lib/sdk/pyside6/lib/python3.13/site-packages:\$PYTHONPATH"
-        exec python3 /app/lib/testium "\$@"
+        # Expose host binaries (git, python3, lua, …) for subprocess lookups.
+        # PATH is appended (not prepended) so the main process keeps the sandbox python3.
+        export PATH="\$PATH:/run/host/usr/local/bin:/run/host/usr/bin:/run/host/bin"
+        export GIT_PYTHON_GIT_EXECUTABLE="/run/host/usr/bin/git"
+        exec /usr/bin/python3 /app/lib/testium "\$@"
         EOF
       - chmod +x /app/bin/testium
+
+      # Icône
+      - mkdir -p /app/share/icons/hicolor/256x256/apps
+      - cp testium.png /app/share/icons/hicolor/256x256/apps/org.testium.Testium.png
+
+      # Entrée menu
+      - mkdir -p /app/share/applications
+      - cp org.testium.Testium.desktop /app/share/applications/
+
+      # Type MIME pour .tum
+      - mkdir -p /app/share/mime/packages
+      - cp org.testium.Testium-mime.xml /app/share/mime/packages/
