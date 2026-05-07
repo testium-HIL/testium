@@ -26,6 +26,7 @@ package/appimage/*.AppImage
 package/appimage/src
 package/appimage/*.py
 AppDir
+*.squashfs
 doc/manual/doxygen
 doc/manual/sphinx/build/*
 doc/manual/sphinx/source/_build/*

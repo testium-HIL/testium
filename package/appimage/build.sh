@@ -1,12 +1,53 @@
-#!/usr/bin/bash
+#!/bin/bash
+# Build the testium AppImage inside a Debian container (Podman or Docker).
+# The resulting .AppImage file is written to this directory.
 
-export APP_VERSION=$(<../../src/VERSION)
+set -e
 
-appimage-builder --recipe AppImageBuilder.yml
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+APP_VERSION="$(<"$REPO_ROOT/src/VERSION")"
 
-RESULT=$?
-if [ -n "$1" ] && [ "$1" = "install" ]; then
-    if [ $RESULT -eq 0 ]; then
-        install -v "testium-${APP_VERSION}-x86_64.AppImage" "${HOME}/.local/bin/testium"
-    fi
+if command -v podman &>/dev/null; then
+    RUNTIME=podman
+elif command -v docker &>/dev/null; then
+    RUNTIME=docker
+else
+    echo "Error: neither podman nor docker found." >&2
+    exit 1
+fi
+echo "Using $RUNTIME — building testium $APP_VERSION AppImage..."
+
+# APPIMAGE_EXTRACT_AND_RUN=1 lets appimagetool run without FUSE in the container.
+$RUNTIME run --rm \
+    --privileged \
+    -e APPIMAGE_EXTRACT_AND_RUN=1 \
+    -v "$REPO_ROOT:/work" \
+    -w /work/package/appimage \
+    debian:bookworm bash -c "
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+
+        apt-get update -qq
+        apt-get install -y -qq \
+            python3 python3-pip python3-venv python3-build \
+            dpkg-dev fakeroot squashfs-tools wget curl file binutils \
+            libglib2.0-0 patchelf zsync > /dev/null
+
+        # Build the wheel
+        cd /work/src
+        python3 -m build --wheel --outdir dist/ > /dev/null
+        cd /work/package/appimage
+
+        # Install appimage-builder
+        pip3 install appimage-builder --quiet --break-system-packages
+
+        # Run the build
+        export APP_VERSION=$APP_VERSION
+        appimage-builder --recipe AppImageBuilder.yml --skip-test
+    "
+
+echo "Done: testium-${APP_VERSION}-x86_64.AppImage"
+
+if [ "${1}" = "install" ]; then
+    install -v "testium-${APP_VERSION}-x86_64.AppImage" "${HOME}/.local/bin/testium"
 fi
