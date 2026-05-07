@@ -31,10 +31,15 @@ def get_version(path :str)-> str:
         return "Warning git not supported in your settings, version of {} unknown".format(path)
 
 def get_testium_version():
+    # Flatpak bundle
+    if os.path.isfile('/.flatpak-info'):
+        ver = os.environ.get('TESTIUM_VERSION', '').strip()
+        return (ver if ver else 'unknown') + " (flatpak release)"
+
     # AppImage
     if 'APPIMAGE' in os.environ:
-        ver = os.getenv('SEQUENCER_REV', 'unknown')
-        return ver + " (binary release)"
+        ver = os.environ.get('TESTIUM_VERSION', '').strip()
+        return (ver if ver else 'unknown') + " (binary release)"
 
     # PyInstaller frozen exe
     if getattr(sys, 'frozen', False):
