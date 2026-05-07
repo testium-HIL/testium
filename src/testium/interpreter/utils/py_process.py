@@ -42,6 +42,10 @@ class PyProcessBase:
             raise ETUMRuntimeError(f"The 'py_env' global value should be a dictionary. But it is '{py_env}'.")
 
         env = os.environ.copy()
+        bins.apply_host_libs(env)
+        # PYTHONUSERBASE is set by the Flatpak runtime to isolate sandbox
+        # user packages; remove it so the host Python finds ~/.local packages.
+        env.pop("PYTHONUSERBASE", None)
         for k, v in self.CUST_ENV.items():
             e = py_env.get(k, "")
             if e != "":

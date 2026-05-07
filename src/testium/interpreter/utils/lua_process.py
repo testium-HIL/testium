@@ -60,6 +60,7 @@ class LuaProcessBase:
 
         lua_env = tm.gd("lua_env", {})
         env = os.environ.copy()
+        bins.apply_host_libs(env)
         if not isinstance(lua_env, dict):
             raise ETUMRuntimeError(f"The 'lua_env' global value should be a dictionary. But it is '{lua_env}'.")
 
@@ -70,6 +71,7 @@ class LuaProcessBase:
                     env[k] = e
                 else:
                     env[k] = e + ";" + env.get(k, "")
+        bins.apply_host_lua_paths(env)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(("localhost", 0))
