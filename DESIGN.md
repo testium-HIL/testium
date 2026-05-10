@@ -1,4 +1,4 @@
-# Testium — Claude Context
+# Testium — Design Context
 
 ## What is testium
 
