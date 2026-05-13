@@ -46,8 +46,9 @@ $RUNTIME run --rm \
         appimage-builder --recipe AppImageBuilder.yml --skip-test
     "
 
-echo "Done: testium-${APP_VERSION}-x86_64.AppImage"
+APPIMAGE_FILE=$(ls -1t Testium-*-x86_64.AppImage 2>/dev/null | head -1)
+echo "Done: ${APPIMAGE_FILE}"
 
-if [ "${1}" = "install" ]; then
-    install -v "testium-${APP_VERSION}-x86_64.AppImage" "${HOME}/.local/bin/testium"
+if [ "${1}" = "install" ] && [ -n "${APPIMAGE_FILE}" ]; then
+    install -v "${APPIMAGE_FILE}" "${HOME}/.local/bin/testium"
 fi
