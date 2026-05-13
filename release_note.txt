@@ -1,23 +1,19 @@
+version 0.1.2
+==============
+- Flatpak: opening a test from the GUI now correctly finds its companion
+  files (param.yaml, .py scripts, ...).
+
 version 0.1.1
 ==============
-- Packaging: Flatpak bundle (desktop entry, MIME, distributable .flatpak)
-  and AppImage (containerized build, runs on Arch / non-Debian hosts).
-- bins.py: host-only Python/Lua resolution from sandboxed bundles
-  (Flatpak / AppImage); fail fast at test load if the host interpreter
-  is missing.
-- run item: runtime-aware launcher (AppImage / Flatpak / PyInstaller /
-  source / wheel); drop testium_path / python_bin parameters.
-- dialog_env: auto-detect Wayland vs xcb from $DISPLAY / $WAYLAND_DISPLAY
-  instead of forcing xcb (was hanging dialogs on pure-Wayland sessions).
-- version: read TESTIUM_VERSION env in Flatpak/AppImage so the About
-  dialog stops reporting "unknown".
-- runtime_plot last_values: bump timeout 1s -> 5s and narrow the bare
-  except to queue.Empty.
-- py_func/__main__: robust sys.path init, diagnostic on import failure.
-- Subprocess stdio (py_func / lua_func) routed into the parent log.
-- README refocused on users (quick_start, tutorial); CONTRIBUTING filled.
-- Docs: CLAUDE.md Packaging section rewritten.
-- LICENSE file (EUPL-1.2) added.
+- New install channels: Flatpak bundle and AppImage. The AppImage runs
+  on any distribution (built inside a Debian container).
+- About dialog: version is now correct in Flatpak and AppImage builds
+  (used to display "unknown").
+- GUI dialogs no longer hang on pure-Wayland sessions.
+- Plot "last values" API: more tolerant timeout on loaded machines.
+- run item: `testium_path` and `python_bin` parameters removed —
+  sub-instances are launched in the same packaging mode as the parent.
+- License: EUPL-1.2.
 
 version 0.1
 ==============
