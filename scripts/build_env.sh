@@ -20,6 +20,12 @@ if [ "$?" -ne 0 ]; then
     echo "venv must be installed on the host distribution."
     exit -1
 fi
+# Check if venv is installed
+python3 -c "import ensurepip"
+if [ "$?" -ne 0 ]; then
+    echo "ensurepip must be installed on the host distribution."
+    exit -1
+fi
 
 # Install the virtual environment if needed
 if [ ! -d "$PY_VENV_DIR" ]; then
