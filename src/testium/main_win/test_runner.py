@@ -176,7 +176,7 @@ class TestRunner:
             w.actionOpenTest.setDisabled(True)
             w.actionExit.setDisabled(True)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/pause.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(icon_prefix() + "/pause2.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
             w.actionStart_test.setIcon(icon)
             w.actionStart_test.setText("Pause test")
             w.actionPreferences.setDisabled(True)

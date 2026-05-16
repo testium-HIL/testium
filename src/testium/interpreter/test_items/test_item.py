@@ -20,51 +20,63 @@ class TestItem:
 def test_run(f):
     @wraps(f)
     def wrapper(self):
-        if not self.skipped:
-            if self.enabled:
-                self.run_test_init()
-                # Conditional execution
-                raw_condition = self._prms.getParam(
-                    "condition", default=None, processed=False
-                )
-                if raw_condition is None:
-                    condition = True
-                else:
-                    c = self._prms.expanse(raw_condition)
-                    if isinstance(c, bool):
-                        condition = c
-                    else:
-                        condition = False
-                        c = False
-
-                    if raw_condition == c:
-                        msg = f'"{c}"'
-                    else:
-                        msg = f'"{raw_condition}" --> "{c}"'
-
-                # Do we have to skip the test because of a true condition ?
-                if condition:
-                    if not raw_condition is None:
-                        msg = "condition met: " + msg
-                        self.result.reported = {"input_condition": msg}
-                        print(msg)
-                    # Test preparation
-                    self.run_before_test()
-                    # Test execution
-                    f(self)
-                else:
-                    msg = "condition not met: " + msg
-                    self.result.set(TestValue.NORUN, msg)
-                    self.result.reported = {"input_condition": msg}
-                self.run_test_end()
-            else:
-                self.result.set(TestValue.NORUN, "test disabled")
-                print("Test is disabled.")
-        else:
+        if self.skipped:
             self.result.set(TestValue.NORUN, "test skipped")
             print("Test is skipped.")
+            return self.result
+        
+        if not self.enabled:
+            self.result.set(TestValue.NORUN, "test disabled")
+            print("Test is disabled.")
+            return self.result
+
+        self.run_test_init()
+
+        while self._is_paused:
+            sleep(0.2)
+            if self.isStopped() :
+                self.result.set(TestValue.NORUN, "test stopped")
+                print("Test is Stopped.")
+                self._is_stopped = False    # Restore state for next run
+                return self.result
+
+        # Conditional execution
+        raw_condition = self._prms.getParam(
+            "condition", default=None, processed=False
+        )
+        if raw_condition is None:
+            condition = True
+        else:
+            c = self._prms.expanse(raw_condition)
+            if isinstance(c, bool):
+                condition = c
+            else:
+                condition = False
+                c = False
+
+            if raw_condition == c:
+                msg = f'"{c}"'
+            else:
+                msg = f'"{raw_condition}" --> "{c}"'
+
+        # Do we have to skip the test because of a true condition ?
+        if condition:
+            if not raw_condition is None:
+                msg = "condition met: " + msg
+                self.result.reported = {"input_condition": msg}
+                print(msg)
+            # Test preparation
+            self.run_before_test()
+            # Test execution
+            f(self)
+        else:
+            msg = "condition not met: " + msg
+            self.result.set(TestValue.NORUN, msg)
+            self.result.reported = {"input_condition": msg}
+        self.run_test_end()
 
         return self.result
+
 
     return wrapper
 
@@ -255,8 +267,6 @@ class TestItem:
         self._sendStatusStarted()
         if self._is_breakpoint:
             self._is_paused = True
-            while self._is_paused:
-                sleep(0.2)
 
         if self.is_container:
             self.report.incLevel()
@@ -273,9 +283,6 @@ class TestItem:
         """Common test items execution closure."""
         if self.is_container:
             self.report.decLevel()
-
-        while self._is_paused:
-            sleep(0.2)
 
         # Post evaluation of the test result
         self.process_result()
@@ -310,6 +317,7 @@ class TestItem:
             self.process_report(self._reported)
         self.report.addTest(self, self.result, rk)
         self._sendStatusFinished()
+        
 
     def process_result(self):
         if self._post_eval is None:
