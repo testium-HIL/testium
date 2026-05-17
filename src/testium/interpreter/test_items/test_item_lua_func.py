@@ -45,6 +45,18 @@ class TestItemLuaFunc(TestItem):
             tm.setgd(_LUA_FUNC_CONTEXTS_KEY, contexts)
         return contexts[ctx_id], True
 
+    def stop(self):
+        super().stop()
+        # Tear down the worker so any in-flight func_call returns promptly.
+        # join() clears _rpc/_process so a subsequent item reusing the same
+        # context_id can restart the engine cleanly.
+        try:
+            engine, _ = self._get_engine()
+            engine.stop()
+            engine.join()
+        except Exception:
+            pass
+
     @test_run
     def execute(self):
         self.result.set(
@@ -96,9 +108,15 @@ Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables
 
             return
 
+        except ConnectionAbortedError:
+            self.result.set(TestValue.FAILURE, "lua_func aborted on stop request")
+            print("lua_func aborted on stop request.")
         except:
             traceback.print_exception(*sys.exc_info())
-            self.result.set(
-                TestValue.FAILURE,
-                'Unrecoverable "lua_func" item error from {}'.format(self.func_name),
-            )
+            if self.isStopped():
+                self.result.set(TestValue.FAILURE, "lua_func aborted on stop request")
+            else:
+                self.result.set(
+                    TestValue.FAILURE,
+                    'Unrecoverable "lua_func" item error from {}'.format(self.func_name),
+                )

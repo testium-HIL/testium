@@ -146,4 +146,12 @@ class LuaProcessBase:
         """
         if self._rpc is not None:
             self._rpc.stop()
+        # Force-kill the worker if it's still running. Needed when user code
+        # in the worker is stuck and won't notice the parent closing the RPC
+        # socket on its own.
+        if self._process is not None and self._process.poll() is None:
+            try:
+                self._process.terminate()
+            except Exception:
+                pass
 

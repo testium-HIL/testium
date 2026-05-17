@@ -2,10 +2,11 @@ import json
 import socket
 import re
 import struct
+import time
 
 from runtime.tum_except import ETUMRuntimeError
 import api.testium as tm
-from api.console import Console
+from api.console import Console, STOP_POLL_INTERVAL
 
 
 def is_ip_address(address):
@@ -45,8 +46,15 @@ class JrpcAdapter:
         self._jrpc_version = version
         self._mute = mute
         self._timeout = timeout
+        # Optional callable polled by _receive() implementations to abort
+        # waits early when the test is being stopped. Set by the test item
+        # action before each query/receive call.
+        self._should_stop = None
         if not (version == "1.0" or version == "2.0"):
             raise ETUMRuntimeError("Invalid JSONRPC version passed.")
+
+    def set_should_stop(self, cb):
+        self._should_stop = cb
 
     @property
     def timeout(self):
@@ -249,32 +257,38 @@ class JrpcUdpAdapter(JrpcAdapter):
             print(f"  | sent to @{self._server}:{self._snd_port}")
 
     def _receive(self, timeout: float) -> str:
+        # Poll in short chunks so a stop request is honored within
+        # STOP_POLL_INTERVAL.
+        self.sock.settimeout(STOP_POLL_INTERVAL)
+        deadline = time.monotonic() + float(timeout)
+        data = None
+        addr = None
+        while True:
+            if self._should_stop is not None and self._should_stop():
+                raise ETUMRuntimeError("JSONRPC udp receive aborted on stop request.")
+            try:
+                data, addr = self.sock.recvfrom(self._bufsize)
+                break
+            except socket.timeout:
+                if time.monotonic() >= deadline:
+                    raise ETUMRuntimeError(
+                        "JSONRPC udp answer took too long. Try to increase the timeout."
+                    )
 
-        # configures the reception timeout
-        self.sock.settimeout(timeout)
-
-        # Receives the answer from the server
-        try:
-            data, addr = self.sock.recvfrom(self._bufsize)
-
-            # In case of buffer overload we chose to complain
-            if len(data) >= self._bufsize:
-                raise ETUMRuntimeError(
-                    "JSONRPC udp answer size overflow. Try to increase the bufsize"
-                )
-
-            # Converts binary to string
-            res = data.decode()
-
-            # Don't log if mute
-            if not self._mute:
-                print(f"  | UDP answer: '{res}'")
-                print(f"  | received from @{addr[0]}:{addr[1]}")
-
-        except socket.timeout:
+        # In case of buffer overload we chose to complain
+        if len(data) >= self._bufsize:
             raise ETUMRuntimeError(
-                "JSONRPC udp answer took too long. Try to increase the timeout."
+                "JSONRPC udp answer size overflow. Try to increase the bufsize"
             )
+
+        # Converts binary to string
+        res = data.decode()
+
+        # Don't log if mute
+        if not self._mute:
+            print(f"  | UDP answer: '{res}'")
+            print(f"  | received from @{addr[0]}:{addr[1]}")
+
         return res
 
     def _build_query(self, method: str, obj, jrpc_id: int):
@@ -339,11 +353,16 @@ class JrpcConsoleAdapter(JrpcAdapter):
 
     def _receive(self, timeout: float) -> str:
         status, data = self._cons.read_until(
-            self._endswith, timeout, return_data=True, mute=self._mute
+            self._endswith, timeout, return_data=True, mute=self._mute,
+            should_stop=self._should_stop,
         )
 
         # if we did not receive anything, we complain
         if not status == 0:
+            if self._should_stop is not None and self._should_stop():
+                raise ETUMRuntimeError(
+                    f"JSONRPC console receive aborted on stop request."
+                )
             raise ETUMRuntimeError(
                 f"The '{self._cons.name}' console did not answer in the requested time."
             )

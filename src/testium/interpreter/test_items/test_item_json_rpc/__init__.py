@@ -105,6 +105,7 @@ class TestItemJSRPCActionQuery(TestItemAction):
             jrpc_id = randint(1, (2**32) - 1)
         send_only = self._prms.expanse(self._send_only)
         timeout = self._prms.expanse(self._timeout)
+        self.token.set_should_stop(self.isStopped)
         try:
             success, result = self.token.query(
                 meth, obj, jrpc_id, send_only, timeout=timeout
@@ -146,6 +147,7 @@ class TestItemJSRPCActionReceive(TestItemAction):
     def execute(self):
         timeout = self._prms.expanse(self._timeout)
         jrpc_id = self._prms.expanse(self._jrpc_id)
+        self.token.set_should_stop(self.isStopped)
 
         try:
             success, result = self.token.receive(jrpc_id, timeout)

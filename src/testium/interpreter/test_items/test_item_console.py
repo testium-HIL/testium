@@ -307,11 +307,17 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
 
         try:
             status, data = cons.read_until(
-                ru, timeout=read_timeout, return_data=True, mute=mute
+                ru, timeout=read_timeout, return_data=True, mute=mute,
+                should_stop=self.isStopped,
             )
             if status == 0:
                 self.result.set(TestValue.SUCCESS)
                 self.result.value = data
+            elif self.isStopped():
+                self.result.set(
+                    result=TestValue.FAILURE,
+                    message="Console read aborted on stop request",
+                )
             else:
                 self.result.set(result=TestValue.FAILURE, message="No matching text")
             if mute:

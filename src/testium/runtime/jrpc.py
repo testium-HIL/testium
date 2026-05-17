@@ -200,6 +200,7 @@ class JsonRpcConnection:
 
         Raises:
             TimeoutError: If no response is received within `timeout`.
+            ConnectionAbortedError: If stop() was called while waiting.
         """
 
         req_id = next(self.id_gen)
@@ -214,7 +215,12 @@ class JsonRpcConnection:
             self.pending.pop(req_id, None)
             raise TimeoutError("Timeout JSON-RPC")
 
-        return self.pending.pop(req_id)["response"]
+        entry = self.pending.pop(req_id)
+        if entry["response"] is None:
+            # Woken by stop() (or by a malformed dispatch) rather than by a
+            # real response — abort the call so callers don't block further.
+            raise ConnectionAbortedError("JSON-RPC client stopped")
+        return entry["response"]
 
     def print_info(self, msg):
         if self.dbg_out is not None:
@@ -223,6 +229,10 @@ class JsonRpcConnection:
     def stop(self):
         if self.running:
             self.running = False
+        # Wake any in-flight call() so it doesn't sit on its (default 1h)
+        # timeout. The response stays None and call() raises ConnectionAbortedError.
+        for entry in list(self.pending.values()):
+            entry["event"].set()
 
     def join(self):
         self.recv_thread.join()

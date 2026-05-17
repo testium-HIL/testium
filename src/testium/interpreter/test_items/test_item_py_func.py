@@ -45,6 +45,18 @@ class TestItemPyFunc(TestItem):
             tm.setgd(_PY_FUNC_CONTEXTS_KEY, contexts)
         return contexts[ctx_id], True
 
+    def stop(self):
+        super().stop()
+        # Tear down the worker so any in-flight func_call returns promptly.
+        # join() clears _rpc/_process so a subsequent item reusing the same
+        # context_id can restart the engine cleanly.
+        try:
+            engine, _ = self._get_engine()
+            engine.stop()
+            engine.join()
+        except Exception:
+            pass
+
     @test_run
     def execute(self):
         self.result.set(
@@ -94,9 +106,15 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
 
             return
 
+        except ConnectionAbortedError:
+            self.result.set(TestValue.FAILURE, "py_func aborted on stop request")
+            print("py_func aborted on stop request.")
         except:
             traceback.print_exception(*sys.exc_info())
-            self.result.set(
-                TestValue.FAILURE,
-                'Unrecoverable "py_func" item error from {}'.format(self.func_name),
-            )
+            if self.isStopped():
+                self.result.set(TestValue.FAILURE, "py_func aborted on stop request")
+            else:
+                self.result.set(
+                    TestValue.FAILURE,
+                    'Unrecoverable "py_func" item error from {}'.format(self.func_name),
+                )

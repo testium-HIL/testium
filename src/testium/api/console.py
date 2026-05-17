@@ -11,6 +11,7 @@ import threading
 from telnetlib3 import Telnet, DO, WILL, WONT, TTYPE, IAC, SB, SE, theNULL
 
 TIMEOUT_NULL = 0.000001
+STOP_POLL_INTERVAL = 0.2
 
 
 class BytesStore(object):
@@ -123,12 +124,14 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         #    c = ''
         return c
 
-    def read_until(self, match, timeout=None, return_data=False, mute=False):
+    def read_until(self, match, timeout=None, return_data=False, mute=False, should_stop=None):
         """
         read until the string 'match is found
             If timeout is not set (None), this function runs indefinitely
             If timeout is set to zero, this function returns immediately
             If mute is set to True the characters read from the console will not be displayed
+            If should_stop is a callable, it is polled between reads (every STOP_POLL_INTERVAL
+            at most) and the loop exits early — like a timeout — when it returns True.
 
             If function fails (because of a timeout) it will return a 'status' integer set to -1
             otherwise it will return 0.
@@ -139,13 +142,6 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         status = -1
         if not match:
             raise ValueError('match parameter can not be empty')
-        # replace all '\r' by '\n' as any '\r' read will undergo the same replacement
-        # match = match.replace('\r\n', '\n')
-        # match = match.replace('\r', '')
-
-        # update the console timeout in conformity with what is required.
-
-        self.set_read_timeout(timeout)
 
         if timeout is None:
             timeout = 1000000
@@ -159,6 +155,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         # buffer is empty
         # Otherwise we are waiting for the timeout to rise
         if timeout < TIMEOUT_NULL:
+            self.set_read_timeout(0)
             data = self.readchar(0)
 
             while (status < 0) and ((data is not None) and (data != b'')):
@@ -191,39 +188,45 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
 
         # Timeout different than zero
         else:
+            # Poll in short chunks so a stop request is honored within
+            # STOP_POLL_INTERVAL, regardless of the per-protocol blocking
+            # behavior of readchar().
+            self.set_read_timeout(STOP_POLL_INTERVAL)
 
             time_is_out = threading.Event()
             timer = threading.Timer(timeout, lambda: time_is_out.set())
             timer.start()
 
-            # We are waiting for the timeout to rise
+            try:
+                while (status < 0) and (not time_is_out.is_set()):
+                    if should_stop is not None and should_stop():
+                        break
 
-            while (status < 0) and (not time_is_out.isSet()):
-
-                data = self.readchar(timeout)
-                if data is not None:
-                    data = self._compute_char(data)
-                    if data != '':
-                        if not mute:
-                            self.string_buffer += data
-                        read_data += data
-
-                        search_deque.append(data)
-                        if search_deque == match_deque:
-                            timer.cancel()
-                            status = 0
-                            if (not mute) and (data != '\n'):
-                                self.string_buffer += '\n'
-
-                        if data == '\n' or (status >= 0):
-                            # the datas are written line by line for display optimisation in GUI mode
+                    data = self.readchar(STOP_POLL_INTERVAL)
+                    if data is not None:
+                        data = self._compute_char(data)
+                        if data != '':
                             if not mute:
-                                self.string_buffer = self.string_buffer.replace('\r\n', '\n')
-                                self.string_buffer = self.string_buffer.replace('\r', '')
-                                self.stream.write(self.string_buffer)
+                                self.string_buffer += data
+                            read_data += data
 
-                            date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-                            self.string_buffer = '[{} {}]'.format(date_str, self.name)
+                            search_deque.append(data)
+                            if search_deque == match_deque:
+                                status = 0
+                                if (not mute) and (data != '\n'):
+                                    self.string_buffer += '\n'
+
+                            if data == '\n' or (status >= 0):
+                                # the datas are written line by line for display optimisation in GUI mode
+                                if not mute:
+                                    self.string_buffer = self.string_buffer.replace('\r\n', '\n')
+                                    self.string_buffer = self.string_buffer.replace('\r', '')
+                                    self.stream.write(self.string_buffer)
+
+                                date_str = str(datetime.now()).split('.')[0].split(' ')[1]
+                                self.string_buffer = '[{} {}]'.format(date_str, self.name)
+            finally:
+                timer.cancel()
 
         if return_data:
             return status, read_data

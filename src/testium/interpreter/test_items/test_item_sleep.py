@@ -80,4 +80,7 @@ class TestItemSleep(TestItem):
             end_time = _time.time() + float(timeout)
             while _time.time() < end_time and not self._is_stopped:
                 sleep(min(0.05, end_time - _time.time()))
-            self.result.set(TestValue.SUCCESS, 'Sleep %s sec' % (str(timeout)))
+            if self._is_stopped:
+                self.result.set(TestValue.FAILURE, 'Sleep aborted on stop request')
+            else:
+                self.result.set(TestValue.SUCCESS, 'Sleep %s sec' % (str(timeout)))
