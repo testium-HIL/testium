@@ -41,8 +41,7 @@ end
 --- INTERNAL: Handle requests from the client
 function JSONRPC:_handle_request(req)
     local method = self.methods[req.method]
-    local ok, ret
-    local res, err
+    local ok, ret, err
     if not method then
         if req.id then self:_send_error(req.id, string.format("Method '%s' not registered in lua server")) end
         return
@@ -52,15 +51,18 @@ function JSONRPC:_handle_request(req)
 
     -- Only send response if it's not a Notification (notifications have no ID)
     if req.id then
-        if ok then
-            res = ret
-            if res == nil then
-                self:_send_error(req.id, tostring(err))
-            else
-                self:_send({ jsonrpc = "2.0", result = { returned_value = res }, id = req.id })
-            end
-        else
+        if not ok then
+            -- pcall trapped a runtime error in the method itself.
+            self:_send_error(req.id, tostring(ret))
+        elseif err ~= nil then
+            -- Method ran but signaled a logical error via its 2nd return.
             self:_send_error(req.id, tostring(err))
+        else
+            -- Success. A user function returning nothing yields ret==nil;
+            -- encode it as JSON null so "returned_value" stays present.
+            local val = ret
+            if val == nil then val = json.null end
+            self:_send({ jsonrpc = "2.0", result = { returned_value = val }, id = req.id })
         end
     end
 end
