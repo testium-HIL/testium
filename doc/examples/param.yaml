@@ -17,18 +17,3 @@ plot_log_path: /tmp/testium_plot/$(testrun_date)/$(testrun_time)/
 python_path_Windows: C:\Users\François\Applications\Python313\python.exe
 python_path_Linux: $(home)/tmp/tum_venv/bin/python3
 
-# lua_bin_Windows: C:\Lua\5.1
-# lua_bin_Linux: /usr/bin/lua
-
-LUA_PATH_Linux: /usr/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?/init.lua;/usr/share/lua/5.4/?/init.lua;/usr/local/lib/lua/5.4/?.lua;/usr/local/lib/lua/5.4/?/init.lua;/usr/lib/lua/5.4/?.lua;/usr/lib/lua/5.4/?/init.lua;./?.lua;./?/init.lua;/home/francois/.luarocks/share/lua/5.4/?.lua;/home/francois/.luarocks/share/lua/5.4/?/init.lua
-LUA_CPATH_Linux: /usr/local/lib/lua/5.4/?.so;/usr/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;/usr/lib/lua/5.4/loadall.so;./?.so;/home/francois/.luarocks/lib/lua/5.4/?.so
-PATH_Linux:
-
-LUA_PATH_Windows: ;.\?.lua;C:\Lua\5.1\lua\?.lua;C:\Lua\5.1\lua\?\init.lua;C:\Lua\5.1\?.lua;C:\Lua\5.1\?\init.lua;C:\Lua\5.1\lua\?.luac
-LUA_CPATH_Windows: .\?.dll;C:\Lua\5.1\?.dll;C:\Lua\5.1\loadall.dll;C:\Lua\5.1\clibs\?.dll;C:\Lua\5.1\clibs\loadall.dll;.\?51.dll;C:\Lua\5.1\?51.dll;C:\Lua\5.1\clibs\?51.dll
-PATH_Windows: ""
-
-lua_env:
-  PATH: $(PATH_$(os))
-  LUA_PATH: $(LUA_PATH_$(os))
-  LUA_CPATH: $(LUA_CPATH_$(os))
