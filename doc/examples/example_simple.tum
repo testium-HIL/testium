@@ -20,6 +20,22 @@ main:
           param:
               - 123
 
+      - py_func:
+          name: python long wait
+          doc: The purpose of this step is to try the tasks "stop" interruption
+          file: utils.py
+          func_name: long_wait
+          param:
+              - 10
+
+      - lua_func:
+          name: lua long wait
+          doc: The purpose of this step is to try the tasks "stop" interruption
+          file: lua_func.lua
+          func_name: long_wait
+          param:
+              - 10
+
       - sleep:
           name: sleep item
           dialog: true

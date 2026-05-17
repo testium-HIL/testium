@@ -1,3 +1,5 @@
+from time import sleep
+
 def dummy_exit(useless1, useless2):
     return True
 
@@ -11,3 +13,6 @@ def funcToBeExecuted (bla):
 def funcToBeExecuted2 (bla):
     print(bla)
     return blo
+
+def long_wait (sec):
+    sleep(sec)
