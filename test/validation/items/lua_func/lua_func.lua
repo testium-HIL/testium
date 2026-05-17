@@ -49,4 +49,12 @@ function module.test_delgd()
     return 0
 end
 
+function module.return_nothing()
+    -- Returns no value: ret is nil but no error.
+end
+
+function module.return_explicit_nil()
+    return nil
+end
+
 return module

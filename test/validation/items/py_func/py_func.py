@@ -54,3 +54,10 @@ def test_delgd():
     tm.delgd("_py_delgd_test")
     assert tm.gd("_py_delgd_test", None) is None
     return 0
+
+def return_nothing():
+    # Falls off the end: implicit None return, no error.
+    pass
+
+def return_explicit_none():
+    return None

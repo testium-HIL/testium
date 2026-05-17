@@ -186,6 +186,18 @@
     file: $(test_path)$(psep)lua_func.lua
     func_name: test_delgd
 
+- lua_func:
+    name: function returning nothing should succeed
+    key: $(test)_PASS
+    file: $(test_path)$(psep)lua_func.lua
+    func_name: return_nothing
+
+- lua_func:
+    name: function returning explicit nil should succeed
+    key: $(test)_PASS
+    file: $(test_path)$(psep)lua_func.lua
+    func_name: return_explicit_nil
+
 - group:
     name: context_id tests
     steps:

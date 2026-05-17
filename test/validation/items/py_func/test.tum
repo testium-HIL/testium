@@ -196,6 +196,18 @@
     file: $(test_path)$(psep)py_func.py
     func_name: test_delgd
 
+- py_func:
+    name: function returning nothing should succeed
+    key: $(test)_PASS
+    file: $(test_path)$(psep)py_func.py
+    func_name: return_nothing
+
+- py_func:
+    name: function returning explicit None should succeed
+    key: $(test)_PASS
+    file: $(test_path)$(psep)py_func.py
+    func_name: return_explicit_none
+
 - group:
     name: context_id tests
     steps:
