@@ -114,10 +114,19 @@ To add a new API call usable from subprocesses:
 ### External interpreter resolution (`bins.py`)
 `src/testium/interpreter/utils/bins.py` — single source of truth for the paths to the external Python and Lua interpreters used by subprocesses.
 
-- `python_bin()` / `lua_bin()` : resolve once, cache in memory. User can override via the `python_bin` / `lua_bin` global dict keys (typically populated from the YAML config). Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
+- `python_bin()` / `lua_bin()` : resolve and cache. The cache is keyed by `(name, override)` so that a later change to `gd[python_bin]` (typically when a `param.yaml` sets the key) triggers a re-resolution on the next lookup instead of returning the stale auto-discovered path. Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
 - `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key.
 
 Engines (`PyProcessBase`, `LuaProcessBase`, `EvalExecEngine`) call `bins.python_bin()`/`bins.lua_bin()` themselves — call sites never pass an explicit binary path.
+
+#### Override-timing contract (`apply_overrides`)
+`bins.python_bin()` is called for the **first** time inside `eval_process_init()` (the long-lived inline-`<| … |>` subprocess), which happens **before** the YAML param files are loaded. To make `-d python_bin=…` and the GUI `python_bin` preference take effect for `eval_proc` itself, `process.py:run()` applies them to gd **before** `eval_process_init()` via the `apply_overrides()` helper extracted from `update_global()`. The post-load `update_global()` call then re-applies the same overrides (after `prepare_global()` clears gd), keeping the gd value in sync with the cached resolution.
+
+| Override source | `eval_proc` | `py_func` / `cycle` / `post_exec` |
+|---|---|---|
+| `-d python_bin=…` (CLI) | ✅ | ✅ |
+| GUI `python_bin` preference | ✅ | ✅ |
+| `python_bin: …` in `param.yaml` | ❌ (eval_proc already started) | ✅ (cache re-resolves on key change) |
 
 ## Key files
 
@@ -261,12 +270,18 @@ Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: lau
 - `unittest` item: renamed from `unittest_file`.
 - GUI test tree: check and fold state preserved across same-file reloads.
 - Licence: EUPL-1.2.
+- Interpreter override timing: `apply_overrides()` extracted from `update_global()` and called by `process.py:run()` before `eval_process_init()`, so `-d python_bin=…` / GUI prefs reach `bins.python_bin()` on its first lookup. `bins._resolve()` cache is now keyed by `(name, override)` so later `param.yaml` changes are picked up by subsequently constructed engines.
 
 ## Validation tests
-Located in `test/validation/`. Run with `-b` flag:
+Located in `test/validation/`. Two entry points:
 ```
-./run.sh -b -- test/validation/main.tum
+./test/validation/run.sh        # wrapper — uses a dedicated venv (see below)
+./run.sh -b -- test/validation/main.tum   # direct — testium's own python is used for test execution
 ```
+The `run.sh` / `run.bat` wrappers create a dedicated Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside the venv. testium itself keeps running in the project's own environment. `clean` as the first argument recreates the venv.
+
+The `venv` item (`test/validation/items/venv/`) asserts that the override actually took effect: `python_bin` is set, `sys.executable` matches it, `sys.prefix == dirname(dirname(python_bin))`, and `sys.prefix != sys.base_prefix` (the last marker catches the case where `python_bin` happens to be a system interpreter, which path-equality alone would miss because the venv's `bin/python3` is a symlink to the host). Both `eval_proc` (inline `<| … |>`) and `py_func` paths are exercised.
+
 Parallel item tests: `test/validation/items/parallel/test.tum`
 
 ## Dependencies

@@ -202,15 +202,23 @@ _SPECS = {
     "lua":    ("Lua 5.1+",  "lua_bin",    _LUA_CANDIDATES,    _is_lua51),
 }
 
+# Cached per (name, override) so that runtime changes to gd[gd_key] —
+# e.g. ``python_bin`` set from a YAML config file loaded *after*
+# eval_proc has already resolved its own interpreter — are picked up by
+# the next lookup instead of returning the stale, auto-discovered path.
+# Long-lived subprocesses (eval_proc) keep whatever they captured at
+# construction time, but every new PyProcessBase / FuncExecEngine spawned
+# afterwards sees the current override.
 _resolved = {}
 
 
 def _resolve(name):
-    if name in _resolved:
-        return _resolved[name]
-
     display, gd_key, candidates, validator = _SPECS[name]
     override = tm.gd(gd_key, "") or ""
+
+    cached = _resolved.get(name)
+    if cached is not None and cached[0] == override:
+        return cached[1]
 
     path = ""
     if override:
@@ -239,7 +247,7 @@ def _resolve(name):
                 path = p
                 break
 
-    _resolved[name] = path
+    _resolved[name] = (override, path)
     return path
 
 

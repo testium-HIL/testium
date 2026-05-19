@@ -165,11 +165,14 @@ def env_init():
     _constants_init()
 
 
-def update_global(config_files, defines, gui_defaults, silent=False):
-    """Global dict updated with the content of the config file and a dict provided.
-    this function returns the resulting dict.
+def apply_overrides(defines, gui_defaults):
+    """Push GUI defaults then CLI defines into the global dict.
+
+    Extracted from update_global so it can be called *before* eval_proc
+    starts: interpreter overrides (python_bin, lua_bin) must be visible
+    to bins.python_bin() on its first lookup, which happens during
+    eval_process_init.
     """
-    # GUI preferences applied first
     for k, v in gui_defaults.items():
         try:
             val = ast.literal_eval(v)
@@ -177,13 +180,20 @@ def update_global(config_files, defines, gui_defaults, silent=False):
             val = v
         tm.setgd(k, val)
 
-    # Then command line defines
     for k, v in defines.items():
         try:
             val = ast.literal_eval(v)
         except:
             val = v
         tm.setgd(k, val)
+
+
+def update_global(config_files, defines, gui_defaults, silent=False):
+    """Global dict updated with the content of the config file and a dict provided.
+    this function returns the resulting dict.
+    """
+    # GUI preferences applied first, then command line defines
+    apply_overrides(defines, gui_defaults)
 
     # Then the configuration files
     # load global dic before test item
