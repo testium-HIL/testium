@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QDialog, QFileDialog
 from PySide6.QtGui import QFont
 
 from main_win.preference_win.preference_core_win import Ui_preferenceWindow
+from main_win import file_dialog
 
 import interpreter.utils.settings as prefs
 
@@ -193,6 +194,7 @@ class PrefWindow(QDialog):
             self,
             caption="Select the default report directory",
             dir=self.ui.editDefaultReportPath.text(),
+            options=file_dialog.options(),
         )
         if path:
             self.ui.editDefaultReportPath.setText(path)
@@ -203,6 +205,7 @@ class PrefWindow(QDialog):
             self,
             caption="Select the default log directory",
             dir=self.ui.editDefaultLogPath.text(),
+            options=file_dialog.options(),
         )
         if path:
             self.ui.editDefaultLogPath.setText(path)
@@ -213,6 +216,7 @@ class PrefWindow(QDialog):
             self,
             caption="Select the python interpreter",
             dir=self.ui.editPythonPath.text(),
+            options=file_dialog.options(),
         )
         if path:
             self.ui.editPythonPath.setText(path)
@@ -220,7 +224,10 @@ class PrefWindow(QDialog):
     @Slot()
     def on_butLuaPath_pressed(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, caption="Select the lua interpreter", dir=self.ui.editLuaPath.text()
+            self,
+            caption="Select the lua interpreter",
+            dir=self.ui.editLuaPath.text(),
+            options=file_dialog.options(),
         )
         if path:
             self.ui.editLuaPath.setText(path)

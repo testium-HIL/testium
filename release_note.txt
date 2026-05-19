@@ -1,3 +1,22 @@
+version 0.1.3
+==============
+- Stop interrupts engaged blocking steps (console, py_func, lua_func,
+  json_rpc, sleep) within ~200 ms instead of waiting for the step
+  to finish.
+- GUI Start / Stop / Pause flow simplified.
+- lua_func: a function returning nil is no longer reported as a failure.
+- ``-d python_bin=...`` and the GUI ``python_bin`` preference now reach
+  the eval subprocess (used to be silently ignored). ``param.yaml`` can
+  also override ``python_bin`` for py_func / cycle / post_exec.
+- Validation suite: ``test/validation/run.sh`` (and ``run.bat``)
+  runs the suite inside a dedicated venv in the system temp dir.
+- build_all.sh: ``release_note.txt`` and the user manual copied into
+  ``dist/``; warning if the file has no entry for the version being built.
+- Flatpak: every GUI file/directory dialog (open test, save report, log
+  path, default report/log dirs, python/lua interpreter pickers) now
+  bypasses the XDG document portal — the v0.1.2 fix was only on the
+  "open test" dialog.
+
 version 0.1.2
 ==============
 - Flatpak: opening a test from the GUI now correctly finds its companion

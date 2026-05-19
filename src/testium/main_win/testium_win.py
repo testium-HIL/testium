@@ -37,6 +37,7 @@ from interpreter.utils.icons import icon_prefix
 
 from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
+from main_win import file_dialog
 import interpreter.utils.settings as prefs
 from runtime.stdout_redirect import stdio_redir
 import api.testium as tm
@@ -484,7 +485,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             initialPath = None
         fileName, _ = QFileDialog.getSaveFileName(
-            self, "Path to Log file", initialPath, "Log Files (*.log);;All Files (*)"
+            self, "Path to Log file", initialPath, "Log Files (*.log);;All Files (*)",
+            options=file_dialog.options(),
         )
         if fileName:
             shutil.copy(self.logFileName, fileName)
@@ -525,7 +527,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             initialPath = None
         fileName, _ = QFileDialog.getSaveFileName(
-            self, "Path to log file", initialPath, "Log Files (*.log);;All Files (*)"
+            self, "Path to log file", initialPath, "Log Files (*.log);;All Files (*)",
+            options=file_dialog.options(),
         )
         if fileName:
             self.editLogFilePath.setText(fileName)
