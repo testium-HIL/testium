@@ -27,6 +27,27 @@ Pre-built artifacts are published at
   runnable directly, no Python installation required on the host. Lua
   support still needs a system `lua` interpreter and the `lua-socket` /
   `lua-cjson` modules.
+* **AppImage** (`Testium-<version>-x86_64.AppImage`) — single-file
+  Linux binary, runnable directly:
+
+  ```sh
+  chmod +x Testium-*-x86_64.AppImage
+  ./Testium-*-x86_64.AppImage
+  ```
+
+  Requires `libfuse2` on the host (FUSE 2 — distinct from `fuse3`, which
+  most distros now ship by default):
+
+  | Distro | Package |
+  |--------|---------|
+  | Arch / CachyOS / Manjaro | `fuse2` |
+  | Debian trixie / Ubuntu 24.04+ | `libfuse2t64` |
+  | Debian bookworm / Ubuntu 22.04 | `libfuse2` |
+  | Fedora | `fuse-libs` |
+
+  If you can't install libfuse2 (e.g. minimal container), prefix the
+  invocation with `APPIMAGE_EXTRACT_AND_RUN=1` — the AppImage will
+  self-extract to `/tmp` on each run instead of FUSE-mounting.
 * **Flatpak bundle** (`testium.flatpak`) — install with:
 
   ```sh
