@@ -16,6 +16,14 @@ version 0.1.3
   path, default report/log dirs, python/lua interpreter pickers) now
   bypasses the XDG document portal — the v0.1.2 fix was only on the
   "open test" dialog.
+- Flatpak: py_func / lua_func / run sub-instance now execute on the host
+  via flatpak-spawn, lifting the previous glibc/ABI incompatibility that
+  prevented user-configured host Python or Lua interpreters from being
+  reached from the sandbox.
+- Validation suite: single entry point with ``--mode source|wheel|
+  pyinstaller|flatpak|appimage`` to validate any packaging channel
+  against the same item set; reports are stamped per mode.
+- GUI: the "Run tum" test item now uses the testium logo.
 
 version 0.1.2
 ==============

@@ -1,47 +1,143 @@
 #!/bin/bash
-# Runs the testium validation suite with a dedicated Python venv used by
-# every py_func / cycle / inline-eval subprocess (i.e. everything that
-# goes through ``bins.python_bin()``). testium itself keeps running in
-# the project's own environment — the validation venv only isolates
-# *test execution*.
+# Runs the testium validation suite against any installable channel of
+# testium (source, wheel, pyinstaller, flatpak, appimage).
 #
-#   ./test/validation/run.sh [clean] [extra testium args]
+# Usage:
+#   ./test/validation/run.sh [clean] [--mode MODE] [extra testium args]
 #
-# ``clean`` (optional, must be the first arg) removes the venv before
-# recreating it; this is the way to refresh the venv after a system
-# Python upgrade.
+#   clean           remove the validation venv before recreating it
+#                   (must be the first argument; useful after a Python upgrade)
+#
+#   --mode MODE     which testium build to validate. One of:
+#                       source       (default) src/testium via project run.sh
+#                       wheel        dist/testium-<v>-py3-none-any.whl
+#                       pyinstaller  dist/testium-<v>
+#                       flatpak      installed org.testium.Testium
+#                       appimage     dist/Testium-<v>-*.AppImage
+#
+# Every test-execution subprocess (inline <| ... |>, py_func, cycle,
+# post_execution, ...) runs in a dedicated host venv under
+# /tmp/testium-validation-venv. That venv is shared across modes —
+# even Flatpak reaches it via flatpak-spawn --host. The validation venv
+# is created with --system-site-packages so existing system packages
+# (PySide6, lxml, ...) stay visible, then junit-xml is pip-installed
+# for post_execution.py.
+#
+# The report file is suffixed with the mode (e.g. validation-flatpak.sqlite)
+# so consecutive runs in different modes don't overwrite each other.
 
 set -e
 
 SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(realpath "$(dirname "$SCRIPT_PATH")")"
 PROJECT_DIR="$(realpath "$SCRIPT_DIR/../..")"
-# Venv lives in the system temp dir so it stays out of the project tree
-# (and is naturally cleaned up by tmpfiles/reboot on most distros).
-VENV_DIR="${TMPDIR:-/tmp}/testium-validation-venv"
+VERSION="$(cat "$PROJECT_DIR/src/VERSION")"
+
+# ---------- arg parsing -------------------------------------------------------
+
+MODE=source
 
 if [ "${1:-}" = "clean" ]; then
-    rm -rf "$VENV_DIR"
+    CLEAN=1
     shift
+else
+    CLEAN=0
+fi
+
+EXTRA=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --mode)
+            MODE="$2"
+            shift 2
+            ;;
+        --mode=*)
+            MODE="${1#--mode=}"
+            shift
+            ;;
+        *)
+            EXTRA+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# ---------- validation venv ---------------------------------------------------
+
+VENV_DIR="${TMPDIR:-/tmp}/testium-validation-venv"
+if [ "$CLEAN" -eq 1 ]; then
+    rm -rf "$VENV_DIR"
 fi
 
 if [ ! -d "$VENV_DIR" ]; then
     echo "Creating validation venv at $VENV_DIR"
-    # --system-site-packages so we don't have to reinstall pyside6, lxml
-    # & friends just to support the validation helpers. We still pip
-    # install junit-xml below because it is the one dep that does *not*
-    # ship as a system package on most distros and is required by
-    # post_execution.py.
     python3 -m venv --system-site-packages "$VENV_DIR"
     "$VENV_DIR/bin/pip" install --quiet --upgrade pip
     "$VENV_DIR/bin/pip" install --quiet junit-xml
 fi
-
 VENV_PYTHON="$VENV_DIR/bin/python3"
 
-# Delegate to the project's run.sh so testium itself still runs in the
-# project venv (with pyside6, gitpython, ...). ``-d python_bin=...``
-# pins every test-execution subprocess to the validation venv.
-exec "$PROJECT_DIR/run.sh" -b \
+# ---------- per-mode launcher -------------------------------------------------
+
+case "$MODE" in
+    source)
+        CMD=("$PROJECT_DIR/run.sh")
+        ;;
+    wheel)
+        WHEEL="$PROJECT_DIR/dist/testium-${VERSION}-py3-none-any.whl"
+        if [ ! -f "$WHEEL" ]; then
+            echo "ERROR: wheel not found at $WHEEL — run ./build_all.sh first." >&2
+            exit 1
+        fi
+        WHEEL_VENV="${TMPDIR:-/tmp}/testium-wheel-venv-${VERSION}"
+        if [ "$CLEAN" -eq 1 ]; then
+            rm -rf "$WHEEL_VENV"
+        fi
+        if [ ! -d "$WHEEL_VENV" ]; then
+            echo "Creating wheel venv at $WHEEL_VENV"
+            python3 -m venv --system-site-packages "$WHEEL_VENV"
+            "$WHEEL_VENV/bin/pip" install --quiet --upgrade pip
+            "$WHEEL_VENV/bin/pip" install --quiet "$WHEEL"
+        fi
+        CMD=("$WHEEL_VENV/bin/python" -m testium)
+        ;;
+    pyinstaller)
+        PYI_BIN="$PROJECT_DIR/dist/testium-${VERSION}"
+        if [ ! -x "$PYI_BIN" ]; then
+            echo "ERROR: PyInstaller binary not found at $PYI_BIN — run ./build_all.sh first." >&2
+            exit 1
+        fi
+        CMD=("$PYI_BIN")
+        ;;
+    flatpak)
+        if ! flatpak info --user org.testium.Testium &>/dev/null \
+           && ! flatpak info --system org.testium.Testium &>/dev/null; then
+            echo "ERROR: org.testium.Testium is not installed." >&2
+            echo "       flatpak install --user $PROJECT_DIR/dist/testium-${VERSION}.flatpak" >&2
+            exit 1
+        fi
+        CMD=(flatpak run --command=testium org.testium.Testium)
+        ;;
+    appimage)
+        APPIMAGE=$(ls -1t "$PROJECT_DIR/dist"/Testium-"${VERSION}"-*.AppImage 2>/dev/null | head -1)
+        if [ -z "$APPIMAGE" ] || [ ! -x "$APPIMAGE" ]; then
+            echo "ERROR: no AppImage for version $VERSION under $PROJECT_DIR/dist — run ./build_all.sh first." >&2
+            exit 1
+        fi
+        CMD=("$APPIMAGE")
+        ;;
+    *)
+        echo "ERROR: unknown --mode '$MODE'. Expected: source|wheel|pyinstaller|flatpak|appimage." >&2
+        exit 1
+        ;;
+esac
+
+# ---------- launch ------------------------------------------------------------
+
+echo "-- validation mode: $MODE"
+echo "-- launch: ${CMD[*]}"
+
+exec "${CMD[@]}" -b \
     -d "python_bin=$VENV_PYTHON" \
-    -- "$SCRIPT_DIR/main.tum" "$@"
+    -d "validation_report_file=validation-$MODE" \
+    -- "$SCRIPT_DIR/main.tum" "${EXTRA[@]}"

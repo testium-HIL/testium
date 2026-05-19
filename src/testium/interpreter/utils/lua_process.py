@@ -47,9 +47,16 @@ class LuaProcessBase:
         if self._process is not None:
             raise ETUMRuntimeError("The function subprocess has already been started.")
 
-        func_proc_path = os.path.realpath(
-            os.path.join(subproc_path(), "lua_func")
-        )
+        # In Flatpak the host can't see /app/lib/testium/lua_func, so use a
+        # staged copy under /tmp (shared between sandbox and host).
+        if bins._in_flatpak():
+            func_proc_path = os.path.join(
+                bins._get_host_testium_path(), "lua_func"
+            )
+        else:
+            func_proc_path = os.path.realpath(
+                os.path.join(subproc_path(), "lua_func")
+            )
 
         # POpen config
         CUST_ENV = {
@@ -71,7 +78,6 @@ class LuaProcessBase:
                     env[k] = e
                 else:
                     env[k] = e + ";" + env.get(k, "")
-        bins.apply_host_lua_paths(env)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(("localhost", 0))
@@ -79,8 +85,7 @@ class LuaProcessBase:
         sock.close()
 
         # POpen params
-        params = [
-            self._lbin,
+        cmd_args = [
             "main.lua",
             "--timeout",
             f"{self._timeout}",
@@ -91,14 +96,31 @@ class LuaProcessBase:
         ]
 
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
-            params.append("--verbose")
+            cmd_args.append("--verbose")
+
+        if bins._in_flatpak():
+            # Run on the host outside the sandbox: avoids glibc ABI mismatches
+            # between the Flatpak runtime and host shared libraries.
+            host_env = {
+                k: env[k] for k in ("LUA_PATH", "LUA_CPATH", "PATH")
+                if k in env and env[k]
+            }
+            params = bins.flatpak_host_spawn(
+                self._lbin, cmd_args, host_cwd=func_proc_path,
+                extra_env=host_env,
+            )
+            popen_kwargs = {}
+        else:
+            params = [self._lbin, *cmd_args]
+            popen_kwargs = {"env": env, "cwd": func_proc_path}
 
         self._process = subprocess.Popen(
-            params, env=env, cwd=func_proc_path,
+            params,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             restore_signals=False,
+            **popen_kwargs,
         )
         # Route subprocess stdout/stderr (lua require failures, syntax
         # errors, anything written to fd 1/2 before the in-script

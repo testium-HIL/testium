@@ -61,14 +61,18 @@ class PyProcessBase:
         if sock is not None:
             sock.close()
 
-        # Add the path of the subprocess (root sources of testium)
-        tstium_path = os.path.realpath(testium_path())
-        func_proc_path = os.path.realpath(subproc_path())
+        # In Flatpak the host can't see /app/lib/testium, so use a staged copy
+        # under /tmp (shared between sandbox and host) for both cwd and as the
+        # root in PYTHONPATH. Outside Flatpak the original paths are used.
+        if bins._in_flatpak():
+            tstium_path = bins._get_host_testium_path()
+            func_proc_path = tstium_path
+        else:
+            tstium_path = os.path.realpath(testium_path())
+            func_proc_path = os.path.realpath(subproc_path())
         env["PYTHONPATH"] = tstium_path + os.pathsep + self._ppath + os.pathsep + env.get("PYTHONPATH", "")
 
-        params = [
-            self._pbin,
-            # "-m",
+        cmd_args = [
             "py_func",
             "-p",
             f"{self._port}",
@@ -77,14 +81,31 @@ class PyProcessBase:
         ]
 
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
-            params.append("-v")
+            cmd_args.append("-v")
+
+        if bins._in_flatpak():
+            # Run on the host outside the sandbox: avoids glibc ABI mismatches
+            # between the Flatpak runtime and host shared libraries.
+            host_env = {
+                k: env[k] for k in ("PYTHONPATH", "PATH")
+                if k in env and env[k]
+            }
+            params = bins.flatpak_host_spawn(
+                self._pbin, cmd_args, host_cwd=func_proc_path,
+                extra_env=host_env,
+            )
+            popen_kwargs = {}
+        else:
+            params = [self._pbin, *cmd_args]
+            popen_kwargs = {"env": env, "cwd": func_proc_path}
 
         self._process = subprocess.Popen(
-            params, env=env, cwd=func_proc_path,
+            params,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             restore_signals=False,
+            **popen_kwargs,
         )
         # Route subprocess stdout/stderr (early-startup errors,
         # unhandled exceptions, anything written to fd 1/2 before the

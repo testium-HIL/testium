@@ -16,6 +16,11 @@ finish-args:
   - --filesystem=home
   - --filesystem=/tmp
   - --filesystem=host-os
+  # Allow flatpak-spawn --host to launch host binaries (Python, Lua, git…)
+  # outside the sandbox. Required because the sandbox glibc/ABI is
+  # incompatible with arbitrary host shared libraries — we route py_func and
+  # lua_func through the host instead.
+  - --talk-name=org.freedesktop.Flatpak
 
 build-options:
   build-args:

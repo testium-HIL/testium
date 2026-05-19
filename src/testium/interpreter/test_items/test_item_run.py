@@ -24,9 +24,15 @@ def _testium_launch_cmd():
     appimage = os.environ.get("APPIMAGE")
     if appimage:
         return [appimage]
-    # Flatpak: re-launch via the Flatpak app id.
+    # Flatpak: re-launch via the Flatpak app id, but on the host side —
+    # the `flatpak` CLI cannot run inside our sandbox (no D-Bus access to the
+    # host Flatpak service, and the host binary would need host libs that are
+    # ABI-incompatible with the sandbox runtime). flatpak-spawn proxies the
+    # call to the host via org.freedesktop.Flatpak (allowed by --talk-name in
+    # the manifest).
     if os.path.isfile("/.flatpak-info"):
-        return ["flatpak", "run", "org.testium.Testium"]
+        return ["flatpak-spawn", "--host",
+                "flatpak", "run", "org.testium.Testium"]
     # PyInstaller frozen exe: sys.executable is the binary itself.
     if getattr(sys, "frozen", False):
         return [sys.executable]
