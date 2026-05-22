@@ -1,0 +1,73 @@
+config_file:  
+  - premier
+  - saluT
+
+main:
+  name: Main file
+  steps:
+    - group:
+        name: Test
+        doc: Une peitite documentation
+        no_fail: true
+        steps:
+        - let:
+            values: 
+                - my_var: <| ${salut} |>
+        - check:
+            values: 
+            - <| ${salut} |>
+
+        - dialog_message:
+            question: c'est quoi?
+
+        - lua_func:
+            file: c'est quoi?
+            func_name: c'est quoi?
+        
+        - console:
+            console_name: cons_1
+            steps: 
+                - open:
+                    protocol: telnet
+                    terminal_path: ijfeifj
+                - read_until : {expected: "tutu", timeout: -4.5, mute: true}
+                - write: something
+                - writeln: tutu
+                - close : 
+
+        - json_rpc:
+            name: JSONRPC console Query
+            doc: JSONRPC console Query not waiting (only send)
+            console:
+                name : jsonrpc_server
+                prompt: "@@>"
+            timeout: 1
+            version: "2.0"
+            steps:
+            - query:
+                method: echo
+                params:
+                    - Hello world
+                    - [0, 1, 2, 3]
+                id: 3095372
+                no_wait: true
+        - json_rpc:
+            name: JSONRPC console Reception
+            doc: JSONRPC console reception of the previous request
+            console: {name : jsonrpc_server}
+            timeout: 1
+            steps:
+            - receive:
+                id: 3095372
+                timeout: 0.5
+
+report:
+    enabled: true
+    log_stored: true
+    export:
+        junit:
+          path: $(validation_report_path)
+          file_name: $(validation_report_file).junit
+        sqlite:
+          file_name: $(validation_report_file).sqlite
+          path: $(validation_report_path)
