@@ -1,7 +1,7 @@
 - let:
     name: py_func test constants,
     values:
-      py_func test parameter: test parameter
+      - py_func test parameter: test parameter
 
 - py_func:
     name: pass py_func

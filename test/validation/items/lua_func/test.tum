@@ -1,7 +1,7 @@
 - let:
     name: lua_func test constants,
     values:
-      lua_func test parameter: test parameter lua_func
+      - lua_func test parameter: test parameter lua_func
 
 - lua_func:
     name: fail lua_func

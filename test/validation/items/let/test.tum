@@ -11,8 +11,8 @@
         - let:
             name:  Let it be
             values:
-                it: $(loop_param)
-                be: <| $(loop_param) == $(it) |>
+                - it: $(loop_param)
+                - be: <| $(loop_param) == $(it) |>
 
 - loop:
     name: Cycle iterating on list
