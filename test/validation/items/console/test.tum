@@ -84,7 +84,18 @@
         - read_until: {expected: HelloConsole, timeout: 1, mute: true}
 
 - console:
-    name: Console read_until muted
+    name: Console read_until float timeout
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "HelloConsole"
+{% if os == "Windows" %}
+        - read_until: {expected: echo "HelloConsole", timeout: 0.2}
+{% endif %}
+        - read_until: {expected: HelloConsole, timeout: 0.2}
+
+- console:
+    name: Console read_until process result
     console_name: term
     key: $(test)_PASS
     steps:
