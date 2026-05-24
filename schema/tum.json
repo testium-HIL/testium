@@ -1,4 +1,6 @@
 {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+
     "$defs": {
         "config_file":{
             "desciption": "The list of the configuration files",
@@ -8,113 +10,172 @@
             }
         },
 
+        "items":{
+            "properties": {
+                "name": { "type": "string" },
+                "stop_on_failure":{ "type": "boolean" },
+                "execute_on_stop":{ "type": "boolean" },
+                "skipped":{ "type": "boolean" },
+                "no_fail":{ "type": "boolean" },
+                "doc":{ "type": "string" },
+                "key":{ "type": "string" },
+                "report":{ "$ref": "#/$defs/report_export" },
+                "condition":{ "type": "string" },
+                "process_result":{ "type": "string" },
+                "expected_result":{ },
+                "store_result":{ "type": "string" }
+            }
+        },
+
+        "steps" : {
+            "required": ["steps"],
+            "properties": {
+                "version": { "type": "string" },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties":{
+                            "let": { "$ref": "#/$defs/let" },
+                            "check": { "$ref": "#/$defs/check" },
+                            "dialog_question": { "$ref": "#/$defs/dialog" },
+                            "dialog_message": { "$ref": "#/$defs/dialog" },
+                            "dialog_note": { "$ref": "#/$defs/dialog" },
+                            "dialog_value": { "$ref": "#/$defs/dialog" },
+                            "dialog_image": { "$ref": "#/$defs/dialog" },
+                            "lua_func": { "$ref": "#/$defs/func" },
+                            "py_func": { "$ref": "#/$defs/func" },
+                            "console": { "$ref": "#/$defs/console" },
+                            "sleep": { "$ref": "#/$defs/sleep" },
+                            "json_rpc": { "$ref": "#/$defs/json_rpc" },
+                            "group": { "$ref": "#/$defs/group" },
+                            "sequence": { "$ref": "#/$defs/sequence" },
+                            "report": { "$ref": "#/$defs/report" },
+                            "loop": { "$ref": "#/$defs/loop" },
+                            "git": { "$ref": "#/$defs/git" },
+                            "unittest": { "$ref": "#/$defs/unittest" }
+
+                        }
+                    }
+                }
+            }
+        },
+
         "cons_open" : {
             "type":"object",
-            "properties": {
-                "protocol" : {
-                    "enum": ["telnet", "ssh", "serial", "rawtcp", "terminal"]
-                },
-                "telnet_host" : {"type": "string"},
-                "telnet_port" : {"type": "string"},
-                "ssh_host": {"type": "string"},
-                "ssh_user": {"type": "string"},
-                "ssh_pwd": {"type": "string"},
-                "serial_port": {"type": "string"},
-                "serial_baudrate": {"type": "integer"},
-                "buffered": {"type": "boolean"},
-                "tcp_host" : {"type": "string"},
-                "tcp_port" : {"type": "string"},
-                "terminal_path": {"type":"string"},
-                "shell": {"type":"string"}
-
-            },
-            "required":["protocol"],
-            "additionalProperties": false
+            "allOf": 
+            [
+                { "$ref": "#/$defs/items" },
+                { 
+                    "properties": {
+                        "protocol" : {
+                            "enum": ["telnet", "ssh", "serial", "rawtcp", "terminal"]
+                        },
+                        "telnet_host" : {"type": "string" },
+                        "telnet_port" : {"type": "number" },
+                        "ssh_host": {"type": "string" },
+                        "ssh_user": {"type": "string" },
+                        "ssh_pwd": {"type": "string" },
+                        "serial_port": {"type": "string" },
+                        "serial_baudrate": {"type": "integer" },
+                        "buffered": {"type": "boolean" },
+                        "tcp_host" : {"type": "string" },
+                        "tcp_port" : {"type": "number" },
+                        "terminal_path": {"type":"string" },
+                        "shell": {"type":"string" }
+                    },
+                    "required": ["protocol"]
+                }
+            ]   
         },
 
         "cons_read": {
             "type":"object",
-            "properties": {
-                "protocol" : {
-                    "enum": ["telnet", "ssh", "serial", "rawtcp", "terminal"]
-                },
-                "expected" : {"type": "string"},
-                "timeout": {"type": "number"},
-                "mute": {"type": "boolean"}
-            },
-            "required":["expected"],
-            "additionalProperties": false
-
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties": {
+                        "protocol" : {
+                            "enum": ["telnet", "ssh", "serial", "rawtcp", "terminal"]
+                        },
+                        "expected" : {"type": "string" },
+                        "timeout": {"type": "number" },
+                        "mute": {"type": "boolean" }
+                    },
+                    "required":["expected"]
+                }
+            ]
         },
 
         "console" : {
             "description": "The let items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "console_name": {"type":"string" },
-                "steps": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties":{
-                            "open": {
-                                "$ref": "#/$defs/cons_open"
-                            },
-                            "write": { "type": "string" },
-                            "writeln": { "type": "string" },
-                            "read_until": {
-                                "$ref": "#/$defs/cons_read"
-                            },
-                            "close": { "type": "null"}
-                        },
-                        "additionalProperties": false
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "required": ["steps", "console_name"],
+                    "properties":{
+                        "console_name": {"type":"string" },
+                        "steps": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties":{
+                                    "open": {
+                                        "$ref": "#/$defs/cons_open"
+                                    },
+                                    "write": { "type": "string" },
+                                    "writeln": { "type": "string" },
+                                    "read_until": {
+                                        "$ref": "#/$defs/cons_read"
+                                    },
+                                    "close": { 
+                                        "anyOf": [
+                                            {"type": "null"},
+                                            {"type": "string"}
+                                        ]
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
                     }
                 }
-            },
-            "additionalProperties": false,
-            "required": ["steps", "console_name"]
+            ]
         },
-
 
         "json_rpc_console": {
             "type":"object",
             "properties": {
-                "name" : {"type": "string"},
-                "prompt" : {"type": "string"}
+                "name" : {"type": "string" },
+                "prompt" : {"type": "string" }
             },
             "required":["name"],
             "additionalProperties": false
         },
+
         "json_rpc_udp": {
             "type":"object",
             "properties": {
-                "server" : {"type": "string"},
-                "udp_snd_port" : {"type": "integer"},
-                "udp_rcv_port" : {"type": "integer"},
-                "bufsize" : {"type": "integer"}
+                "server" : {"type": "string" },
+                "udp_snd_port" : {"type": "integer" },
+                "udp_rcv_port" : {"type": "integer" },
+                "bufsize" : {"type": "integer" }
             },
             "required":["name"],
             "additionalProperties": false
         },
+        
         "json_rpc_query": {
             "type":"object",
             "properties": {
-                "method" : { "type": "string"},
-                "params" : { "type": "array"},
-                "id" : {"type": "integer"},
-                "no_wait" : {"type": "boolean"}
+                "method" : { "type": "string" },
+                "params" : { "type": "array" },
+                "id" : {"type": "integer" },
+                "no_wait" : {"type": "boolean" }
             },
             "required":["method"],
             "additionalProperties": false
@@ -123,8 +184,8 @@
         "json_rpc_receive": {
             "type":"object",
             "properties": {
-                "id" : {"type": "integer"},
-                "timeout" : {"type": "number"}
+                "id" : {"type": "integer" },
+                "timeout" : {"type": "number" }
             },
             "required":["id"],
             "additionalProperties": false
@@ -133,271 +194,325 @@
         "json_rpc" : {
             "description": "The json_rpc items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "expected" : {"type": "string"},
-                "udp" : { "$ref": "#/defs/json_rpc_udp"},
-                "console" : { "$ref": "#/$defs/json_rpc_console"},
-                "timeout": {"type": "number"},
-                "version": {"enum": ["1.0", "2.0"]},
-                "steps": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties":{
-                            "open": { "type": "null"},
-                            "query": { "$ref": "#/$defs/json_rpc_query" },
-                            "receive": { "$ref": "#/$defs/json_rpc_receive" },
-                            "writeln": { "type": "string" },
-                            "read_until": { "$ref": "#/$defs/cons_read"
-                            },
-                            "close": { "type": "null"}
-                        },
-                        "additionalProperties": false
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "required": ["steps"],
+                    "properties":{
+                    
+                        "udp" : { "$ref": "#/$defs/json_rpc_udp" },
+                        "console" : { "$ref": "#/$defs/json_rpc_console" },
+                        "timeout": {"type": "number" },
+                        "version": {"enum": ["1.0", "2.0"]},
+                        "steps": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties":{
+                                    "open": { "type": "null" },
+                                    "query": { "$ref": "#/$defs/json_rpc_query" },
+                                    "receive": { "$ref": "#/$defs/json_rpc_receive" },
+                                    "writeln": { "type": "string" },
+                                    "read_until": { "$ref": "#/$defs/cons_read"
+                                    },
+                                    "close": { "type": "null" }
+                                }
+                            }
+                        }
                     }
                 }
-            },
-            "additionalProperties": false,
-            "required": ["steps"]
+            ]
         },
 
         "group" : {
             "description": "The group items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "steps": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties":{
-                            "let": { "$ref": "#/$defs/let" },
-                            "check": { "$ref": "#/$defs/check" },
-                            "dialog_message": { "$ref": "#/$defs/dialog_txt" },
-                            "dialog_note": { "$ref": "#/$defs/dialog_txt" },
-                            "dialog_value": { "$ref": "#/$defs/dialog_txt" },
-                            "lua_func": { "$ref": "#/$defs/func" },
-                            "py_func": { "$ref": "#/$defs/func" },
-                            "console": { "$ref": "#/$defs/console" },
-                            "json_rpc": { "$ref": "#/$defs/json_rpc" },
-                            "group": { "$ref": "#/$defs/group" }
-                        },
-                        "additionalProperties": false
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                { "$ref": "#/$defs/steps" }
+            ]
+        },
+
+        "sequence" : {
+            "description": "The sequence items",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                { "$ref": "#/$defs/steps" },
+                {
+                    "properties": {
+                        "filename": { "type": "string" }
+                    },
+                    "required": ["filename"]
+                }
+            ]
+        },
+
+        "loop" : {
+            "description": "The loop items",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                { "$ref": "#/$defs/steps" },
+                {
+                    "properties": {
+                        "iterator": { },
+                        "exit_condition": {
+                            "description": "the posibility to stop the loop",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "time" : {"type":"number"},
+                                "value" : {"type":"number"},
+                                "file" : {"type":"string"},
+                                "func_name" : {"type":"string"},
+                                "eval" : {"type":"string"}
+                            },
+                            "dependentRequired": {
+                                "file" : ["func_name"]
+                            }
+
+                        }
                     }
                 }
-            },
-            "additionalProperties": false,
-            "required": ["steps"]
+            ]
         },
 
         "main" : {
             "description": "The Main items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "version": { "type": "string"},
-                "steps": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties":{
-                            "let": { "$ref": "#/$defs/let" },
-                            "check": { "$ref": "#/$defs/check" },
-                            "dialog_message": { "$ref": "#/$defs/dialog_txt" },
-                            "dialog_note": { "$ref": "#/$defs/dialog_txt" },
-                            "dialog_value": { "$ref": "#/$defs/dialog_txt" },
-                            "lua_func": { "$ref": "#/$defs/func" },
-                            "py_func": { "$ref": "#/$defs/func" },
-                            "console": { "$ref": "#/$defs/console" },
-                            "json_rpc": { "$ref": "#/$defs/json_rpc" },
-                            "group": { "$ref": "#/$defs/group" }
-                        },
-                        "additionalProperties": false
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                { "$ref": "#/$defs/steps" },
+                {
+                    "properties": {
+                        "version": { "type": "string" }
                     }
                 }
-            },
-            "additionalProperties": false,
-            "required": ["steps"]
+            ]
         },
 
         "sleep" : {
             "description": "Sleep for X time [secondes",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "dialog": { "type": "boolean"},
-                "timeout": { "type": "number"}
-            },
-            "additionalProperties": false,
-            "required": ["timeout"]
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "dialog": { "type": "boolean" },
+                        "timeout": { "type": "number" }
+                    },
+                    "required": ["timeout"]
+                }
+            ]
         },
 
         "let" : {
             "description": "The let items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "values": { 
-                    "type": "array",
-                    "items": {"type": "object" }
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "values": {
+                            "anyOf": [
+                                {
+                                    "type": "array",
+                                    "items": {"type": "object" }
+                                },
+                                { "type":"object" }
+                            ]
+                        }
+                    },
+                    "required": ["values"]
                 }
-            },
-            "additionalProperties": false,
-            "required": ["values"]
+            ]
         },
 
         "check" : {
             "description": "The let items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "values": {
-                    "type": "array",
-                    "items": { "type": "string" }
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "values": { 
+                            "type": "array",
+                            "items": {"type": "string" }
+                        }
+                    },
+                    "required": ["values"]
                 }
-            },
-            "additionalProperties": false,
-            "required": ["values"]
+            ]
         },
 
-        "dialog_txt" : {
+        "git" : {
+            "description": "The git items",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "repo": { "type": "string" }
+                    },
+                    "required": ["repo"]
+                }
+            ]
+        },
+
+        "unittest" : {
+            "description": "The unittest items",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "test_file": { "type": "string" },
+                        "test_method": {
+                            "anyOf": [
+                                {"type":"string"},
+                                {
+                                    "type":"array",
+                                    "items": {"type":"string"}
+                                }
+                            ]
+                        }
+                    },
+                    "required": ["test_file"]
+                }
+            ]
+        },
+
+        "dialog" : {
             "description": "The let items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "question": { "type": "string" }
-            },
-            "additionalProperties": false,
-            "required": ["question"]
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "question": { "type": "string" },
+                        "auto_result": { "type": "string" },
+                        "auto_value": { "type": ["number", "string"] },
+                        "filename" : {"type": "string"},
+                        "reference" : {
+                            "type":"array",
+                            "items": { "type":"string"}
+                        }
+                    },
+                    "required": ["question"]
+                }
+            ]
         },
 
+        "dialog_choice" : {
+            "description": "The one choi items",
+            "type": "object",
+            "additionalProperties": false,
+            "properties":{
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "icon": { "type": "string"},
+                "choices": {
+                    "type":"array",
+                    "items": { "$ref": "#/$defs/dialog_choice" }
+                }
+            },
+            "required": ["name", "description"]
+        },
+        "dialog_choices" : {
+            "description": "The dialog choices items",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "name": { "type": "string" },
+                        "question": { "type": "string" },
+                        "icon": { "type": "string"},
+                        "choices": {
+                            "type":"array",
+                            "items": { "$ref": "#/$defs/dialog_choice" }
+                        }
+                    },
+                    "required": ["question"]
+                }
+            ]
+        },
         "func" : {
             "description": "The py_fun and lua_func items",
             "type": "object",
-            "properties":{
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean"},
-                "execute_on_stop":{ "type": "boolean"},
-                "skipped":{ "type": "boolean"},
-                "no_fail":{ "type": "boolean"},
-                "doc":{ "type": "string"},
-                "key":{ "type": "string"},
-                "report":{ "type": "string"},
-                "condition":{ "type": "string"},
-                "process_result":{ "type": "string"},
-                "expeted_result":{ "type": "string"},
-                "store_result":{ "type": "string"},
-                "file": { "type": "string"},
-                "func_name": { "type": "string"},
-                "context_id": { "type": "string"},
-                "param" : {
-                    "type": "array",
-                    "items": { "type": "string" }
+            "unevaluatedProperties": false,
+            "allOf": [
+                { "$ref": "#/$defs/items" },
+                {
+                    "properties":{
+                        "file": { "type": "string" },
+                        "func_name": { "type": "string" },
+                        "context_id": { "type": "string" },
+                        "param" : {
+                            "anyOf": [
+                                {"type": "array"},
+                                {"type": "object"}
+                            ]
+                        }
+                    },
+                    "required": ["file", "func_name"]
                 }
-            },
-            "additionalProperties": false,
-            "required": ["file", "func_name"]
+            ]
         },
 
         "report_export": {
             "type": "object",
             "properties": {
-                "path": {"type":"string"},
-                "file_name": {"type":"string"},
-                "pattern": {"type":"string"},
-                "key": {"type":"string"}
+                "path": {"type":"string" },
+                "file_name": {"type":"string" },
+                "pattern": {"type":"string" },
+                "key": {"type":"string" }
             }
         },
+
         "report":{
             "desciption": "The list of the configuration files",
             "type": "object",
+            "additional_properties":false,
             "properties": {
-                "enabled": {"type":"boolean"},
-                "log_stored": {"type":"boolean"},
+                "enabled": {"type":"boolean" },
+                "log_stored": {"type":"boolean" },
                 "export": {
-                    "type": "object",
-                    "properties":{
-                        "html": { "$ref": "#/$defs/report_export" },
-                        "sqlite": { "$ref": "#/$defs/report_export" },
-                        "junit": { "$ref": "#/$defs/report_export" }
-                    }
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties":{
+                                "html": { "$ref": "#/$defs/report_export" },
+                                "sqlite": { "$ref": "#/$defs/report_export" },
+                                "junit": { "$ref": "#/$defs/report_export" }
+                            }
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type":"object",
+                                "properties":{
+                                    "html": { "$ref": "#/$defs/report_export" },
+                                    "sqlite": { "$ref": "#/$defs/report_export" },
+                                    "junit": { "$ref": "#/$defs/report_export" }
+                                }
+                            }
+                        }
+                    ]
                 }
             }
         }
@@ -407,7 +522,7 @@
     "type": "object",
     "properties": {
         "config_file" : { "$ref": "#/$defs/config_file"  },
-        "main": {  "$ref": "#/$defs/group"  },
+        "main": {  "$ref": "#/$defs/main"  },
         "report" : { "$ref": "#/$defs/report"  }
 
     },
