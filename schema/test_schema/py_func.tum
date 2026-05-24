@@ -1,0 +1,326 @@
+config_file:
+- param.yaml
+- items/py_func/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: py_func test constants
+               values:
+                  test: py_func
+                  test_path: items/$(test)
+         -  group:
+               name: py_func test
+               steps:
+               -  sequence:
+                     steps:
+                     -  let:
+                           name: py_func test constants,
+                           values:
+                              py_func test parameter: test parameter
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: assertparam
+                           key: $(test)_PASS
+                           name: pass py_func
+                           param:
+                           - true
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: assertparam
+                           key: $(test)_FAIL
+                           name: fail py_func
+                           param:
+                           - false
+                     -  py_func:
+                           expected_result: FAIL
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: assertparam
+                           key: $(test)_PASS
+                           name: fail py_func with expected result "FAIL"
+                           param:
+                           - false
+                     -  py_func:
+                           expected_result: FAIL
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: assertparam
+                           key: $(test)_FAIL
+                           name: pass py_func with expected result FAIL
+                           param:
+                           - true
+                     -  py_func:
+                           expected_result: -1
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: echo
+                           key: $(test)_PASS
+                           name: expected -1
+                           param:
+                           - -1
+                     -  py_func:
+                           expected_result: 354848436 - 354848437
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: echo
+                           key: $(test)_PASS
+                           name: expected eval
+                           param:
+                           - -1
+                     -  py_func:
+                           expected_result: '[-1, ''a'', {''toto'': ''tata''}]'
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: echo
+                           key: $(test)_PASS
+                           name: expected table
+                           param:
+                           -  - -1
+                              - a
+                              -  toto: tata
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: checkglobal
+                           key: $(test)_PASS
+                           name: global param py_func
+                           param:
+                           - $(py_func test parameter)
+                     -  let:
+                           key: $(test)_PASS
+                           name: python2func
+                           values:
+                           -  py: $(test_path)$(psep)py_func.py
+                     -  py_func:
+                           expected_result: $(py_func test parameter)
+                           file: $(py)
+                           func_name: checkglobal2
+                           key: $(test)_PASS
+                           name: global param py_func 2
+                     -  py_func:
+                           file: $(py)
+                           func_name: checkglobal
+                           key: $(test)_PASS
+                           name: global param py_func
+                           param:
+                           - $(py_func test parameter)
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: should_not_be_called
+                           name: skipped_checkglobal
+                           param:
+                           - $(py_func test parameter)
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: checkglobal
+                           name: skipped true
+                           param:
+                           - $(py_func test parameter)
+                           skipped: true
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: checkglobal
+                           name: skipped 1
+                           param:
+                           - $(py_func test parameter)
+                           skipped: 1
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: ValidationTest
+                           name: FunctionItem test
+                           param:
+                           - $(py_func test parameter)
+                     -  group:
+                           name: Function results check
+                           steps:
+                           -  group:
+                                 name: Function result 1
+                                 steps:
+                                 -  py_func:
+                                       expected_result: -1
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: int failure
+                                       param:
+                                       - -1
+                                 -  py_func:
+                                       expected_result: -1.3
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: float failure
+                                       param:
+                                       - -1.3
+                                 -  py_func:
+                                       expected_result: FAIL
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: String failure
+                                       param:
+                                       - FAIL
+                                 -  py_func:
+                                       expected_result:
+                                       - -1
+                                       - Got a failure
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: tuple_return
+                                       key: $(test)_PASS
+                                       name: Tuple int,str failure
+                                       param:
+                                       - -1
+                                       - Got a failure
+                           -  group:
+                                 name: Functions result 2
+                                 steps:
+                                 -  py_func:
+                                       expected_result: 0
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: int success
+                                       param:
+                                       - 0
+                                 -  py_func:
+                                       expected_result: 0.3
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: float success
+                                       param:
+                                       - 0.3
+                                 -  py_func:
+                                       expected_result: Something that is not only
+                                          strictly FAIL
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: String success
+                                       param:
+                                       - Something that is not only strictly FAIL
+                                 -  py_func:
+                                       expected_result:
+                                       - 0
+                                       - OK
+                                       file: $(test_path)$(psep)py_func.py
+                                       func_name: tuple_return
+                                       key: $(test)_PASS
+                                       name: Tuple int,str success
+                                       param:
+                                       - 0
+                                       - OK
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: test_delgd
+                           key: $(test)_PASS
+                           name: delgd test
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: return_nothing
+                           key: $(test)_PASS
+                           name: function returning nothing should succeed
+                     -  py_func:
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: return_explicit_none
+                           key: $(test)_PASS
+                           name: function returning explicit None should succeed
+                     -  group:
+                           name: context_id tests
+                           steps:
+                           -  py_func:
+                                 expected_result: hello context
+                                 file: $(test_path)$(psep)py_func.py
+                                 func_name: set_context_value
+                                 key: $(test)_PASS
+                                 name: set serializable value
+                                 param:
+                                 - hello context
+                           -  py_func:
+                                 context_id: ctx_test
+                                 expected_result: hello context
+                                 file: $(test_path)$(psep)py_func.py
+                                 func_name: get_context_value
+                                 key: $(test)_PASS
+                                 name: get serializable value (same context_id)
+                           -  py_func:
+                                 expected_result: hello context
+                                 file: $(test_path)$(psep)py_func.py
+                                 func_name: get_context_value
+                                 key: $(test)_PASS
+                                 name: get serializable value (no context_id, from
+                                    main gd)
+                           -  py_func:
+                                 context_id: ctx_other
+                                 expected_result: hello context
+                                 file: $(test_path)$(psep)py_func.py
+                                 func_name: get_context_value
+                                 key: $(test)_PASS
+                                 name: get serializable value (different context_id)
+                           -  py_func:
+                                 context_id: ctx_ns_test
+                                 expected_result: hello ns
+                                 file: $(test_path)$(psep)py_func.py
+                                 func_name: set_ns_value
+                                 key: $(test)_PASS
+                                 name: set non-serializable value
+                                 param:
+                                 - hello ns
+                           -  py_func:
+                                 context_id: ctx_ns_test
+                                 expected_result: hello ns
+                                 file: $(test_path)$(psep)py_func.py
+                                 func_name: get_ns_value
+                                 key: $(test)_PASS
+                                 name: get non-serializable value (same context_id)
+                     filename: /home/renish/workspace/testium/code/test/validation/items/py_func/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

@@ -1,0 +1,164 @@
+config_file:
+- param.yaml
+- items/console/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: console test constants
+               values:
+                  - test: console
+                  - test_path: items/$(test)
+         -  group:
+               name: console test
+               steps:
+               -  sequence:
+                     steps:
+                     -  console:
+                           console_name: term
+                           doc: Opening the console
+                           key: $(test)_PASS
+                           name: Console creation
+                           steps:
+                           -  open:
+                                 protocol: terminal
+                                 terminal_path: $(test_directory)
+                           -  writeln: echo "endOfOpen"
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console read_until with timeout
+                           steps:
+                           -  read_until:
+                                 expected: endOfOpen
+                                 timeout: 5
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console write
+                           steps:
+                           -  writeln: echo 0
+                     -  sleep:
+                           name: sleep item
+                           timeout: 1
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console read_until immediate
+                           steps:
+                           -  read_until:
+                                 expected: '0'
+                                 timeout: 0
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console write
+                           steps:
+                           -  writeln: echo "HelloConsole"
+                     -  console:
+                           console_name: term
+                           key: $(test)_FAIL
+                           name: Console read_until fail
+                           steps:
+                           -  read_until:
+                                 expected: Something never prints
+                                 timeout: 1
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console write
+                           steps:
+                           -  writeln: echo "HelloConsole"
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console read_until no_fail
+                           steps:
+                           -  read_until:
+                                 expected: Something never prints
+                                 no_fail: true
+                                 timeout: 1
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console read_until muted
+                           steps:
+                           -  writeln: echo "HelloConsole"
+                           -  read_until:
+                                 expected: HelloConsole
+                                 mute: true
+                                 timeout: 1
+                     -  console:
+                           console_name: term
+                           key: $(test)_PASS
+                           name: Console read_until muted
+                           steps:
+                           -  writeln: echo "HelloConsole is PASS" && echo "endOfCmd"
+                           -  read_until:
+                                 expected: endOfCmd
+                                 process_result: '''Hello'' in r''''''$(result)''''''
+                                    and ''PASS'' in r''''''$(result)'''''' '
+                                 timeout: 1
+                     -  console:
+                           console_name: term
+                           execute_on_stop: true
+                           key: $(test)_PASS
+                           name: Console closure
+                           steps:
+                           -  close: term
+                     filename: /home/renish/workspace/testium/code/test/validation/items/console/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

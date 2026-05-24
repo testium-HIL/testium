@@ -1,0 +1,106 @@
+config_file:
+- param.yaml
+- items/cycle/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+                  terminal_prompt: $(linux_prompt)
+                  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: cycle test constants
+               values:
+                  - test: cycle
+                  - test_path: items/$(test)
+         -  group:
+               name: cycle test
+               steps:
+               -  sequence:
+                     steps:
+                     -  loop:
+                           iterator: 10
+                           key: $(test)_PASS
+                           name: Cycle number of loops
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)cycle.py
+                                 func_name: donothing
+                                 name: do nothing
+                     -  loop:
+                           iterator:
+                           - 12
+                           - 20
+                           - 30
+                           key: $(test)_PASS
+                           name: Cycle iterating on list
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)cycle.py
+                                 func_name: checkloopparam
+                                 name: check loop param
+                                 param:
+                                 - $(loop_param)
+                     -  loop:
+                           exit_condition:
+                              file: $(test_path)$(psep)cycle.py
+                              func_name: exitcondition
+                           key: $(test)_PASS
+                           name: Infinite loop with exit condition
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)cycle.py
+                                 func_name: donothing
+                                 name: do nothing
+                     filename: /home/renish/workspace/testium/code/test/validation/items/cycle/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

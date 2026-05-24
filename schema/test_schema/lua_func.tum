@@ -1,0 +1,297 @@
+config_file:
+- param.yaml
+- items/lua_func/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: lua_func test constants
+               values:
+                  test: lua_func
+                  test_path: items/$(test)
+         -  group:
+               name: lua_func test
+               steps:
+               -  sequence:
+                     steps:
+                     -  let:
+                           name: lua_func test constants,
+                           values:
+                              lua_func test parameter: test parameter lua_func
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: assertparam
+                           key: $(test)_FAIL
+                           name: fail lua_func
+                           param:
+                           - false
+                     -  lua_func:
+                           expected_result: FAIL
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: assertparam
+                           key: $(test)_PASS
+                           name: fail lua_func with expected result FAIL
+                           param:
+                           - false
+                     -  lua_func:
+                           expected_result: FAIL
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: assertparam
+                           key: $(test)_FAIL
+                           name: pass lua_func with expected result FAIL
+                           param:
+                           - true
+                     -  lua_func:
+                           expected_result: -1
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: echo
+                           key: $(test)_PASS
+                           name: expected -1
+                           param:
+                           - -1
+                     -  lua_func:
+                           expected_result: 354848436 - 354848437
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: echo
+                           key: $(test)_PASS
+                           name: expected eval
+                           param:
+                           - -1
+                     -  lua_func:
+                           expected_result: '[-1, ''a'', {''toto'': ''tata''}]'
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: echo
+                           key: $(test)_PASS
+                           name: expected table
+                           param:
+                           -  - -1
+                              - a
+                              -  toto: tata
+                     -  lua_func:
+                           expected_result: $(lua_func test parameter)
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: checkglobal
+                           key: $(test)_PASS
+                           name: global param lua_func
+                           param:
+                           - lua_func test parameter
+                     -  lua_func:
+                           expected_result: ($(lua_data_to_be_returned))[0]
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: checkglobal2
+                           key: $(test)_PASS
+                           name: global param lua_func 1
+                           param:
+                           - 1
+                     -  lua_func:
+                           expected_result: ($(lua_data_to_be_returned))[1]
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: checkglobal2
+                           key: $(test)_PASS
+                           name: global param lua_func 2
+                           param:
+                           - 2
+                     -  lua_func:
+                           expected_result: ($(lua_data_to_be_returned))[2]
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: checkglobal2
+                           key: $(test)_PASS
+                           name: global param lua_func 3
+                           param:
+                           - 3
+                     -  let:
+                           key: $(test)_PASS
+                           name: python2func
+                           values:
+                           -  py: $(test_path)$(psep)lua_func.lua
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: should_not_be_called
+                           name: skipped_checkglobal
+                           param:
+                           - $(test parameter)
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: checkglobal
+                           name: skipped true
+                           param:
+                           - $(test parameter)
+                           skipped: true
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: checkglobal
+                           name: skipped 1
+                           param:
+                           - $(test parameter)
+                           skipped: true
+                     -  group:
+                           name: Function results check
+                           steps:
+                           -  group:
+                                 name: Function result failure
+                                 steps:
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: int failure
+                                       param:
+                                       - -1
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: float failure
+                                       param:
+                                       - -1.3
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: String failure
+                                       param:
+                                       - FAIL
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: tuple_return
+                                       key: $(test)_PASS
+                                       name: Tuple int,str failure
+                                       param:
+                                       - -1
+                                       - Got a failure
+                           -  group:
+                                 name: Functions result success
+                                 steps:
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: int success
+                                       param:
+                                       - 0
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: float success
+                                       param:
+                                       - 0.3
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: echo
+                                       key: $(test)_PASS
+                                       name: String success
+                                       param:
+                                       - Something that is not only strictly FAIL
+                                 -  lua_func:
+                                       file: $(test_path)$(psep)lua_func.lua
+                                       func_name: tuple_return
+                                       key: $(test)_PASS
+                                       name: Tuple int,str success
+                                       param:
+                                       - 0
+                                       - OK
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: test_delgd
+                           key: $(test)_PASS
+                           name: delgd test
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: return_nothing
+                           key: $(test)_PASS
+                           name: function returning nothing should succeed
+                     -  lua_func:
+                           file: $(test_path)$(psep)lua_func.lua
+                           func_name: return_explicit_nil
+                           key: $(test)_PASS
+                           name: function returning explicit nil should succeed
+                     -  group:
+                           name: context_id tests
+                           steps:
+                           -  lua_func:
+                                 context_id: lua_ctx_test
+                                 expected_result: hello lua
+                                 file: $(test_path)$(psep)lua_func.lua
+                                 func_name: set_context_value
+                                 key: $(test)_PASS
+                                 name: set context value
+                                 param:
+                                 - hello lua
+                           -  lua_func:
+                                 context_id: lua_ctx_test
+                                 expected_result: hello lua
+                                 file: $(test_path)$(psep)lua_func.lua
+                                 func_name: get_context_value
+                                 key: $(test)_PASS
+                                 name: get context value (same context_id)
+                           -  lua_func:
+                                 expected_result: hello lua
+                                 file: $(test_path)$(psep)lua_func.lua
+                                 func_name: get_context_value
+                                 key: $(test)_PASS
+                                 name: get context value (no context_id, from main
+                                    gd)
+                           -  lua_func:
+                                 context_id: lua_ctx_other
+                                 expected_result: hello lua
+                                 file: $(test_path)$(psep)lua_func.lua
+                                 func_name: get_context_value
+                                 key: $(test)_PASS
+                                 name: get context value (different context_id)
+                     filename: /home/renish/workspace/testium/code/test/validation/items/lua_func/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

@@ -1,0 +1,453 @@
+config_file:
+- param.yaml
+- items/common/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: common test constants
+               values:
+                  test: common
+                  test_path: items/$(test)
+         -  group:
+               name: common test
+               steps:
+               -  sequence:
+                     steps:
+                     -  group:
+                           name: Results
+                           steps:
+                           -  sequence:
+                                 steps:
+                                 -  group:
+                                       name: Expected Result
+                                       steps:
+                                       -  py_func:
+                                             expected_result: true
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Return True expect True
+                                             param:
+                                             - true
+                                       -  py_func:
+                                             expected_result: false
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_FAIL
+                                             name: Return True expect False (must
+                                                fail)
+                                             param:
+                                             - true
+                                       -  py_func:
+                                             expected_result: None
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: return_none
+                                             key: $(test)_PASS
+                                             name: Return None expect None
+                                       -  py_func:
+                                             expected_result: PASS
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: return_none
+                                             key: $(test)_PASS
+                                             name: Return None expect PASS
+                                       -  py_func:
+                                             expected_result: 14
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: return_none
+                                             key: $(test)_FAIL
+                                             name: Return None expect 14 (must fail)
+                                 -  group:
+                                       name: Expected Result Last test result
+                                       steps:
+                                       -  py_func:
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: result is 28
+                                             param:
+                                             - 28
+                                       -  py_func:
+                                             expected_result: $(last_step_result)
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: check that the last test result
+                                                is 28
+                                             param:
+                                             - 28
+                                 -  group:
+                                       name: Expected result Failure raised issue
+                                       steps:
+                                       -  py_func:
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: raise_issue
+                                             key: $(test)_FAIL
+                                             name: Raise an issue (must fail)
+                                             param:
+                                             - $(str_example)
+                                       -  py_func:
+                                             expected_result: FAIL
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: raise_issue
+                                             key: $(test)_PASS
+                                             name: Raise an issue and expected the
+                                                test to be FAIL
+                                             param:
+                                             - $(str_example)
+                                       -  py_func:
+                                             expected_result: FAIL
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_FAIL
+                                             name: Return a String expect a FAILURE
+                                                (must fail)
+                                             param:
+                                             - $(str_example)
+                                 -  group:
+                                       name: process result
+                                       steps:
+                                       -  py_func:
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Process result equal String
+                                             param:
+                                             - $(str_example)
+                                             process_result: '''$(str_example)'' ==
+                                                ''$(result)'''
+                                       -  py_func:
+                                             expected_result: true
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_FAIL
+                                             name: Process result string in the result
+                                                (must fail)
+                                             param:
+                                             - $(str_example)
+                                             process_result: '''44'' in ''$(result)'''
+                                       -  py_func:
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Save the result in a global variable
+                                             param:
+                                             - 44
+                                             store_result: process_result_value
+                                       -  py_func:
+                                             expected_result: $(process_result_value)
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Check the saved global variable
+                                             param:
+                                             - 44
+                                       -  py_func:
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: store_result with process_result
+                                             param:
+                                             - $(str_example)
+                                             process_result: '''$(result)''.upper()'
+                                             store_result: upper_str_example
+                                       -  py_func:
+                                             expected_result: $(upper_str_example)
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Check store_result with process_result
+                                             param:
+                                             - $(str_example)
+                                             process_result: '''$(result)''.upper()'
+                                       -  let:
+                                             key: $(test)_PASS
+                                             name: "store_result on let item (None\
+                                                \ value \u2192 stores PASS)"
+                                             store_result: let_store_result
+                                             values:
+                                             -  dummy: 0
+                                       -  py_func:
+                                             expected_result: $(let_store_result)
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Check store_result on let stores
+                                                PASS
+                                             param:
+                                             - PASS
+                                       -  py_func:
+                                             expected_result: FAIL
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: return_none
+                                             key: $(test)_FAIL
+                                             name: "store_result on failing test (None\
+                                                \ value \u2192 stores FAIL)"
+                                             store_result: none_fail_store_result
+                                       -  py_func:
+                                             expected_result: $(none_fail_store_result)
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Check store_result on failing test
+                                                stores FAIL
+                                             param:
+                                             - FAIL
+                                       -  py_func:
+                                             expected_result: FAIL
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: return_none
+                                             key: $(test)_PASS
+                                             name: "store_result with no_fail (None\
+                                                \ value \u2192 stores real FAIL, not\
+                                                \ forced PASS)"
+                                             no_fail: true
+                                             store_result: none_nofail_store_result
+                                       -  py_func:
+                                             expected_result: $(none_nofail_store_result)
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Check store_result with no_fail
+                                                stores real FAIL
+                                             param:
+                                             - FAIL
+                                       -  py_func:
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: return_none
+                                             key: $(test)_FAIL
+                                             name: Process result when result is None
+                                                (must fail)
+                                             process_result: $(result) is None
+                                 -  group:
+                                       name: no_fail result
+                                       steps:
+                                       -  py_func:
+                                             expected_result: false
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Return True expect False but no_fail=True
+                                             no_fail: true
+                                             param:
+                                             - true
+                                       -  py_func:
+                                             expected_result: false
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_FAIL
+                                             name: Return True expect False but no_fail=False
+                                                (must fail)
+                                             no_fail: false
+                                             param:
+                                             - true
+                                       -  py_func:
+                                             expected_result: false
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Return True expect False but no_fail
+                                                expansed
+                                             no_fail: <| bool(0) == False |>
+                                             param:
+                                             - true
+                                       -  py_func:
+                                             expected_result: false
+                                             file: $(test_path)$(psep)results$(psep)results.py
+                                             func_name: echo
+                                             key: $(test)_FAIL
+                                             name: Return True expect False but no_fail
+                                                expansed (must fail)
+                                             no_fail: <| bool(1) == False |>
+                                             param:
+                                             - true
+                                 filename: /home/renish/workspace/testium/code/test/validation/items/common/results/test.tum
+                     -  group:
+                           name: Conditional
+                           steps:
+                           -  sequence:
+                                 steps:
+                                 -  loop:
+                                       doc: This loop illustrate the way to exit on
+                                          a condition.
+                                       exit_condition:
+                                          value: <| $(pfn_Echo function) > 3 |>
+                                       key: $(test)_PASS
+                                       name: Infine loop with conditional exit
+                                       steps:
+                                       -  sleep:
+                                             name: small wait
+                                             timeout: 0.2
+                                       -  py_func:
+                                             file: $(test_path)$(psep)conditional$(psep)conditional.py
+                                             func_name: echo
+                                             key: $(test)_PASS
+                                             name: Echo function
+                                             param:
+                                             - $(loop_param)
+                                       stop_on_failure: false
+                                 -  let:
+                                       key: $(test)_PASS
+                                       name: let
+                                       values:
+                                       -  conditional_exec: <| random.randint(1, 2) |>
+                                 -  console:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       console_name: consname
+                                       doc: Opening the console
+                                       key: $(test)_PASS
+                                       name: Console creation
+                                       steps:
+                                       -  open:
+                                             protocol: terminal
+                                             terminal_path: $(test_directory)
+                                       -  writeln: echo "terminal loaded"
+                                 -  console:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       console_name: consname
+                                       key: $(test)_PASS
+                                       name: Console read_until with timeout
+                                       steps:
+                                       -  read_until:
+                                             expected: terminal loaded
+                                             timeout: 5
+                                 -  console:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       console_name: consname
+                                       key: $(test)_PASS
+                                       name: Console write
+                                       steps:
+                                       -  writeln: echo 0
+                                 -  sleep:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       name: sleep item
+                                       timeout: 1
+                                 -  console:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       console_name: consname
+                                       key: $(test)_PASS
+                                       name: Console read_until immediate
+                                       steps:
+                                       -  read_until:
+                                             expected: '0'
+                                             timeout: 0
+                                 -  console:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       console_name: consname
+                                       key: $(test)_PASS
+                                       name: Console read_until immediate (2)
+                                       steps:
+                                       -  read_until:
+                                             expected: $(terminal_prompt)
+                                             timeout: 0
+                                 -  console:
+                                       condition: <| $(conditional_exec) == 1 |>
+                                       console_name: consname
+                                       key: $(test)_PASS
+                                       name: Console closure
+                                       steps:
+                                       -  close: consname
+                                 -  sleep:
+                                       condition: <| $(conditional_exec) == 2 |>
+                                       name: sleep item
+                                       timeout: 1
+                                 filename: /home/renish/workspace/testium/code/test/validation/items/common/conditional/test.tum
+                     -  group:
+                           name: Various syntax robustness
+                           steps:
+                           -  sequence:
+                                 steps:
+                                 -  sleep:
+                                       key: $(test)_PASS
+                                       timeout: 0.2
+                                 -  sleep:
+                                       key: $(test)_PASS
+                                       name: null
+                                       timeout: 0.2
+                                 -  sleep:
+                                       doc: null
+                                       key: $(test)_PASS
+                                       name: Empty "doc:" declared (must PASS)
+                                       timeout: 0.2
+                                 filename: /home/renish/workspace/testium/code/test/validation/items/common/syntax_robustness/test.tum
+                     -  group:
+                           name: Helper lib functions
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)helper_lib.py
+                                 func_name: check_os
+                                 key: $(test)_PASS
+                                 name: OS
+                                 param:
+                                 - $(os)
+                           -  py_func:
+                                 file: $(test_path)$(psep)helper_lib.py
+                                 func_name: check_get_main_dir
+                                 key: $(test)_PASS
+                                 name: get_main_dir
+                           -  py_func:
+                                 file: $(test_path)$(psep)helper_lib.py
+                                 func_name: check_timestamp_as_sec_conversion
+                                 key: $(test)_PASS
+                                 name: timestamp_as_sec conversion
+                           -  py_func:
+                                 file: $(test_path)$(psep)helper_lib.py
+                                 func_name: check_timestamp
+                                 key: $(test)_PASS
+                                 name: timestamp and timestamp_as_sec
+                     filename: /home/renish/workspace/testium/code/test/validation/items/common/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

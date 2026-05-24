@@ -1,0 +1,414 @@
+config_file:
+- param.yaml
+- items/parallel/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: parallel test constants
+               values:
+                  test: parallel
+                  test_path: items/$(test)
+         -  group:
+               name: parallel test
+               steps:
+               -  sequence:
+                     steps:
+                     -  parallel:
+                           branches:
+                           -  name: Branch A
+                              steps:
+                              -  let:
+                                    name: Set A done
+                                    values:
+                                    -  branch_a_done: true
+                           -  name: Branch B
+                              steps:
+                              -  let:
+                                    name: Set B done
+                                    values:
+                                    -  branch_b_done: true
+                           key: $(test)_PASS
+                           name: Both branches pass
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Both branches ran
+                           values:
+                           - <| $(branch_a_done) == True |>
+                           - <| $(branch_b_done) == True |>
+                     -  parallel:
+                           branches:
+                           -  name: Pass branch
+                              steps:
+                              -  let:
+                                    name: Set pass flag
+                                    values:
+                                    -  pass_branch_ran: true
+                           -  name: Fail branch
+                              steps:
+                              -  py_func:
+                                    expected_result: fail
+                                    file: $(test_path)$(psep)parallel.py
+                                    func_name: sleep_func
+                                    name: Raise exception
+                                    param:
+                                    - 0
+                           key: $(test)_PASS
+                           name: One branch fails
+                           no_fail: true
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Pass branch still ran
+                           values:
+                           - <| $(pass_branch_ran) == True |>
+                     -  let:
+                           name: Reset slow flag
+                           values:
+                           -  slow_done: false
+                     -  parallel:
+                           branches:
+                           -  name: Fast branch
+                              steps:
+                              -  let:
+                                    name: Fast done
+                                    values:
+                                    -  fast_done: true
+                           -  name: Slow branch
+                              steps:
+                              -  py_func:
+                                    file: $(test_path)$(psep)parallel.py
+                                    func_name: sleep_func
+                                    name: Sleep 2s
+                                    param:
+                                    - 2
+                              -  let:
+                                    name: Slow done
+                                    values:
+                                    -  slow_done: true
+                           key: $(test)_PASS
+                           name: sync any - first wins
+                           sync: any
+                     -  check:
+                           key: $(test)_PASS
+                           name: Fast branch ran, slow branch was stopped
+                           values:
+                           - <| $(fast_done) == True |>
+                           - <| $(slow_done) == False |>
+                     -  let:
+                           name: Reset sync flag
+                           values:
+                           -  sync_flag: ''
+                           -  waiter_ran: false
+                     -  parallel:
+                           branches:
+                           -  name: Setter branch
+                              steps:
+                              -  py_func:
+                                    file: $(test_path)$(psep)parallel.py
+                                    func_name: sleep_func
+                                    name: Sleep 0.3s then set flag
+                                    param:
+                                    - 0.3
+                              -  let:
+                                    name: Set sync flag
+                                    values:
+                                    -  sync_flag: ready
+                           -  name: Waiter branch
+                              steps:
+                              -  let:
+                                    name: Got flag
+                                    values:
+                                    -  waiter_ran: true
+                              wait_for:
+                                 condition: <| "$(sync_flag)" == "ready" |>
+                                 timeout: 10
+                           key: $(test)_PASS
+                           name: wait_for synchronization
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Waiter branch ran after flag was set
+                           values:
+                           - <| $(waiter_ran) == True |>
+                     -  parallel:
+                           branches:
+                           -  name: Sleep A
+                              steps:
+                              -  sleep:
+                                    name: Sleep 1s A
+                                    timeout: 1
+                           -  name: Sleep B
+                              steps:
+                              -  sleep:
+                                    name: Sleep 1s B
+                                    timeout: 1
+                           key: $(test)_PASS
+                           name: Timing test
+                           sync: all
+                     -  let:
+                           name: Capture parallel duration
+                           values:
+                           -  parallel_duration: $(ts_duration_Timing test)
+                     -  check:
+                           key: $(test)_PASS
+                           name: Duration < 1.8s (would be 2s if sequential)
+                           values:
+                           - <| float("$(parallel_duration)") < 1.8 |>
+                     -  let:
+                           name: Reset N flags
+                           values:
+                           -  n_a: false
+                           -  n_b: false
+                           -  n_c: false
+                           -  n_d: false
+                     -  parallel:
+                           branches:
+                           -  name: NA
+                              steps:
+                              -  let:
+                                    name: set n_a
+                                    values:
+                                    -  n_a: true
+                           -  name: NB
+                              steps:
+                              -  let:
+                                    name: set n_b
+                                    values:
+                                    -  n_b: true
+                           -  name: NC
+                              steps:
+                              -  let:
+                                    name: set n_c
+                                    values:
+                                    -  n_c: true
+                           -  name: ND
+                              steps:
+                              -  let:
+                                    name: set n_d
+                                    values:
+                                    -  n_d: true
+                           key: $(test)_PASS
+                           name: Four branches
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Four branches all set their flag
+                           values:
+                           - <| $(n_a) == True |>
+                           - <| $(n_b) == True |>
+                           - <| $(n_c) == True |>
+                           - <| $(n_d) == True |>
+                     -  let:
+                           name: Reset nested flags
+                           values:
+                           -  outer_x: false
+                           -  inner_x_1: false
+                           -  inner_x_2: false
+                     -  parallel:
+                           branches:
+                           -  name: Outer X
+                              steps:
+                              -  let:
+                                    name: set outer_x
+                                    values:
+                                    -  outer_x: true
+                              -  parallel:
+                                    branches:
+                                    -  name: Inner X1
+                                       steps:
+                                       -  let:
+                                             name: set inner_x_1
+                                             values:
+                                             -  inner_x_1: true
+                                    -  name: Inner X2
+                                       steps:
+                                       -  let:
+                                             name: set inner_x_2
+                                             values:
+                                             -  inner_x_2: true
+                                    name: Inner parallel
+                                    sync: all
+                           -  name: Outer Y
+                              steps:
+                              -  sleep:
+                                    name: brief sleep
+                                    timeout: 0
+                           key: $(test)_PASS
+                           name: Outer parallel
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Nested parallel set all flags
+                           values:
+                           - <| $(outer_x) == True |>
+                           - <| $(inner_x_1) == True |>
+                           - <| $(inner_x_2) == True |>
+                     -  let:
+                           name: Reset waiter timeout flag
+                           values:
+                           -  waiter_timeout_ran: false
+                     -  parallel:
+                           branches:
+                           -  name: Quick branch
+                              steps:
+                              -  sleep:
+                                    name: brief sleep
+                                    timeout: 0
+                           -  name: Doomed waiter
+                              steps:
+                              -  let:
+                                    name: should not run
+                                    values:
+                                    -  waiter_timeout_ran: true
+                              wait_for:
+                                 condition: <| "never" == "ready" |>
+                                 timeout: 1
+                           key: $(test)_PASS
+                           name: wait_for timeout
+                           no_fail: true
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Doomed waiter never ran its steps
+                           values:
+                           - <| $(waiter_timeout_ran) == False |>
+                     -  parallel:
+                           branches:
+                           -  name: ok branch
+                              steps:
+                              -  let:
+                                    name: noop
+                                    values:
+                                    -  noop_var: 1
+                           -  name: broken branch
+                              steps:
+                              -  py_func:
+                                    expected_result: fail
+                                    file: $(test_path)$(psep)parallel.py
+                                    func_name: sleep_func
+                                    name: Forced fail
+                                    param:
+                                    - 0
+                           key: $(test)_FAIL
+                           name: One branch really fails
+                           sync: all
+                     -  let:
+                           name: Reset branch condition flag
+                           values:
+                           -  cond_branch_ran: false
+                           -  other_branch_ran: false
+                     -  parallel:
+                           branches:
+                           -  condition: <| "always" == "false" |>
+                              name: Skipped branch
+                              steps:
+                              -  let:
+                                    name: should not run
+                                    values:
+                                    -  cond_branch_ran: true
+                           -  name: Other branch
+                              steps:
+                              -  let:
+                                    name: ran
+                                    values:
+                                    -  other_branch_ran: true
+                           key: $(test)_PASS
+                           name: Condition-skipped branch
+                           sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Skipped condition branch did not run
+                           values:
+                           - <| $(cond_branch_ran) == False |>
+                           - <| $(other_branch_ran) == True |>
+                     -  let:
+                           name: Reset loop counters
+                           values:
+                           -  loop_count_a: 0
+                           -  loop_count_b: 0
+                     -  loop:
+                           iterator: 3
+                           name: Loop wrapping parallel
+                           steps:
+                           -  parallel:
+                                 branches:
+                                 -  name: LA
+                                    steps:
+                                    -  let:
+                                          name: bump A
+                                          values:
+                                          -  loop_count_a: <| int("$(loop_count_a)")
+                                                + 1 |>
+                                 -  name: LB
+                                    steps:
+                                    -  let:
+                                          name: bump B
+                                          values:
+                                          -  loop_count_b: <| int("$(loop_count_b)")
+                                                + 1 |>
+                                 name: Per-iteration parallel
+                                 sync: all
+                     -  check:
+                           key: $(test)_PASS
+                           name: Both branches ran 3 times
+                           values:
+                           - <| int("$(loop_count_a)") == 3 |>
+                           - <| int("$(loop_count_b)") == 3 |>
+                     filename: /home/renish/workspace/testium/code/test/validation/items/parallel/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

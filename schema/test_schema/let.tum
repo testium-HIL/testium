@@ -1,0 +1,157 @@
+config_file:
+- param.yaml
+- items/let/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: let test constants
+               values:
+                  - test: let
+                  - test_path: items/$(test)
+         -  group:
+               name: let test
+               steps:
+               -  sequence:
+                     steps:
+                     -  loop:
+                           iterator: 10
+                           key: $(test)_PASS
+                           name: Cycle number of loops
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)let.py
+                                 func_name: donothing
+                                 name: do nothing
+                           -  let:
+                                 name: Let it be
+                                 values:
+                                    - be: <| $(loop_param) == $(it) |>
+                                    - it: $(loop_param)
+                     -  loop:
+                           iterator:
+                           - 12
+                           - 20
+                           - 30
+                           key: $(test)_PASS
+                           name: Cycle iterating on list
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)let.py
+                                 func_name: checkloopparam
+                                 name: check loop param
+                                 param:
+                                 - $(loop_param)
+                           -  let:
+                                 name: Let it be
+                                 values:
+                                 -  it: $(loop_param)
+                                 -  be: <| $(loop_param) == $(it) |>
+                     -  let:
+                           key: $(test)_PASS
+                           name: Get time
+                           values:
+                           -  loop_t0: $(ts_start_Cycle iterating on list)
+                           -  loop_t1: $(ts_end_Cycle iterating on list)
+                           -  loop_duration: $(ts_duration_Cycle iterating on list)
+                     -  let:
+                           key: $(test)_PASS
+                           name: Get parameter file value
+                           values:
+                           -  test_overwrite_me: <| $(overwrite_me) == True |>
+                     -  py_func:
+                           file: $(test_path)$(psep)let.py
+                           func_name: checkGlobalDic
+                           name: Check global dic pass
+                           param:
+                           - test_overwrite_me
+                           - true
+                     -  let:
+                           key: $(test)_PASS
+                           name: Overwrite parameter file value
+                           values:
+                           -  overwrite_me: false
+                     -  py_func:
+                           expected_result: $(overwrite_me) == False
+                           file: $(test_path)$(psep)let.py
+                           func_name: checkGlobalDic
+                           key: $(test)_FAIL
+                           name: Check global dic fail
+                           param:
+                           - overwrite_me
+                           - true
+                     -  py_func:
+                           expected_result: fail
+                           file: $(test_path)$(psep)let.py
+                           func_name: checkGlobalDic
+                           key: $(test)_PASS
+                           name: Check global dic fail
+                           param:
+                           - overwrite_me
+                           - true
+                     -  let:
+                           key: $(test)_PASS
+                           name: Evaluate Overwriting parameter file value
+                           values:
+                           -  test_overwrite_me: <| "$(overwrite_me)" == True |>
+                     -  check:
+                           key: $(test)_PASS
+                           name: Check Overwriting parameter file value
+                           values:
+                           - <| $(test_overwrite_me) == False |>
+                     filename: /home/renish/workspace/testium/code/test/validation/items/let/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

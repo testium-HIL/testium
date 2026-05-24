@@ -1,0 +1,137 @@
+config_file:
+- param.yaml
+- items/plot/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: plot test constants
+               values:
+                  test: plot
+                  test_path: items/$(test)
+         -  group:
+               name: plot test
+               steps:
+               -  sequence:
+                     steps:
+                     -  group:
+                           condition: <| $(validation_dialogs) and not tm.text_mode()
+                              |>
+                           name: Plot test
+                           steps:
+                           -  plot:
+                                 key: $(test)_PASS
+                                 name: Open the plot
+                                 plot_name: Mon Plot
+                                 steps:
+                                 -  open:
+                                       log_path: $(validation_report_path)
+                           -  plot:
+                                 key: $(test)_PASS
+                                 name: Add periodic to the plot
+                                 plot_name: Mon Plot
+                                 steps:
+                                 -  periodic:
+                                       eval: '{"periodic": $(result)}'
+                                       file: $(test_path)$(psep)plot.py
+                                       func_name: random_value
+                                       period: 1
+                           -  sleep:
+                                 dialog: true
+                                 name: sleep
+                                 timeout: 3
+                           -  loop:
+                                 iterator: 10
+                                 name: Add of other data in the plot
+                                 steps:
+                                 -  plot:
+                                       key: $(test)_PASS
+                                       name: Add to the plot
+                                       plot_name: Mon Plot
+                                       steps:
+                                       -  add:
+                                             value1: $(loop_index)
+                                             value2: $(loop_index)+2
+                                 -  sleep:
+                                       name: sleep between values
+                                       timeout: 1
+                                 -  py_func:
+                                       file: $(test_path)$(psep)plot.py
+                                       func_name: LastValues
+                                       key: $(test)_PASS
+                                       name: last plot values
+                                       param:
+                                       - Mon Plot
+                           -  plot:
+                                 execute_on_stop: true
+                                 key: $(test)_PASS
+                                 name: Export
+                                 plot_name: Mon Plot
+                                 steps:
+                                 -  export: $(validation_report_path)/plot_export.pdf
+                                 -  export: $(validation_report_path)/plot_export.csv
+                           -  plot:
+                                 execute_on_stop: true
+                                 key: $(test)_PASS
+                                 name: Close the plot
+                                 plot_name: Mon Plot
+                                 steps:
+                                 -  close:
+                                       timeout: 2
+                                       wait_dialog_exit: true
+                     filename: /home/renish/workspace/testium/code/test/validation/items/plot/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

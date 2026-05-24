@@ -1,0 +1,490 @@
+config_file:
+- param.yaml
+- items/jsonrpc/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: jsonrpc test constants
+               values:
+                  test: jsonrpc
+                  test_path: items/$(test)
+         -  group:
+               name: jsonrpc test
+               steps:
+               -  sequence:
+                     steps:
+                     -  console:
+                           console_name: jrpces
+                           doc: check if jrpc_echo_server.py is available
+                           key: $(test)_PASS
+                           name: json rpc echo server
+                           steps:
+                           -  open:
+                                 protocol: terminal
+                           -  read_until:
+                                 expected: $(terminal_prompt)
+                                 no_fail: true
+                                 timeout: 1
+                           -  writeln: test -f /home/renish/workspace/testium/code/test/validation/items/jsonrpc/jrpc_echo_server.py
+                                 && echo JRPC_OK
+                           -  read_until:
+                                 expected: JRPC_OK
+                                 no_fail: true
+                                 timeout: 2
+                     -  group:
+                           condition: <| 'JRPC_OK' in r'''$(cn_json rpc echo server)''' |>
+                           name: jsonrpc tests
+                           steps:
+                           -  console:
+                                 console_name: jrpces
+                                 key: $(test)_PASS
+                                 name: Start the json rpc echo server
+                                 steps:
+                                 -  writeln: python3 /home/renish/workspace/testium/code/test/validation/items/jsonrpc/jrpc_echo_server.py
+                                       -c /home/renish/workspace/testium/code/test/validation/items/jsonrpc/jrpces.ini
+                                 -  read_until:
+                                       expected: ready
+                                       timeout: 5
+                           -  console:
+                                 console_name: jsonrpc_server
+                                 doc: Opening the RAW TCP console
+                                 key: $(test)_PASS
+                                 name: Open the raw tcp Console
+                                 skipped: $(skip_tcp)
+                                 steps:
+                                 -  open:
+                                       protocol: rawtcp
+                                       tcp_host: localhost
+                                       tcp_port: 4321
+                           -  json_rpc:
+                                 console:
+                                    name: jsonrpc_server
+                                 key: $(test)_PASS
+                                 name: JSONRPC console Query waiting for reception
+                                 skipped: $(skip_tcp)
+                                 steps:
+                                 -  query:
+                                       method: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                 timeout: 1
+                           -  json_rpc:
+                                 console:
+                                    name: jsonrpc_server
+                                 key: $(test)_PASS
+                                 name: JSONRPC console Query not waiting (only send)
+                                 skipped: $(skip_tcp)
+                                 steps:
+                                 -  query:
+                                       id: 3095372
+                                       method: echo
+                                       no_wait: true
+                                       params:
+                                       -  a: -1
+                                          b: olleh
+                                       - World Hello
+                                 timeout: 1
+                           -  sleep:
+                                 name: Small delay for the test
+                                 skipped: $(skip_tcp)
+                                 timeout: 1
+                           -  json_rpc:
+                                 console:
+                                    name: jsonrpc_server
+                                 key: $(test)_PASS
+                                 name: JSONRPC console Reception
+                                 skipped: $(skip_tcp)
+                                 steps:
+                                 -  receive:
+                                       id: 3095372
+                                 timeout: 1
+                           -  console:
+                                 console_name: jsonrpc_server
+                                 doc: Opening the RAW TCP console
+                                 execute_on_stop: true
+                                 key: $(test)_PASS
+                                 name: Close the raw tcp console
+                                 skipped: $(skip_tcp)
+                                 steps:
+                                 -  close: null
+                           -  json_rpc:
+                                 key: $(test)_PASS
+                                 name: JSONRPC UDP query waiting for reception
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       method: echo
+                                       name: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 key: $(test)_FAIL
+                                 name: Failing JSONRPC UDP query waiting for reception
+                                    (returning an error)
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       method: echo2
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 key: $(test)_PASS
+                                 name: JSONRPC UDP query waiting for reception of
+                                    an expected error
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       expected_result:
+                                          code: -32000
+                                          message: function not found
+                                       method: echo2
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: 'Failing JSONRPC UDP query waiting for reception
+                                    and checking result
+
+                                    and timeout elapses (wrong udp port)
+
+                                    '
+                                 key: $(test)_FAIL
+                                 name: Failing UDP JSONRPC query timeout elapses (wrong
+                                    udp port)
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       method: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       timeout: 0.5
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 48393
+                                    server: localhost
+                                    snd_port: 4326
+                           -  json_rpc:
+                                 key: $(test)_PASS
+                                 name: JSONRPC UDP query not waiting (only send)
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       id: 3095372
+                                       method: echo
+                                       no_wait: true
+                                       params:
+                                       -  a: -1
+                                          b: olleh
+                                       - World Hello
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  sleep:
+                                 name: Small delay for the test
+                                 timeout: 1
+                           -  json_rpc:
+                                 key: $(test)_PASS
+                                 name: JSONRPC UDP Reception
+                                 steps:
+                                 -  receive:
+                                       id: 3095372
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 key: $(test)_PASS
+                                 name: JSONRPC UDP query not waiting (only send)
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       id: 3095372
+                                       method: echo2
+                                       no_wait: true
+                                       params:
+                                       -  a: -1
+                                          b: olleh
+                                       - World Hello
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  sleep:
+                                 name: Small delay for the test
+                                 timeout: 1
+                           -  json_rpc:
+                                 key: $(test)_FAIL
+                                 name: Failing JSONRPC UDP Reception (returning an
+                                    error)
+                                 steps:
+                                 -  receive:
+                                       id: 3095372
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 8765
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: JSONRPC UDP query waiting for reception and
+                                    checking result
+                                 key: $(test)_PASS
+                                 name: UDP JSONRPC query waiting and checking
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       expected_result:
+                                       -  - Hello World
+                                          -  a: 1
+                                             b: hello
+                                       - {}
+                                       method: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 48393
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: JSONRPC UDP query waiting for reception and
+                                    checking result
+                                 key: $(test)_FAIL
+                                 name: Failing UDP JSONRPC query waiting and checking
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       expected_result:
+                                       - []
+                                       - {}
+                                       method: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 48393
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: JSONRPC UDP query not waiting, with the purpose
+                                    to check the result at reception
+                                 key: $(test)_PASS
+                                 name: UDP JSONRPC query not waiting (for checking)
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       id: 3095372
+                                       method: echo
+                                       no_wait: true
+                                       params:
+                                       -  a: -1
+                                          b: olleh
+                                       - World Hello
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 9876
+                                    server: localhost
+                                    snd_port: 4323
+                           -  sleep:
+                                 name: Small delay for the test
+                                 timeout: 1
+                           -  json_rpc:
+                                 doc: JSONRPC UDP Reception and checking result
+                                 key: $(test)_PASS
+                                 name: UDP JSONRPC reception checking
+                                 steps:
+                                 -  receive:
+                                       expected_result:
+                                       -  -  a: -1
+                                             b: olleh
+                                          - World Hello
+                                       - {}
+                                       id: 3095372
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 9876
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: JSONRPC UDP Reception and checking result
+                                 key: $(test)_FAIL
+                                 name: Failing UDP JSONRPC reception checking
+                                 steps:
+                                 -  receive:
+                                       expected_result:
+                                       -  -  a: -1
+                                             b: ollhe
+                                          - World Hello
+                                       - {}
+                                       id: 3095372
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 9876
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: 'JSONRPC UDP query waiting for reception and
+                                    checking result with
+
+                                    replacing $(result) and evaluating string.
+
+                                    '
+                                 key: $(test)_PASS
+                                 name: UDP JSONRPC query waiting and evaluating result
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       expected_result: 1
+                                       method: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       process_result: $(result)[0][1]['a']
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 48393
+                                    server: localhost
+                                    snd_port: 4323
+                           -  json_rpc:
+                                 doc: 'JSONRPC UDP query waiting for reception and
+                                    checking result with
+
+                                    replacing $(result) and evaluating string.
+
+                                    '
+                                 key: $(test)_FAIL
+                                 name: Failing UDP JSONRPC query waiting and evaluating
+                                    result
+                                 steps:
+                                 -  open: null
+                                 -  query:
+                                       expected_result: $(result)[0][1]['a'] == 0
+                                       method: echo
+                                       params:
+                                       - Hello World
+                                       -  a: 1
+                                          b: hello
+                                       timeout: 1
+                                 -  close: null
+                                 timeout: 1
+                                 udp:
+                                    rcv_port: 48393
+                                    server: localhost
+                                    snd_port: 4323
+                     -  console:
+                           console_name: jrpces
+                           doc: check if the jsonrpc echo server is installed
+                           execute_on_stop: true
+                           key: $(test)_PASS
+                           name: Stop json rpc echo server
+                           steps:
+                           -  close:
+                                 protocol: terminal
+                     filename: /home/renish/workspace/testium/code/test/validation/items/jsonrpc/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

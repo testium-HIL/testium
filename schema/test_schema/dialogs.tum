@@ -1,0 +1,135 @@
+config_file:
+- param.yaml
+- items/dialogs/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: dialogs test constants
+               values:
+                  test: dialogs
+                  test_path: items/$(test)
+         -  group:
+               name: dialogs test
+               steps:
+               -  sequence:
+                     steps:
+                     -  dialog_image:
+                           auto_result: ok
+                           condition: $(validation_dialogs)
+                           filename: $(test_path)$(psep)IMG_20140213_171455.jpg
+                           key: $(test)_PASS
+                           name: dialog image PASS
+                           question: click ok if you see the image
+                     -  dialog_image:
+                           auto_result: cancel
+                           condition: $(validation_dialogs)
+                           filename: $(test_path)$(psep)IMG_20140213_171455.jpg
+                           key: $(test)_FAIL
+                           name: dialog image FAIL
+                           question: click cancel
+                     -  dialog_references:
+                           auto_result: ok
+                           condition: $(validation_dialogs)
+                           key: $(test)_PASS
+                           name: dialog_reference PASS
+                           question: click ok
+                     -  dialog_references:
+                           auto_result: cancel
+                           condition: $(validation_dialogs)
+                           key: $(test)_FAIL
+                           name: dialog_reference FAIL
+                           question: click cancel
+                     -  dialog_value:
+                           auto_result: ok
+                           auto_value: '123'
+                           condition: $(validation_dialogs)
+                           key: $(test)_PASS
+                           name: dialog_value PASS
+                           question: enter 123 and click ok
+                     -  dialog_value:
+                           auto_result: ok
+                           condition: $(validation_dialogs)
+                           key: $(test)_FAIL
+                           name: dialog_value empty FAIL
+                           question: enter nothing and click ok
+                     -  dialog_value:
+                           auto_result: cancel
+                           condition: $(validation_dialogs)
+                           key: $(test)_FAIL
+                           name: dialog_value canceled FAIL
+                           question: enter nothing and click cancel
+                     -  dialog_message:
+                           auto_result: ok
+                           condition: $(validation_dialogs)
+                           key: $(test)_PASS
+                           name: dialog_message PASS
+                           question: click ok
+                     -  dialog_question:
+                           auto_result: 'yes'
+                           condition: $(validation_dialogs)
+                           key: $(test)_PASS
+                           name: dialog_question PASS
+                           question: click yes
+                     -  dialog_question:
+                           auto_result: 'no'
+                           condition: $(validation_dialogs)
+                           key: $(test)_FAIL
+                           name: dialog_question FAIL
+                           question: click no
+                     filename: /home/renish/workspace/testium/code/test/validation/items/dialogs/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true

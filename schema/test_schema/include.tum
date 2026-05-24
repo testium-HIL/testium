@@ -1,0 +1,129 @@
+config_file:
+- param.yaml
+- items/include/param.yaml
+main:
+   name: Testium validation suite
+   steps:
+   -  group:
+         name: Test preparation
+         steps:
+         -  let:
+               condition: <| "$(os)" == "Linux" |>
+               name: Set test variables for Linux
+               values:
+               -  terminal_prompt: $(linux_prompt)
+               -  psep: /
+         -  let:
+               condition: <| "$(os)" == "Windows" |>
+               name: Set test variables for Windows
+               values:
+               -  terminal_prompt: $(windows_prompt)
+               -  psep: \
+   -  group:
+         name: Group of tests
+         steps:
+         -  let:
+               name: include test constants
+               values:
+                  test: include
+                  test_path: items/$(test)
+         -  group:
+               name: include test
+               steps:
+               -  sequence:
+                     steps:
+                     -  sequence:
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)include.py
+                                 func_name: ValidationTest
+                                 key: $(test)_PASS
+                                 name: My first include test
+                                 param:
+                                 - $(test parameter)
+                           filename: /home/renish/workspace/testium/code/test/validation/items/include/inc
+                              no template/my first include.tum
+                     -  sequence:
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)include.py
+                                 func_name: ValidationTest
+                                 key: $(test)_PASS
+                                 name: My first include test
+                                 param:
+                                 - $(test parameter)
+                           filename: /home/renish/workspace/testium/code/test/validation/items/include/inc
+                              no template/my first include.tum
+                     -  sequence:
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)include.py
+                                 func_name: ValidationTest
+                                 key: $(test)_PASS
+                                 name: My second include test
+                                 param:
+                                 - My second include test parameter
+                           filename: /home/renish/workspace/testium/code/test/validation/items/include/inc
+                              with template/my second include.tum
+                     -  sequence:
+                           steps:
+                           -  py_func:
+                                 file: $(test_path)$(psep)include.py
+                                 func_name: ValidationTest
+                                 key: $(test)_PASS
+                                 name: My second include test
+                                 param:
+                                 - My second include test parameter
+                           filename: /home/renish/workspace/testium/code/test/validation/items/include/inc
+                              with template/my second include.tum
+                     -  let:
+                           name: Declare param for inclusion
+                           values:
+                           -  inc: Dali
+                           -  Dali_inc: Dalida
+                     -  sequence:
+                           steps:
+                           -  let:
+                                 name: Test param inclusion 1
+                                 values:
+                                 -  inclusion: $($(inc)_inc)
+                           filename: /home/renish/workspace/testium/code/test/validation/items/include/inc
+                              with template/my_3d_include.tum
+                     filename: /home/renish/workspace/testium/code/test/validation/items/include/test.tum
+               -  sequence:
+                     steps:
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.txt
+                           -  html:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.html
+                           -  junit:
+                                 key: $(test)_PASS
+                                 path: $(validation_report_path)$(psep)$(test)_PASS.junit
+                           name: Expected PASS $(test) test
+                     -  report:
+                           export:
+                           -  text:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.txt
+                           -  html:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.html
+                           -  junit:
+                                 key: $(test)_FAIL
+                                 path: $(validation_report_path)$(psep)$(test)_FAIL.junit
+                           name: Expected FAIL $(test) test
+                     filename: /home/renish/workspace/testium/code/test/validation/items/report.tum
+report:
+   enabled: true
+   export:
+      junit:
+         file_name: $(validation_report_file).junit
+         path: $(validation_report_path)
+      sqlite:
+         file_name: $(validation_report_file).sqlite
+         path: $(validation_report_path)
+   log_stored: true
