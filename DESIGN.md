@@ -226,25 +226,44 @@ The `.deb` work-in-progress lives in `package/deb/`:
 
 ### Host-only py_func / lua_func in sandboxed bundles (Flatpak, AppImage)
 
-The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
+The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`, the `run` item's sub-instance) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
 
 - `_in_flatpak()` (checks `/.flatpak-info`) and `_in_appimage()` (checks `APPIMAGE` env var) detect the sandbox.
-- `_which(name)` probes only host bin dirs in those modes:
-  - Flatpak: `/run/host/usr/{local/,}bin`, `/run/host/bin` (host mounted via `--filesystem=host-os`).
-  - AppImage: `/usr/local/bin`, `/usr/bin`, `/bin` (we are directly on the host filesystem).
-  - If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
-- User overrides (`python_bin`/`lua_bin` in globdict): bare names are resolved through `_which()` (host-only), absolute paths are accepted as-is.
-- `apply_host_libs(env)` is called by `py_process.py` / `lua_process.py` on the env passed to Popen:
-  - Flatpak: prepends host lib dirs to `LD_LIBRARY_PATH` so the dynamic linker finds host `.so`'s.
-  - AppImage: strips `$APPDIR`-prefixed entries from `LD_LIBRARY_PATH` / `PYTHONPATH` / `PATH` and drops `PYTHONHOME`, so the host Python doesn't try to load the bundled stdlib/site-packages.
-- `apply_host_lua_paths(env)` (Flatpak only) prepends `/run/host/usr/{lib,share}/lua/X.Y` to `LUA_PATH` / `LUA_CPATH` so `cjson`, `socket`, etc. resolve. Must be called **after** user `lua_env` overrides so host paths win. AppImage relies on host Lua's compiled-in defaults.
+- **Flatpak**: the sandbox glibc/ABI is incompatible with arbitrary host shared libraries, so we **cannot** run host binaries inside the Flatpak runtime — `LD_LIBRARY_PATH` injection trips a `_dl_call_libc_early_init` assertion. The supported way out is `flatpak-spawn --host`, a stub on `$PATH` inside every Flatpak that proxies an `exec` over D-Bus to the host's `org.freedesktop.Flatpak` service. The manifest grants `--talk-name=org.freedesktop.Flatpak` so the call is allowed. Helpers:
+  - `flatpak_host_spawn(interp, args, host_cwd, extra_env=…)` builds the spawn command vector with a curated set of forwarded env vars (`HOME`, `USER`, `DISPLAY`, `DBUS_SESSION_BUS_ADDRESS`, …) plus any explicit overrides.
+  - `_get_host_testium_path()` returns a path to the testium package the host can read. In Flatpak the package lives under `/app/lib/testium` which the host cannot see, so the package is staged once per process under `/tmp/testium_host_*` (`/tmp` is shared) and reused. In source / wheel / PyInstaller installs under `$HOME` the original path is returned untouched.
+  - `_which_host_flatpak(name)` resolves a binary by spawning `command -v` on the host (or `test -x` for absolute paths) — sandbox-visible probing under `/run/host/...` is unreliable (only `host-os` is mounted; user paths like `/scratch` aren't there).
+  - `_python_version()` and `_lua_version()` go through `_run_probe()` which dispatches to `flatpak-spawn` in Flatpak so validation happens against the actual host interpreter.
+  - `py_process.py` / `lua_process.py` `start()` use `flatpak_host_spawn` with `host_cwd = _get_host_testium_path()[+/lua_func]` and forward `PYTHONPATH` / `LUA_PATH` / `LUA_CPATH` / `PATH` as `--env=` arguments.
+  - The `run` item's `_testium_launch_cmd()` prefixes `flatpak run org.testium.Testium` with `flatpak-spawn --host` so the sub-instance is launched by the host's `flatpak` CLI, not by an unworkable in-sandbox `flatpak` binary.
+- **AppImage**: we are directly on the host filesystem, so the regular discovery on `/usr/local/bin`, `/usr/bin`, `/bin` suffices. `apply_host_libs(env)` strips `$APPDIR`-prefixed entries from `LD_LIBRARY_PATH` / `PYTHONPATH` / `PATH` and drops `PYTHONHOME` so the host Python doesn't try to load the bundled stdlib/site-packages.
+- User overrides (`python_bin`/`lua_bin` in globdict): in Flatpak, both bare names and absolute paths go through `_which()` so they are validated on the host side (the sandbox can't see e.g. `/scratch/...`). Outside Flatpak, absolute paths are accepted as-is and bare names go through PATH discovery.
+- If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
 - `py_process.py` additionally pops `PYTHONUSERBASE` (set to `/var/data/python` by the Flatpak runtime, which would hide `~/.local/lib/...`).
+
+### Declarative test item parameters
+
+Each `TestItem` subclass declares its accepted parameters as a class attribute `PARAMS = ParamSet(Param(...), ...)` (`interpreter/utils/param_decl.py`). The descriptor carries the parameter name, *kind* (`SCALAR` — the default and may be omitted; `LIST`; `BLOCK`; `Enum("a", "b", ...)`), `required` flag, `default`, and free-form `doc`. There is **no Python type** in the descriptor on purpose: most parameter values are expressions (`$(...)` / `<| ... |>`) whose effective type is only known after expansion, so a static type would be misleading. Post-expansion `validate=lambda v: ...` callbacks are available as an opt-in for the rare cases where a runtime check is warranted (e.g. a specific format).
+
+`TestItem.COMMON_PARAMS` (in `test_item.py`) declares the 14 parameters accepted by every item: `name`, `doc`, `skipped`, `key`, `stop_on_failure`, `execute_on_stop`, `process_result`, `store_result`, `expected_result`, `no_fail`, `report`, `condition`, `steps`, and the internal `seq_filename` injected by the loader. The base class concatenates `COMMON_PARAMS + subclass.PARAMS` in `_validate_declared_params()` and:
+
+- emits a `tm.print_warn(...)` listing the accepted names when an unknown key appears in the user YAML (catches typos like `param_filee`);
+- raises `ETUMSyntaxError` (with the `.tum` source as context) when a `required=True` param is missing.
+
+Validation is **opt-in per subclass**: while a subclass keeps `PARAMS = None` (the base-class default), the check is skipped entirely. This kept the migration incremental — items can be visited one by one without forcing a big-bang change. All structured items have been migrated; only the "unstructured-body" classes (`TestItemConsoleWrite`/`WriteLn` which carry the message as the raw value, `TestItemPlotActionAdd`/`Export` which take arbitrary plot-data keys, `TestItemUnittestElement` which is internally instantiated with `dict_item=None`) intentionally remain unvalidated.
+
+Diagnostics are currently **warnings** for unknown params so an out-of-tree `.tum` with a pre-existing typo doesn't suddenly fail. The flip to a hard error is a one-line change in `_validate_declared_params()` once the user is comfortable.
+
+The schema is also designed to be the source of truth for a future LSP server and for auto-generated manual sections: `ParamSet.to_schema()` returns the JSON-Schema-shaped representation that those consumers will read.
 
 ### Version reporting (`interpreter/utils/version.py`)
 
 Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: launcher script in `org.testium.Testium.yaml`; AppImage: `runtime.env` in `AppImageBuilder.yml`). `get_testium_version()` checks `/.flatpak-info` / `APPIMAGE` and reads `TESTIUM_VERSION` rather than relying on package metadata or repo introspection.
 
 ## Recent fixes / notable changes
+- Declarative test item parameters (v0.2): each `TestItem` subclass exposes a `PARAMS = ParamSet(...)` class attribute consumed by the base `__init__`. Catches unknown YAML keys (typo warnings listing the accepted names) and missing required params (load-time errors with `.tum` context). Lays the schema foundation for a future LSP server and auto-generated manual sections. See the matching architecture section.
+- Flatpak: `py_func` / `lua_func` / `run` sub-instance now execute on the host via `flatpak-spawn --host`. The previous attempt to inject host lib dirs into the sandbox's `LD_LIBRARY_PATH` was abandoned — host shared libs are ABI-incompatible with the Flatpak runtime's glibc and would trip `_dl_call_libc_early_init`. The manifest gained `--talk-name=org.freedesktop.Flatpak` so the spawn proxy call is allowed. The testium package is staged once per process under `/tmp` (shared with the host) so the host interpreter can locate `py_func` / `lua_func`.
+- Validation suite: single entry point with `--mode source|wheel|pyinstaller|flatpak|appimage` to validate every packaging channel against the same items. Per-mode report filenames prevent clobbering.
 - Restructure: single `src/testium/` Python package (was 4 sibling top-levels: `testium`, `lib`, `py_func`, `lua_func`). `lib/` → `runtime/`, `libs/` → `api/`. `pip install` now produces a clean `site-packages/testium/` with no top-level pollution; `.lua` files travel via `package_data`.
 - `bins.py`: centralised resolution + cache of external `python3` / `lua` binaries. Replaces the scattered `tm.gd("python_bin")`/`tm.gd("lua_bin")` dance and the duplicated discovery logic in `py_process.py`/`lua_process.py`. Validates at test load via `TestSet._validate_runtime_deps()` so missing interpreters fail fast.
 - Subprocess API contract: user scripts in `py_func`/`lua_func` use the JSON-RPC bridge (`py_func.tm` / Lua `tm`) — never `api.testium` / `interpreter.*` directly. `SUPPORTED_API` extended with `OS`, `get_main_dir`, `init_timestamp`, `timestamp`, `timestamp_as_sec` so subprocess scripts have the same surface as main-process code.
@@ -275,10 +294,12 @@ Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: lau
 ## Validation tests
 Located in `test/validation/`. Two entry points:
 ```
-./test/validation/run.sh        # wrapper — uses a dedicated venv (see below)
-./run.sh -b -- test/validation/main.tum   # direct — testium's own python is used for test execution
+./test/validation/run.sh [clean] [--mode MODE] [extra args]   # wrapper — uses a dedicated venv (see below)
+./run.sh -b -- test/validation/main.tum                       # direct — testium's own python is used for test execution
 ```
-The `run.sh` / `run.bat` wrappers create a dedicated Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside the venv. testium itself keeps running in the project's own environment. `clean` as the first argument recreates the venv.
+The same item set is reused across every packaging channel — `--mode source|wheel|pyinstaller|flatpak|appimage` selects which testium binary launches the suite (`source` is the default, invoking the project's `run.sh`). Each mode stamps its results into a distinct report file (`validation-<mode>.sqlite`, `validation-<mode>-<item>.xml`) so successive runs in different modes don't clobber each other. Prerequisites (PyInstaller binary built, Flatpak bundle installed, …) are checked before launch with a hint pointing at `build_all.sh`. On Windows only `source`, `wheel`, `pyinstaller` are supported.
+
+The `run.sh` / `run.bat` wrappers create a dedicated **host** Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside that venv. testium itself keeps running in its own environment for the chosen mode. The venv is shared across modes because every test-execution subprocess ends up on the host either directly (source/wheel/pyinstaller/appimage) or via `flatpak-spawn --host` (flatpak). `clean` as the first argument recreates the venv. `wheel` mode also creates a separate `testium-wheel-venv-<v>` to hold the installed package.
 
 The `venv` item (`test/validation/items/venv/`) asserts that the override actually took effect: `python_bin` is set, `sys.executable` matches it, `sys.prefix == dirname(dirname(python_bin))`, and `sys.prefix != sys.base_prefix` (the last marker catches the case where `python_bin` happens to be a system interpreter, which path-equality alone would miss because the venv's `bin/python3` is a symlink to the host). Both `eval_proc` (inline `<| … |>`) and `py_func` paths are exercised.
 
