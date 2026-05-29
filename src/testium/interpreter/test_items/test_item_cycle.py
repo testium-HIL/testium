@@ -8,9 +8,36 @@ from interpreter.test_items.test_result import TestResult, TestValue
 import api.testium as tm
 from interpreter.utils.params import TestItemParams
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, BLOCK
+
+
+# Sub-block validation: 'cycle' accepts an 'exit_condition:' mapping whose
+# own params are reported here so unknown keys inside it can be flagged
+# during a future Block-aware diagnostic pass. For now the parent only
+# declares that 'exit_condition' is an accepted top-level key.
+EXIT_CONDITION_PARAMS = ParamSet(
+    Param("time",      doc="HH:MM time of day after which the loop exits."),
+    Param("value",     doc="Expression; when truthy the loop exits."),
+    Param("file",      doc="Python file containing the exit-condition function."),
+    Param("func_name", doc="Function name in 'file' returning the exit value."),
+    Param("param",     doc="Arguments passed to the exit function."),
+    Param("eval", default="",
+          doc="Post-evaluation expression applied to the function's return."),
+)
 
 
 class TestItemCycle(TestItem):
+
+    PARAMS = ParamSet(
+        Param("iterator",
+              doc="Iterable (or string expanding to one) driving the loop. "
+                  "The current value is exposed as $(loop_param)."),
+        Param("exit_condition", kind=BLOCK,
+              doc="Optional block stopping the loop early: combine 'time', "
+                  "'value', or a 'file'+'func_name' pair (with optional "
+                  "'param' and 'eval')."),
+    )
+
     def __init__(self, dict_cycle, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_CYCLE.item_name
         super().__init__(dict_cycle, parent, status_queue, filename=filename)

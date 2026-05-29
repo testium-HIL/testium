@@ -2,6 +2,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import item_load_context
 import api.testium as tm
 
@@ -10,6 +11,19 @@ class TestItemValueDialog(TestItemDialogBase):
     """dialog_value item usage.
     dialog_value name: Enter value, question: "Which value did you measure?"
     """
+
+    PARAMS = ParamSet(
+        Param("question", required=True,
+              doc="Prompt shown above the value input field."),
+        Param("default", default="",
+              doc="Pre-filled value of the input field."),
+        Param("auto_result", default=None,
+              doc="Batch-mode outcome: None ⇒ FAILURE, 'cancel' ⇒ cancelled, "
+                  "any other truthy ⇒ SUCCESS with auto_value."),
+        Param("auto_value", default=None,
+              doc="Value used in batch mode when auto_result is set."),
+    )
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_VALUE_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

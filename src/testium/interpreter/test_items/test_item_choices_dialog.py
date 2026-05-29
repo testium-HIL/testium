@@ -2,11 +2,25 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, BLOCK
 from runtime.tum_except import item_load_context
 import api.testium as tm
 
 
 class TestItemChoicesDialog(TestItemDialogBase):
+
+    PARAMS = ParamSet(
+        Param("question", required=True,
+              doc="Prompt shown above the list of choices."),
+        Param("choices", kind=BLOCK, required=True,
+              doc="Tree of choices: either a list of strings, or a nested "
+                  "mapping {label: subchoices, ...} to build a multi-level menu."),
+        Param("icon", default=None,
+              doc="Default icon name shown next to each choice."),
+        Param("auto_result", default=None,
+              doc="Batch-mode selection (path or label). None ⇒ FAILURE."),
+    )
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_CHOICES_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

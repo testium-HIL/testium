@@ -10,6 +10,7 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 
@@ -57,6 +58,25 @@ def nowInBetween(start, end):
 
 
 class TestItemRun(TestItem):
+
+    PARAMS = ParamSet(
+        Param("tum", required=True,
+              doc="Path to the .tum file launched in a fresh testium instance."),
+        Param("param_file", default="",
+              doc="Optional path to a param.yaml passed to the sub-instance."),
+        Param("log_file", default="",
+              doc="Path where the sub-instance writes its log."),
+        Param("report_file", default="",
+              doc="Path where the sub-instance writes its report."),
+        Param("start_time",
+              doc="HH:MM time of day after which the sub-instance may run."),
+        Param("end_time",
+              doc="HH:MM time of day after which the sub-instance no longer runs."),
+        Param("wait_for_exec",
+              doc="If true, block until the time window opens. Requires both "
+                  "start_time and end_time."),
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_RUN.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

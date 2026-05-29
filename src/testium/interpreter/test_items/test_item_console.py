@@ -10,6 +10,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from interpreter.test_items.test_result import TestResult, TestValue
 
 
@@ -21,6 +22,38 @@ class TestItemConsoleAction(TestItemAction):
 
 
 class TestItemConsoleOpen(TestItemConsoleAction):
+
+    PARAMS = ParamSet(
+        Param("protocol", required=True,
+              doc="Transport: 'telnet', 'ssh', 'rawtcp', 'serial' or 'terminal'."),
+        Param("write_delay", default=0,
+              doc="Inter-character write delay in ms (slow devices)."),
+        Param("log", doc="Path to a log file capturing the console traffic."),
+        Param("overwrite_log", default=True,
+              doc="If true, truncate the log file at open; else append."),
+        # telnet
+        Param("telnet_host", doc="Hostname/IP for the telnet target."),
+        Param("telnet_port", default=69, doc="TCP port for telnet."),
+        # ssh
+        Param("ssh_host", doc="Hostname/IP for the SSH target."),
+        Param("ssh_user", doc="SSH login user."),
+        Param("ssh_pwd",  doc="SSH password (if key-based auth is not used)."),
+        # rawtcp
+        Param("tcp_host", doc="Hostname/IP for a raw-TCP connection."),
+        Param("tcp_port", doc="TCP port for a raw-TCP connection."),
+        # serial
+        Param("serial_port",     doc="Serial device path (e.g. /dev/ttyUSB0 or COM3)."),
+        Param("serial_baudrate", doc="Serial baudrate."),
+        Param("buffered", default=True,
+              doc="If true, the serial console buffers received bytes between reads."),
+        # terminal
+        Param("terminal_path",
+              doc="Working directory for the local terminal protocol."),
+        Param("shell",
+              doc="Shell command used for the local terminal protocol "
+                  "(default: 'cmd.exe' on Windows, '/usr/bin/env bash' elsewhere)."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -283,6 +316,17 @@ class TestItemConsoleWriteLn(TestItemConsoleAction):
 
 
 class TestItemConsoleReadUntil(TestItemConsoleAction):
+
+    PARAMS = ParamSet(
+        Param("expected", required=True,
+              doc="Regex matched against incoming console output until found "
+                  "or until timeout."),
+        Param("timeout", default=-1,
+              doc="Seconds before giving up. Negative means infinite."),
+        Param("mute", default=False,
+              doc="If true, don't echo received bytes to testium's stdout/log."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -336,6 +380,14 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
 
 
 class TestItemConsole(TestItemActions):
+
+    PARAMS = ParamSet(
+        Param("console_name", required=True,
+              doc="Identifier of the console — used by every nested action to "
+                  "reach back the same transport. Multiple consoles can coexist "
+                  "as long as their names differ."),
+    )
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(
             cst.TYPE_CONSOLE, dict_item, parent, status_queue, filename=filename
