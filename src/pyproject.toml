@@ -30,6 +30,12 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+# `pip install testium[lsp]` adds the language-server dependencies. The
+# stdio-only LSP server (`testium lsp`) reuses the schema export from the
+# core install; pygls is the only marginal cost.
+lsp = ["pygls>=1.3"]
+
 [project.scripts]
 testium = "testium:main"
 
