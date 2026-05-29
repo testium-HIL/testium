@@ -1,3 +1,11 @@
+version 0.2
+==============
+- Test items: each item type now declares its accepted parameters
+  (``PARAMS = ParamSet(...)``). Typos in a ``.tum`` are surfaced as a
+  WARN listing the accepted names instead of being silently ignored;
+  missing required parameters error out at load time with the source
+  ``.tum`` file as context. No change to valid existing tests.
+
 version 0.1.3
 ==============
 - Stop interrupts engaged blocking steps (console, py_func, lua_func,
