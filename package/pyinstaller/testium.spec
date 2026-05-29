@@ -1,5 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.utils.hooks import collect_submodules
+
+# Language-server dependencies for `testium lsp`. pygls/lsprotocol register
+# converters and features dynamically, so we collect their submodules wholesale
+# and force-import their pure-python deps (cattrs/attrs/typing_extensions).
+# The testium lsp modules are imported lazily by the CLI dispatch
+# (`from lsp.server import serve`), which PyInstaller's static analysis misses —
+# hence the explicit names. No source files need bundling: the schema export is
+# now fully declarative (PARAMS + ACTIONS class attributes), so it no longer
+# reads .py source via inspect.getsource (which fails in a frozen build).
+_LSP_HIDDEN = (
+    collect_submodules("pygls")
+    + collect_submodules("lsprotocol")
+    + ["cattrs", "attr", "attrs", "typing_extensions",
+       "lsp", "lsp.server", "lsp.schema"]
+)
 
 # junit_xml is imported by post_exec scripts running under the *host* Python,
 # not the frozen interpreter — so bundling it via hiddenimports alone is not
@@ -54,7 +70,7 @@ a = Analysis(
                    "colorama",
                    "matplotlib",
                    "junit_xml",
-                   "lxml"],
+                   "lxml"] + _LSP_HIDDEN,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

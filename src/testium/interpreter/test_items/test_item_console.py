@@ -388,18 +388,19 @@ class TestItemConsole(TestItemActions):
                   "as long as their names differ."),
     )
 
+    ACTIONS = {
+        "open": TestItemConsoleOpen,
+        "close": TestItemConsoleClose,
+        "write": TestItemConsoleWrite,
+        "writeln": TestItemConsoleWriteLn,
+        "read_until": TestItemConsoleReadUntil,
+    }
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(
             cst.TYPE_CONSOLE, dict_item, parent, status_queue, filename=filename
         )
 
-        self.register_actions(
-            open=TestItemConsoleOpen,
-            close=TestItemConsoleClose,
-            write=TestItemConsoleWrite,
-            writeln=TestItemConsoleWriteLn,
-            read_until=TestItemConsoleReadUntil,
-        )
         self.actions_token = {}
 
         global console

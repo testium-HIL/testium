@@ -5,6 +5,13 @@ from interpreter.test_items.item_actions.action import TestItemAction
 
 
 class TestItemActions(TestItem):
+    # Declarative action registry: subclasses set ``ACTIONS = {yaml_key: class}``
+    # as a class attribute (mirroring ``PARAMS``). It is read here to populate
+    # the runtime registry, and read identically by the schema export — no
+    # instantiation or source inspection required. ``register_actions()`` stays
+    # available as an imperative escape hatch for dynamic/conditional cases.
+    ACTIONS = {}
+
     def __init__(
         self, item_type, dict_actions, parent=None, status_queue=None, filename=""
     ):
@@ -12,7 +19,7 @@ class TestItemActions(TestItem):
         super().__init__(dict_actions, parent, status_queue, filename=filename)
         self._type = item_type
         self.is_container = False
-        self.action_classes = {}
+        self.action_classes = dict(type(self).ACTIONS)
         self.actions_token = None
         self.actions = []
         try:
@@ -24,6 +31,9 @@ class TestItemActions(TestItem):
             )
 
     def register_actions(self, **args: TestItemAction):
+        # Imperative escape hatch. The declarative ``ACTIONS`` class attribute
+        # covers every current subclass; use this only to add actions that
+        # can't be known at class-definition time (e.g. platform-conditional).
         for action_name, action_class in args.items():
             self.action_classes.update({action_name: action_class})
 

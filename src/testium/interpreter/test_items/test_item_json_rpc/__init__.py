@@ -210,18 +210,18 @@ class TestItemJSON_RPC(TestItemActions):
               doc="If true, don't echo wire traffic to the log."),
     )
 
+    ACTIONS = {
+        "open": TestItemJSRPCActionOpen,
+        "close": TestItemJSRPCActionClose,
+        "query": TestItemJSRPCActionQuery,
+        "receive": TestItemJSRPCActionReceive,
+    }
+
     def __init__(
         self, dict_item: dict, parent: TestItem = None, status_queue=None, filename=""
     ):
         super().__init__(
             cst.TYPE_JSON_RPC, dict_item, parent, status_queue, filename=filename
-        )
-
-        self.register_actions(
-            open=TestItemJSRPCActionOpen,
-            close=TestItemJSRPCActionClose,
-            query=TestItemJSRPCActionQuery,
-            receive=TestItemJSRPCActionReceive,
         )
 
         # Console specific params

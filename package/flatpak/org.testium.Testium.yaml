@@ -28,6 +28,20 @@ build-options:
 
 modules:
   - python3-requirements.json
+
+  # Language-server deps for `testium lsp` (pygls + lsprotocol + cattrs + attrs
+  # + typing_extensions). Installed from PyPI at build time — the build already
+  # runs with --share=network (see build-options). The core runtime deps stay
+  # offline-pinned in python3-requirements.json; these are pure-python wheels,
+  # hence --only-binary=:all: (no compilation, deterministic).
+  - name: python3-lsp
+    buildsystem: simple
+    build-options:
+      build-args:
+        - --share=network
+    build-commands:
+      - pip3 install --prefix=${FLATPAK_DEST} --only-binary=:all: "pygls>=1.3"
+
   # 1. Dépendances Python tierces (HORS PySide6)
   # Utilisez flatpak-pip-generator pour vos autres libs (ex: pyserial, requests, etc.)
   # - name: python3-requirements

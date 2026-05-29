@@ -24,41 +24,17 @@ from interpreter.utils.test_init import _constants_init
 
 # Action class -> parent cmd (the action's parent in the YAML). Action classes
 # aren't first-class TestItemType entries (TYPE_*_ACTION is one generic bucket),
-# so we resolve their YAML key by looking at how each parent registers them.
+# so we resolve their YAML key from the parent's declarative ``ACTIONS`` map.
 def _collect_action_classes(parent_class):
     """Return {action_yaml_key: action_class} for a TestItemActions parent.
 
-    Each parent's ``__init__`` calls ``self.register_actions(name=class, ...)``
-    *during* construction, so we can't read the registry without instantiating
-    one. We work around it by parsing the source for the registration call —
-    cheap, no side effects, and the schema export is a CLI command anyway.
+    Each parent declares its actions as a class-level ``ACTIONS = {key: class}``
+    attribute (see ``item_actions/TestItemActions``). We read it directly — no
+    instantiation, no source inspection — so this works identically whether the
+    package runs from source, a wheel, or a frozen (PyInstaller) build where the
+    ``.py`` source isn't on disk.
     """
-    import ast
-    import inspect
-
-    try:
-        src = inspect.getsource(parent_class)
-    except (OSError, TypeError):
-        return {}
-
-    actions = {}
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        fn = node.func
-        if not (isinstance(fn, ast.Attribute) and fn.attr == "register_actions"):
-            continue
-        for kw in node.keywords:
-            if kw.arg is None or not isinstance(kw.value, ast.Name):
-                continue
-            # ast.Name gives us only the bare identifier; resolve it through
-            # the parent class's defining module.
-            mod = __import__(parent_class.__module__, fromlist=[kw.value.id])
-            cls = getattr(mod, kw.value.id, None)
-            if cls is not None:
-                actions[kw.arg] = cls
-    return actions
+    return dict(getattr(parent_class, "ACTIONS", None) or {})
 
 
 def _params_to_schema(item_class, common_params):

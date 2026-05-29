@@ -263,18 +263,18 @@ class TestItemPlot(TestItemActions):
                   "action and by $(plv_<plot_name>) for last-values output."),
     )
 
+    ACTIONS = {
+        "open": TestItemPlotActionOpen,
+        "close": TestItemPlotActionClose,
+        "periodic": TestItemPlotActionPeriodic,
+        "add": TestItemPlotActionAdd,
+        "last_value": TestItemPlotActionLastValues,
+        "export": TestItemPlotActionExport,
+    }
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(
             cst.TYPE_GRAPH, dict_item, parent, status_queue, filename=filename
-        )
-
-        self.register_actions(
-            open=TestItemPlotActionOpen,
-            close=TestItemPlotActionClose,
-            periodic=TestItemPlotActionPeriodic,
-            add=TestItemPlotActionAdd,
-            last_value=TestItemPlotActionLastValues,
-            export=TestItemPlotActionExport,
         )
 
         self.actions_token = self._prms.getParam("plot_name", required=True)
