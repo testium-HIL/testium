@@ -5,12 +5,41 @@ from copy import deepcopy
 from interpreter.test_items.test_result import TestResult, TestValue
 import api.testium as tm
 from interpreter.utils.params import TestItemParams
+from interpreter.utils.param_decl import (
+    Param, ParamSet, LIST, BLOCK, unknown_keys, missing_required,
+)
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
 from runtime.tum_except import ETUMSyntaxError, item_load_context
 
 LOG_TEST_STOP = '<----- step "{}" finished'
 LOG_TEST_START = '-----> step "{}" started'
+
+
+# Parameters accepted by every test item, regardless of its type. Subclasses
+# concatenate their own ``PARAMS`` to this set; the merged result drives
+# unknown-param warnings and (later) the LSP schema export.
+COMMON_PARAMS = ParamSet(
+    Param("name",            doc="Display name shown in the GUI tree and reports."),
+    Param("doc",             doc="Free-form documentation; surfaced in tooltips."),
+    Param("skipped",         doc="If truthy, the step is skipped (static expression, "
+                                 "evaluated at load time)."),
+    Param("key",             doc="Report key used to classify the result "
+                                 "(typically <test>_PASS or <test>_FAIL)."),
+    Param("stop_on_failure", doc="If true, abort the surrounding container on failure."),
+    Param("execute_on_stop", doc="If true, run this step even when its container "
+                                 "is being stopped (cleanup)."),
+    Param("process_result",  doc="Post-evaluation expression applied to the test result."),
+    Param("store_result",    doc="Global-dict key in which to store the test result."),
+    Param("expected_result", doc="Expected outcome; the step is failed if it doesn't match."),
+    Param("no_fail",         doc="If truthy, never report a FAILURE for this step."),
+    Param("report",          doc="Per-step reporting override."),
+    Param("condition",       doc="Optional gating expression evaluated before each "
+                                 "run; false ⇒ the step is skipped."),
+    Param("steps",  kind=LIST, doc="Children (for container items)."),
+    Param("seq_filename",    doc="(internal) source .tum file of this step; injected "
+                                 "by the loader."),
+)
 
 
 class TestItem:
@@ -97,6 +126,11 @@ def test_data(item: TestItem, child: dict) -> dict:
 
 
 class TestItem:
+    # Subclasses override with their own ParamSet to opt into the declarative
+    # validation. While ``PARAMS`` is empty / unset, the base class skips the
+    # unknown-param check for this item type — keeps the migration incremental.
+    PARAMS = None
+
     def __init__(
         self, dict_item: dict = None, parent: TestItem = None, status_queue=None, filename = ""
     ):
@@ -133,6 +167,13 @@ class TestItem:
         if dict_item is not None:
             # creation of the params object
             self._prms = TestItemParams(dict_item, parent)
+
+            # Declarative-params validation. Only kicks in when the concrete
+            # subclass declares ``PARAMS`` — items not yet migrated stay
+            # silent. Warnings (not errors) during the migration window so
+            # existing .tum files don't break suddenly; will be flipped to
+            # errors once every item has migrated.
+            self._validate_declared_params(dict_item)
 
             # getting parameters for the test item
             try:
@@ -189,6 +230,36 @@ class TestItem:
                 ) from e
 
         self.result = TestResult(self, TestValue.FAILURE, "Failure by default")
+
+    def _validate_declared_params(self, dict_item):
+        """Warn on unknown / missing-required params, if PARAMS is declared.
+
+        The check is opt-in per subclass: it only runs when the concrete
+        class sets a non-empty ``PARAMS`` attribute. Items not yet migrated
+        produce no diagnostics — preserving the historical "silently accept
+        anything" behavior until they get their declaration.
+        """
+        if not self.PARAMS:
+            return
+        # ``self._type`` is the parent root type at this point (subclasses set
+        # it after super().__init__), so use the class name as a stable label
+        # in diagnostics. ``self._name`` was preset to the type name by every
+        # subclass before super() ran, which gives a useful prefix.
+        label = f"{type(self).__name__} '{self._name}'"
+        declared = COMMON_PARAMS + self.PARAMS
+        unknown = unknown_keys(declared, dict_item)
+        if unknown:
+            accepted = ", ".join(sorted(declared.names()))
+            for k in unknown:
+                tm.print_warn(
+                    f"{label}: unknown parameter '{k}'. Accepted: {accepted}."
+                )
+        missing = missing_required(declared, dict_item)
+        for k in missing:
+            raise ETUMSyntaxError(
+                f"{label}: required parameter '{k}' is missing.",
+                self._seq_filename,
+            )
 
     def _filter_dict_item(self, dict_item):
         # Stores the content of the step to be displayed

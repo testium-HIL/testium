@@ -8,12 +8,20 @@ from interpreter.test_items.test_result import (TestResult, TestValue)
 from runtime.tum_except import ETUMSyntaxError, item_load_context
 import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 class TestItemLet(TestItem):
     """let item usage.
     let values: {variable1: a, variable2: /dev/ttyUSB0, variable3: 115200}
     let eval: {conditional_exec: "random.randint(1, 4)"}
     """
+
+    PARAMS = ParamSet(
+        Param("values", kind=LIST, required=True,
+              doc="Mapping (or list of single-pair mappings) of global-dict "
+                  "key → value to set. Values are expanded at execution time."),
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_LET.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
