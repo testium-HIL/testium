@@ -232,6 +232,15 @@ list of the main test item (and eventually of the loop test item).
 TUM file ``main`` item is itself a variant of test items with a name and an
 step list attributes.
 
+.. note::
+
+   Each test item declares the parameters it accepts. When a ``.tum`` file
+   uses a key the item does not know, *testium* emits a warning listing the
+   accepted parameter names (catching typos such as ``param_filee`` for
+   ``param_file``); a missing **required** parameter aborts loading with an
+   error pointing at the source ``.tum`` file. Valid existing tests are
+   unaffected.
+
 
 
 .. toctree::
