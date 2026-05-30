@@ -83,19 +83,22 @@ source "$SCRIPT_DIR/scripts/set_env.sh"
 
 # ---------- RAM mode: put build scratch on tmpfs (--ram) ----------------------
 # On slow storage (USB stick, SD card) the per-channel build dirs and temp
-# churn dominate. --ram redirects them to /dev/shm and skips UPX. The
-# .flatpak-builder cache stays on disk so source downloads persist. The tmpfs
-# scratch is freed on exit.
+# churn dominate. --ram redirects them to /dev/shm and skips UPX. The whole
+# Flatpak working set (build dir + .flatpak-builder + repo) goes to tmpfs
+# because flatpak-builder requires its state dir on the same filesystem as the
+# build dir — so its download cache doesn't persist across --ram runs. The
+# tmpfs scratch is freed on exit.
 if [ "$RAM" -eq 1 ]; then
     RAMROOT="/dev/shm/testium-build-${VERSION}"
     echo "-- RAM mode: build scratch under $RAMROOT (tmpfs), freed on exit"
     rm -rf "$RAMROOT"
-    mkdir -p "$RAMROOT"/{tmp,pip,pyi-work,flatpak-build,flatpak-repo,appdir}
+    mkdir -p "$RAMROOT"/{tmp,pip,pyi-work,flatpak-build,flatpak-state,flatpak-repo,appdir}
     export TMPDIR="$RAMROOT/tmp"
     export PIP_CACHE_DIR="$RAMROOT/pip"
-    export PYI_WORKPATH="$RAMROOT/pyi-work"           # pyinstaller --workpath
-    export FLATPAK_BUILDDIR="$RAMROOT/flatpak-build"  # flatpak-builder build dir
-    export FLATPAK_REPODIR="$RAMROOT/flatpak-repo"    # ostree repo
+    export PYI_WORKPATH="$RAMROOT/pyi-work"            # pyinstaller --workpath
+    export FLATPAK_BUILDDIR="$RAMROOT/flatpak-build"   # flatpak-builder build dir
+    export FLATPAK_STATEDIR="$RAMROOT/flatpak-state"   # .flatpak-builder (same fs as build dir, required)
+    export FLATPAK_REPODIR="$RAMROOT/flatpak-repo"     # ostree repo
     export APPIMAGE_APPDIR_TMPFS="$RAMROOT/appdir"    # AppDir bind-mount
     export TESTIUM_NO_UPX=1                           # skip slow UPX in the spec
     trap 'rm -rf "$RAMROOT"' EXIT
