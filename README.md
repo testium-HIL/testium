@@ -62,17 +62,6 @@ Pre-built artifacts are published at
   `testium` command is available in the terminal (requires `~/.local/bin` in
   `PATH`, which most modern distributions provide by default).
 
-* **AppImage** (`Testium-<version>-x86_64.AppImage`) — a single self-contained
-  executable bundling its own Python. Make it executable and run it:
-
-  ```sh
-  chmod +x Testium-*-x86_64.AppImage
-  ./Testium-*-x86_64.AppImage -b mytest.tum
-  ```
-
-  As with the binary and Flatpak, `py_func` / `lua_func` items run under the
-  *host* Python / Lua so your own modules stay visible.
-
 Every channel ships the language server, so `testium lsp` (see
 [Editor support](#editor-support)) works out of the box from any of them.
 
