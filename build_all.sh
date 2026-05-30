@@ -112,6 +112,29 @@ step() {
     echo "================================================================"
 }
 
+# Kill a process and its whole descendant tree (children first) — used by the
+# interrupt handler so SIGINT also stops grandchildren the parallel jobs spawned
+# (podman container, flatpak-builder, pyinstaller …), not just the subshells.
+_kill_tree() {
+    local pid=$1 c
+    for c in $(pgrep -P "$pid" 2>/dev/null); do
+        _kill_tree "$c"
+    done
+    kill -TERM "$pid" 2>/dev/null || true
+}
+
+# Set as INT/TERM handler around the parallel wait. Stops every running build
+# tree, then exits — the EXIT trap (set under --ram) frees the tmpfs scratch.
+_interrupt() {
+    echo >&2
+    echo "-- interrupted: stopping running builds…" >&2
+    local pid
+    for pid in "${!PID2NAME[@]}"; do
+        _kill_tree "$pid"
+    done
+    exit 130
+}
+
 # ---------- artifact paths ----------------------------------------------------
 
 MANUAL="$DIST_DIR/testium-manual-${VERSION}.pdf"
@@ -229,6 +252,9 @@ else
         PID2NAME[$!]="$name"
     done
 
+    # From here until all jobs are reaped, Ctrl+C stops every build tree.
+    trap _interrupt INT TERM
+
     FAILED=()
     for pid in "${!PID2NAME[@]}"; do
         name="${PID2NAME[$pid]}"
@@ -239,6 +265,8 @@ else
             FAILED+=("$name")
         fi
     done
+
+    trap - INT TERM
 
     if [ "${#FAILED[@]}" -gt 0 ]; then
         for name in "${FAILED[@]}"; do
