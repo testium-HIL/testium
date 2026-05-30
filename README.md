@@ -41,6 +41,20 @@ Pre-built artifacts are published at
   `testium` command is available in the terminal (requires `~/.local/bin` in
   `PATH`, which most modern distributions provide by default).
 
+* **AppImage** (`Testium-<version>-x86_64.AppImage`) — a single self-contained
+  executable bundling its own Python. Make it executable and run it:
+
+  ```sh
+  chmod +x Testium-*-x86_64.AppImage
+  ./Testium-*-x86_64.AppImage -b mytest.tum
+  ```
+
+  As with the binary and Flatpak, `py_func` / `lua_func` items run under the
+  *host* Python / Lua so your own modules stay visible.
+
+Every channel ships the language server, so `testium lsp` (see
+[Editor support](#editor-support)) works out of the box from any of them.
+
 ## Quick start
 
 From a checkout of the repository:
@@ -81,6 +95,29 @@ Run testium:
 python3 src/testium               # GUI
 python3 src/testium -b mytest.tum # batch
 ```
+
+## Editor support
+
+testium ships a Language Server Protocol (LSP) server that gives `.tum` files
+completion of item types, hover documentation, and an outline view in any
+LSP-capable editor:
+
+```sh
+testium lsp        # speaks LSP over stdio; an editor's LSP client drives it
+testium schema     # dumps the item/parameter schema as JSON (what the LSP serves)
+```
+
+The server is bundled in every pre-built release (wheel, binary, Flatpak,
+AppImage). For a source / wheel install, pull the language-server extra:
+
+```sh
+pip install 'testium[lsp]'                 # from PyPI / a wheel
+pip install -e /path/to/testium/src[lsp]   # from a source checkout
+```
+
+A VSCode / VSCodium client extension (`testium_assist`) wraps `testium lsp`;
+the schema is built from testium itself, so new item types and parameters
+appear in the editor on the next testium upgrade with no client change.
 
 ## Troubleshooting
 

@@ -5,6 +5,17 @@ version 0.2
   WARN listing the accepted names instead of being silently ignored;
   missing required parameters error out at load time with the source
   ``.tum`` file as context. No change to valid existing tests.
+- Editor support: testium now ships a language server. ``testium lsp``
+  gives ``.tum`` files item-type completion, hover documentation and an
+  outline view in any LSP-capable editor (a VSCode / VSCodium client is
+  provided separately). ``testium schema`` dumps the item/parameter
+  schema as JSON. The server works from every channel — bundled in the
+  binary / Flatpak / AppImage, and pulled by ``pip install testium[lsp]``
+  for wheel installs.
+- build_all.sh: the four heavy channels now build in parallel (results
+  reported as each finishes; Ctrl+C stops them cleanly). New ``--ram``
+  option builds on a tmpfs (``/dev/shm``) and skips UPX for much faster
+  packaging on USB-stick / SD-card storage.
 
 version 0.1.3
 ==============
