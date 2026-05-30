@@ -21,9 +21,10 @@
 # log of any failing step is printed at the end.
 #
 # Pass --ram to redirect the per-channel build scratch (PyInstaller workpath,
-# Flatpak build dir + ostree repo, AppImage AppDir) and TMPDIR/PIP_CACHE_DIR to
-# /dev/shm, and skip UPX. Big speedup on slow/flash storage. On a RAM-limited
-# machine combine with --serial (e.g. ./build_all.sh --ram --serial).
+# AppImage AppDir) and TMPDIR/PIP_CACHE_DIR to /dev/shm, and skip UPX. Big
+# speedup on slow/flash storage. Flatpak is excluded (its rofiles-fuse can't
+# mount on /dev/shm), so it still builds on disk. On a RAM-limited machine
+# combine with --serial (e.g. ./build_all.sh --ram --serial).
 #
 # All artifacts are collected (copied) under <repo>/dist/. Original outputs in
 # src/dist/, package/*/dist/, doc/manual/ are left in place. Wheel and AppImage
@@ -83,24 +84,22 @@ source "$SCRIPT_DIR/scripts/set_env.sh"
 
 # ---------- RAM mode: put build scratch on tmpfs (--ram) ----------------------
 # On slow storage (USB stick, SD card) the per-channel build dirs and temp
-# churn dominate. --ram redirects them to /dev/shm and skips UPX. The whole
-# Flatpak working set (build dir + .flatpak-builder + repo) goes to tmpfs
-# because flatpak-builder requires its state dir on the same filesystem as the
-# build dir — so its download cache doesn't persist across --ram runs. The
-# tmpfs scratch is freed on exit.
+# churn dominate. --ram redirects the PyInstaller workpath, the AppImage AppDir
+# and TMPDIR/PIP_CACHE_DIR to /dev/shm, and skips UPX. Flatpak is intentionally
+# NOT moved: flatpak-builder mounts its state dir with rofiles-fuse, and FUSE
+# can't mount on /dev/shm (fusermount: Permission denied) — so it builds on
+# disk. The tmpfs scratch is freed on exit.
 if [ "$RAM" -eq 1 ]; then
     RAMROOT="/dev/shm/testium-build-${VERSION}"
     echo "-- RAM mode: build scratch under $RAMROOT (tmpfs), freed on exit"
+    echo "   (flatpak builds on disk — rofiles-fuse can't mount on /dev/shm)"
     rm -rf "$RAMROOT"
-    mkdir -p "$RAMROOT"/{tmp,pip,pyi-work,flatpak-build,flatpak-state,flatpak-repo,appdir}
+    mkdir -p "$RAMROOT"/{tmp,pip,pyi-work,appdir}
     export TMPDIR="$RAMROOT/tmp"
     export PIP_CACHE_DIR="$RAMROOT/pip"
     export PYI_WORKPATH="$RAMROOT/pyi-work"            # pyinstaller --workpath
-    export FLATPAK_BUILDDIR="$RAMROOT/flatpak-build"   # flatpak-builder build dir
-    export FLATPAK_STATEDIR="$RAMROOT/flatpak-state"   # .flatpak-builder (same fs as build dir, required)
-    export FLATPAK_REPODIR="$RAMROOT/flatpak-repo"     # ostree repo
-    export APPIMAGE_APPDIR_TMPFS="$RAMROOT/appdir"    # AppDir bind-mount
-    export TESTIUM_NO_UPX=1                           # skip slow UPX in the spec
+    export APPIMAGE_APPDIR_TMPFS="$RAMROOT/appdir"     # AppDir bind-mount
+    export TESTIUM_NO_UPX=1                            # skip slow UPX in the spec
     trap 'rm -rf "$RAMROOT"' EXIT
     if [ "$SERIAL" -ne 1 ]; then
         echo "   note: with --ram, prefer adding --serial so each step gets the"
