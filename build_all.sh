@@ -20,6 +20,11 @@
 # of the parallel phase is captured under dist/.build-logs/<step>.log and the
 # log of any failing step is printed at the end.
 #
+# Pass --ram to redirect the per-channel build scratch (PyInstaller workpath,
+# Flatpak build dir + ostree repo, AppImage AppDir) and TMPDIR/PIP_CACHE_DIR to
+# /dev/shm, and skip UPX. Big speedup on slow/flash storage. On a RAM-limited
+# machine combine with --serial (e.g. ./build_all.sh --ram --serial).
+#
 # All artifacts are collected (copied) under <repo>/dist/. Original outputs in
 # src/dist/, package/*/dist/, doc/manual/ are left in place. Wheel and AppImage
 # keep their original names (which already contain the version); manual,
@@ -36,10 +41,12 @@ set -e
 
 CLEAN=0
 SERIAL=0
+RAM=0
 for arg in "$@"; do
     case "$arg" in
         --clean|-c) CLEAN=1 ;;
         --serial)   SERIAL=1 ;;
+        --ram)      RAM=1 ;;
         *) echo "Unknown option: $arg" >&2; exit 1 ;;
     esac
 done
@@ -73,6 +80,30 @@ export REQ_PATH="$SCRIPT_DIR/src/requirements.txt"
 
 bash "$SCRIPT_DIR/scripts/build_env.sh"
 source "$SCRIPT_DIR/scripts/set_env.sh"
+
+# ---------- RAM mode: put build scratch on tmpfs (--ram) ----------------------
+# On slow storage (USB stick, SD card) the per-channel build dirs and temp
+# churn dominate. --ram redirects them to /dev/shm and skips UPX. The
+# .flatpak-builder cache stays on disk so source downloads persist. The tmpfs
+# scratch is freed on exit.
+if [ "$RAM" -eq 1 ]; then
+    RAMROOT="/dev/shm/testium-build-${VERSION}"
+    echo "-- RAM mode: build scratch under $RAMROOT (tmpfs), freed on exit"
+    rm -rf "$RAMROOT"
+    mkdir -p "$RAMROOT"/{tmp,pip,pyi-work,flatpak-build,flatpak-repo,appdir}
+    export TMPDIR="$RAMROOT/tmp"
+    export PIP_CACHE_DIR="$RAMROOT/pip"
+    export PYI_WORKPATH="$RAMROOT/pyi-work"           # pyinstaller --workpath
+    export FLATPAK_BUILDDIR="$RAMROOT/flatpak-build"  # flatpak-builder build dir
+    export FLATPAK_REPODIR="$RAMROOT/flatpak-repo"    # ostree repo
+    export APPIMAGE_APPDIR_TMPFS="$RAMROOT/appdir"    # AppDir bind-mount
+    export TESTIUM_NO_UPX=1                           # skip slow UPX in the spec
+    trap 'rm -rf "$RAMROOT"' EXIT
+    if [ "$SERIAL" -ne 1 ]; then
+        echo "   note: with --ram, prefer adding --serial so each step gets the"
+        echo "         full tmpfs and you don't risk OOM (flatpak+appimage are ~1 GB each)."
+    fi
+fi
 
 step() {
     echo

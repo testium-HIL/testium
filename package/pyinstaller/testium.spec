@@ -89,7 +89,9 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # UPX is CPU+IO heavy for a marginal size gain — build_all --ram sets
+    # TESTIUM_NO_UPX=1 to skip it (much faster on slow/flash storage).
+    upx=not os.environ.get("TESTIUM_NO_UPX"),
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,
