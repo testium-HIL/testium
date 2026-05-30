@@ -257,15 +257,21 @@ else
     # From here until all jobs are reaped, Ctrl+C stops every build tree.
     trap _interrupt INT TERM
 
+    # Reap in completion order (wait -n) so each result prints the moment that
+    # build finishes, not when its slot comes up in the array.
     FAILED=()
-    for pid in "${!PID2NAME[@]}"; do
-        name="${PID2NAME[$pid]}"
-        if wait "$pid"; then
+    remaining=${#PID2NAME[@]}
+    while [ "$remaining" -gt 0 ]; do
+        if wait -n -p donepid; then rc=0; else rc=$?; fi
+        name="${PID2NAME[$donepid]:-}"
+        [ -z "$name" ] && continue
+        if [ "$rc" -eq 0 ]; then
             echo "  -> $name: OK"
         else
-            echo "  -> $name: FAILED (rc=$?)"
+            echo "  -> $name: FAILED (rc=$rc)"
             FAILED+=("$name")
         fi
+        remaining=$((remaining - 1))
     done
 
     trap - INT TERM
