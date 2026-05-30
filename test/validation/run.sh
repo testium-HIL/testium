@@ -137,12 +137,12 @@ esac
 echo "-- validation mode: $MODE"
 echo "-- launch: ${CMD[*]}"
 
-# ---------- LSP smoke check (this exact channel) ------------------------------
+# ---------- LSP check (this exact channel) ------------------------------------
 # Verify `testium lsp` / `testium schema` work in the build under test before
 # running the suite: schema must keep its nested actions (declarative ACTIONS,
 # survives frozen builds) and the language server must start (pygls bundled).
-echo "-- LSP smoke check ($MODE)"
-"$VENV_PYTHON" "$SCRIPT_DIR/lsp_smoke.py" "${CMD[@]}"
+echo "-- LSP check ($MODE)"
+"$VENV_PYTHON" "$SCRIPT_DIR/lsp_check.py" "${CMD[@]}"
 
 exec "${CMD[@]}" -b \
     -d "python_bin=$VENV_PYTHON" \

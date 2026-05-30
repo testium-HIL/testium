@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Per-channel smoke test for the testium language server.
+"""Per-channel check of the testium language server.
 
 Given the channel's testium invocation as argv (e.g. ``flatpak run
 --command=testium org.testium.Testium``, a PyInstaller binary path, or
@@ -25,7 +25,7 @@ EXPECTED_ACTION_PARENTS = ("console", "plot", "json_rpc")
 
 
 def fail(msg):
-    print(f"LSP SMOKE: FAIL — {msg}", file=sys.stderr)
+    print(f"LSP CHECK: FAIL — {msg}", file=sys.stderr)
     sys.exit(1)
 
 
@@ -61,7 +61,7 @@ def check_schema(cmd):
         if not actions:
             fail(f"schema item '{parent}' has no actions — a frozen build lost "
                  f"the declarative ACTIONS (item keys: {sorted(items)[:8]}…)")
-    print(f"LSP SMOKE: schema OK ({len(items)} items; actions present for "
+    print(f"LSP CHECK: schema OK ({len(items)} items; actions present for "
           f"{', '.join(EXPECTED_ACTION_PARENTS)})")
 
 
@@ -86,16 +86,16 @@ def check_lsp(cmd):
     if b'"capabilities"' not in stdout:
         fail("`lsp` did not return an initialize result. "
              f"stdout[:200]={stdout[:200]!r} stderr[:200]={stderr[:200]!r}")
-    print("LSP SMOKE: lsp initialize OK (server answered with capabilities)")
+    print("LSP CHECK: lsp initialize OK (server answered with capabilities)")
 
 
 def main():
     cmd = sys.argv[1:]
     if not cmd:
-        fail("usage: lsp_smoke.py <testium-invocation...>")
+        fail("usage: lsp_check.py <testium-invocation...>")
     check_schema(cmd)
     check_lsp(cmd)
-    print("LSP SMOKE: PASS")
+    print("LSP CHECK: PASS")
 
 
 if __name__ == "__main__":
