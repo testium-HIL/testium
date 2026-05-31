@@ -678,6 +678,24 @@ def MainWin(
     debug=False,
 ):
     app = QApplication(sys.argv)
+    # Application identity so desktop shells (GNOME, ...) show the testium
+    # icon in the task bar / dock instead of a generic one. On Wayland this
+    # sets the surface app_id; on X11/XWayland it sets WM_CLASS, so the window
+    # stops inheriting the launcher's class (e.g. "python3" under the AppImage,
+    # which is what GNOME was keying the wrong icon off) and the window icon
+    # below is used as the fallback. In Flatpak the id must be the Flatpak app
+    # id so it matches the installed desktop file.
+    app.setApplicationName("Testium")
+    app.setApplicationDisplayName("Testium")
+    app.setDesktopFileName(os.environ.get("FLATPAK_ID", "testium"))
+    app.setWindowIcon(QIcon(u":/black/testium_logo.png"))
+    # On native Wayland the task-bar icon comes from an installed desktop file
+    # matched to the app_id, not from setWindowIcon(). Flatpak ships its own;
+    # for the other Linux channels drop an idempotent one under ~/.local/share.
+    # Windows / macOS use the window icon set above, so this is Linux-only.
+    if sys.platform.startswith("linux") and not os.environ.get("FLATPAK_ID"):
+        from main_win.desktop_integration import ensure_desktop_entry
+        ensure_desktop_entry()
     ui = MainWindow(
         test_file,
         config_files,
