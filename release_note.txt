@@ -1,3 +1,16 @@
+version 0.2.1
+==============
+- Faster test loading, especially for large tests built from jinja
+  templates and ``!include``: compiled jinja templates are cached and
+  reused (a file included many times is compiled once), rendering happens
+  in memory instead of through a temporary file, and YAML is parsed with
+  the libyaml C loader when available. Typical load time is 3-6x lower on
+  include / template-heavy tests; behaviour is unchanged.
+- Fix: a nested list holding more than one step under ``steps`` no longer
+  duplicates its entries while the step tree is built.
+- New load-time benchmark under ``test/benchmark/`` (synthetic-tree
+  generator + in-process timing harness) to measure the load pipeline.
+
 version 0.2
 ==============
 - Test items: each item type now declares its accepted parameters
