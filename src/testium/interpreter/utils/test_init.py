@@ -11,7 +11,7 @@ import api.testium as tm
 import interpreter.utils.globdict as globdict
 import interpreter.utils.settings as prefs
 from interpreter.utils.paths import testium_path
-from interpreter.utils.yaml_load import yaml_load
+from interpreter.utils.yaml_load import yaml_load, YAML_BASE_LOADER
 from interpreter.utils import clear_recursively
 from runtime.tum_except import ETUMSyntaxError
 from interpreter.utils.params import expanse, eval_func_init
@@ -89,7 +89,7 @@ def locate_report_file(rep_file):
 def yamltodict(param_file, silent=True):
     # load of the file
     with open(param_file, "r") as fd:
-        dp = yaml_load(fd, param_file, yaml.Loader)
+        dp = yaml_load(fd, param_file, YAML_BASE_LOADER)
 
     if dp is None:
         tm.print_info(f"The YAML file '{param_file}' is empty.")

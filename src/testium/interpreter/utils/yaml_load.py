@@ -1,9 +1,16 @@
+import yaml
 from yaml.parser import ParserError
 from yaml import load, Loader
 from yaml.scanner import ScannerError
 from api.testium import print_debug
 from runtime.tum_except import ETUMSyntaxError
 import io
+
+# Use the libyaml-backed loader (much faster parsing) when PyYAML was built
+# with it, falling back to the pure-Python loader otherwise. The C loader
+# raises the same ParserError/ScannerError and supports the same custom
+# constructors (!include) and construct_* helpers the TUM loaders rely on.
+YAML_BASE_LOADER = yaml.CLoader if getattr(yaml, "__with_libyaml__", False) else yaml.Loader
 
 
 def print_yaml(file: io.TextIOWrapper, file_name):

@@ -6,10 +6,10 @@ from runtime.tum_except import ETUMFileError
 from interpreter.utils.template import template_to_test
 from copy import copy
 from interpreter.utils.globdict import global_dict
-from interpreter.utils.yaml_load import yaml_load
+from interpreter.utils.yaml_load import yaml_load, YAML_BASE_LOADER
 
 
-class TUMLoaderNoIncludes(yaml.Loader):
+class TUMLoaderNoIncludes(YAML_BASE_LOADER):
 
     def __init__(self, stream):
 
