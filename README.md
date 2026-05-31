@@ -129,6 +129,22 @@ A VSCode / VSCodium client extension (`testium_assist`) wraps `testium lsp`;
 the schema is built from testium itself, so new item types and parameters
 appear in the editor on the next testium upgrade with no client change.
 
+It is published on [Open VSX](https://open-vsx.org/extension/testium/testium-assist),
+so in **VSCodium, Cursor, Windsurf, Theia and code-server** it installs from the
+Extensions view (search `testium-assist`) or with
+`codium --install-extension testium.testium-assist`.
+
+**Microsoft VSCode** does not list Open VSX extensions, so install the `.vsix`
+by hand — download it from the Open VSX page above, then *Extensions → ⋯ →
+Install from VSIX…* or:
+
+```sh
+code --install-extension testium-assist-0.1.0.vsix
+```
+
+The extension runs `testium lsp`, so `testium` must be on the `PATH` (otherwise
+point the `testium.serverPath` setting at the binary/AppImage).
+
 ## Troubleshooting
 
 ### `wl_proxy_marshal_flags` symbol error

@@ -67,3 +67,36 @@ dependencies:
     :caption: enable the language server for a wheel / source install
 
     pip install 'testium[lsp]'
+
+Installing the VSCode / VSCodium extension
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The *testium_assist* client extension is published on `Open VSX
+<https://open-vsx.org/extension/testium/testium-assist>`_, the registry used by
+VSCodium, Cursor, Windsurf, Eclipse Theia and code-server. In those editors,
+open the Extensions view and search ``testium-assist``, or install it from the
+command line:
+
+.. code-block:: text
+    :caption: install in VSCodium and other Open VSX editors
+
+    codium --install-extension testium.testium-assist
+
+Microsoft *VSCode* uses a different marketplace that does not list Open VSX
+extensions, so install the packaged ``.vsix`` by hand. Download it from the
+Open VSX page linked above, then either choose *Extensions* → *⋯* →
+*Install from VSIX…* in the UI, or run:
+
+.. code-block:: text
+    :caption: install the .vsix in Microsoft VSCode
+
+    code --install-extension testium-assist-0.1.0.vsix
+
+The extension launches ``testium lsp``, so the ``testium`` command must be on
+the ``PATH``. If *testium* is installed elsewhere — a specific binary or an
+AppImage — point the ``testium.serverPath`` setting at it instead.
+
+Once installed, open a ``.tum`` file: completion of item types, hover
+documentation and the outline view become available. If nothing happens, check
+that no ``files.associations`` entry forces ``*.tum`` to another language (it
+must stay the ``tum`` language the extension provides).
