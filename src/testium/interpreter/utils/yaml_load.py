@@ -21,10 +21,10 @@ def yaml_load(file, real_file_name: str, loader: Loader):
         return load(file, loader)
 
     except ParserError as e:
-        if isinstance(file, io.TextIOWrapper):
+        if isinstance(file, (io.TextIOWrapper, io.StringIO)):
             print_yaml(file, real_file_name)
         raise ETUMSyntaxError(f"yaml file parsing error: " + str(e), real_file_name)
     except ScannerError as e:
-        if isinstance(file, io.TextIOWrapper):
+        if isinstance(file, (io.TextIOWrapper, io.StringIO)):
             print_yaml(file, real_file_name)
         raise ETUMSyntaxError("yaml file scanning error: " + str(e), real_file_name)
