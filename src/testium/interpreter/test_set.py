@@ -29,6 +29,51 @@ def _build_item_path(item) -> str:
     return " > ".join(reversed(parts))
 
 
+def _flatten_actions(actions, out, parent_seq_name):
+    """Expand nested lists and included ``sequence`` entries into ``out`` as a
+    flat list of single test-item dicts, propagating each sequence's source
+    filename onto its items.
+
+    Replaces the previous approach, which spliced each entry into the step
+    list and rebuilt the whole list every time (O(n^2) over the step list, and
+    a rebuild that duplicated entries when a nested list held more than one
+    element). This single forward pass is linear.
+    """
+    for idx, action in enumerate(actions):
+        # a bare list raises its elements to the same level
+        if isinstance(action, (list, tuple)):
+            _flatten_actions(action, out, parent_seq_name)
+            continue
+        # a NoneType (e.g. pointing at an unused alias) contributes nothing
+        if action is None:
+            continue
+        # a 'sequence' (an included file) is spliced in, with its filename
+        # propagated onto each of its items
+        if isinstance(action, dict) and "sequence" in action:
+            sequence = action["sequence"]["data"]
+            f = action["sequence"]["filename"]
+            if isinstance(sequence, dict):
+                sequence = [{k: v} for k, v in sequence.items()]
+            # Case of an empty sequence
+            elif sequence is None:
+                tm.print_info(
+                    f"An empty sequence is loaded in '{parent_seq_name}'."
+                )
+                sequence = []
+            elif not isinstance(sequence, list):
+                raise ETUMSyntaxError(
+                    f"Syntax error in '{parent_seq_name}' step number {idx+1}. Sequence definition: '{str(action)}'",
+                    f
+                )
+            for s in sequence:
+                if isinstance(s, dict) and s:
+                    s[list(s.keys())[0]]["seq_filename"] = f
+            _flatten_actions(sequence, out, parent_seq_name)
+            continue
+
+        out.append(action)
+
+
 class TestSet:
     def __init__(
         self,
@@ -434,56 +479,16 @@ class TestSet:
                 f"No valid list of actions in sequence {parent_seq_name}",
                 file_name
             )
-        # first we merged to the same level 'sequence dict entries and list within the list
-        counter = 0
         test_dir = tm.gd("test_directory")
-        la = len(parent_seq_actions)
-        while counter < la:
-            action = parent_seq_actions[counter]
-            # if action is a list raise up to the the same level,
-            # ie insert action element into the parent_seq_actions
-            if isinstance(action, (list, tuple)):
-                parent_seq_actions[counter : counter + 1] = action
-                parent_seq_actions = (
-                    parent_seq_actions[:counter]
-                    + action
-                    + parent_seq_actions[counter + 1 :]
-                )
-                la = len(parent_seq_actions)
-                continue
-            # if action is a NoneType skip and continue
-            # (when pointing to an unused alias for instance)
-            if action is None:
-                counter += 1
-                continue
-            # if action is a sequence we insert its entry into the action list
-            if "sequence" in action:
-                sequence = action["sequence"]["data"]
-                f = action["sequence"]["filename"]
-                if isinstance(sequence, dict):
-                    sequence = [{k: v} for k, v in sequence.items()]
-                # Case of an empty sequence
-                elif sequence is None:
-                    tm.print_info(
-                        f"An empty sequence is loaded in '{parent_seq_name}'."
-                    )
-                    sequence = []
-                elif not isinstance(sequence, list):
-                    raise ETUMSyntaxError(
-                        f"Syntax error in '{parent_seq_name}' step number {counter+1}. Sequence definition: '{str(action)}'",
-                        f
-                    )
-                for s in sequence:
-                    s[list(s.keys())[0]]["seq_filename"] = f
-                parent_seq_actions = (
-                    parent_seq_actions[:counter]
-                    + sequence
-                    + parent_seq_actions[counter + 1 :]
-                )
-                la = len(parent_seq_actions)
-                continue
 
-            # Action is now for sure a list of dict of length 1
+        # Flatten nested lists and included 'sequence' entries to the same level
+        # in one linear pass (was an in-place splice + full list rebuild per
+        # entry: O(n^2) over the step list).
+        flat_actions = []
+        _flatten_actions(parent_seq_actions, flat_actions, parent_seq_name)
+
+        for action in flat_actions:
+            # Action is now for sure a dict of length 1
             k = list(action.keys())[0]
             if action[k].get("seq_filename", None) is None:
                 action[k]["seq_filename"] = file_name
@@ -545,8 +550,6 @@ class TestSet:
                     f"test item '{k}' is not known.",
                     action[k]["seq_filename"]
                 )
-
-            counter += 1
 
         return ret
 
