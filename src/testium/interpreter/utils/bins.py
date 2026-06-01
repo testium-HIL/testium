@@ -19,6 +19,7 @@ Public API
 
 import atexit
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -175,6 +176,27 @@ def flatpak_host_spawn(interp_bin, cmd_args, host_cwd, extra_env=None):
     spawn.append(interp_bin)
     spawn.extend(cmd_args)
     return spawn
+
+
+def host_console_command(shell_cmd, cwd):
+    """Build the argv to start *shell_cmd* as an ordinary interactive console.
+
+    *shell_cmd* is the command the caller chose (a string — shell-split — or
+    an argv list); the choice is preserved verbatim.
+
+    Outside Flatpak the command is returned unchanged. Inside Flatpak a bare
+    spawn would run in the sandbox under the runtime python3, so a host venv
+    (``/path/venv/bin/python3 -m mod``) can't see its pip deps. We simply run
+    it on the host with ``flatpak-spawn --host`` so it behaves like any other
+    terminal: flatpak-spawn passes the current environment through unchanged
+    and the shell (sourced venv, profile, …) sets things up as the user wants.
+    No env forwarding or scrubbing — the launcher's leaked PYTHONPATH points at
+    /app paths absent on the host, so it's inert there.
+    """
+    argv = shlex.split(shell_cmd) if isinstance(shell_cmd, str) else list(shell_cmd)
+    if not _in_flatpak():
+        return argv
+    return ["flatpak-spawn", "--host", f"--directory={cwd}", *argv]
 
 
 def _which_host_flatpak(name):

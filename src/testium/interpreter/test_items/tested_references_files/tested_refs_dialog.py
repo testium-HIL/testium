@@ -76,6 +76,12 @@ def main(args, conn=None):
 
     if conn:
         settings.setValue(SettingsLastReference, result)
+        # Flush to disk *before* handing the result back: as soon as the parent
+        # receives it on the pipe it terminates this subprocess (SIGTERM, no
+        # handler), so the QSettings destructor never runs. Without sync() the
+        # write races the kill and is lost — reliably so under Flatpak, where
+        # the .conf is atomically renamed on the slower ~/.var/app overlay.
+        settings.sync()
         conn.send([result, success])
         conn.close()
     else:
