@@ -1,3 +1,9 @@
+version 0.2.2
+==============
+- Flatpak sandbox issue fixed for term console. Now a term console is
+  exactly like a host console.
+- Persistence fix of dialogs in case of flatpak.
+
 version 0.2.1
 ==============
 - Faster test loading, especially for large tests built from jinja
