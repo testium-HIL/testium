@@ -51,14 +51,18 @@ class TestFileManager:
         w.disconnect_signals()
         # Snapshot user-selected checkboxes and fold state so they survive a
         # reload of the same file (same logic as session-restore through prefs).
+        # checkList works only if show_checkboxes is True
         previous_check_list = w.treeTests.getCheckList()
         previous_fold_list = w.treeTests.getFoldList()
         previous_count = w.treeTests.getItemCount()
         self.clear_process()
-        if self.load(file_name) and w.test_service is not None:
-            if w.treeTests.getItemCount() == previous_count:
-                w.treeTests.restoreCheckList(previous_check_list, w.test_service)
+        if self.load(file_name) and \
+            w.test_service is not None and \
+            w.treeTests.getItemCount() == previous_count:
+                if prefs.settings.show_checkboxes :
+                    w.treeTests.restoreCheckList(previous_check_list, w.test_service)
                 w.treeTests.restoreFoldList(previous_fold_list)
+
         w.reconnect_signals()
 
     def _make_progress(self, w):
