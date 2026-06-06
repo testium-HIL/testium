@@ -89,6 +89,13 @@ REM Reports are stamped with the mode so successive runs don't clobber each othe
 
 SET "TAIL=-b -d "python_bin=%VENV_PYTHON%" -d "validation_report_file=validation-%MODE%" -- "%SCRIPT_DIR%\main.tum"%EXTRA%"
 
+REM The report-exporter plugin (items\report_plugin) is a pip entry-point
+REM package. It must live in the *testium* environment, so it is installed into
+REM the source/wheel venvs below. A frozen PyInstaller binary cannot see
+REM externally-installed plugins, so report_plugin is expected to be skipped
+REM there (same as Linux pyinstaller mode).
+SET "FAKE_EXPORTER=%SCRIPT_DIR%\fake_exporter"
+
 REM ---------- per-mode launcher ----------------------------------------------
 
 echo -- validation mode: %MODE%
@@ -100,8 +107,25 @@ echo ERROR: unknown --mode '%MODE%'. Expected: source ^| wheel ^| pyinstaller.
 exit /b 1
 
 :MODE_SOURCE
-call "%PROJECT_DIR%\run.bat" %TAIL%
-exit /b %ERRORLEVEL%
+REM Run testium from src\ in a dedicated venv set up here. We do NOT delegate to
+REM the project's run.bat: that one launches the GUI and does not forward its
+REM arguments, so the suite would never run head-less.
+SET "TESTIUM_VENV=%PROJECT_DIR%\test\tmp\testium_venv"
+IF NOT EXIST "%TESTIUM_VENV%" (
+    echo Creating testium venv at %TESTIUM_VENV%
+    %PYTHON_EXE% -m venv "%TESTIUM_VENV%"
+    IF !ERRORLEVEL! NEQ 0 (
+        echo ERROR while creating the testium venv.
+        exit /b 1
+    )
+    call "%TESTIUM_VENV%\Scripts\pip" install --quiet --upgrade pip
+    call "%TESTIUM_VENV%\Scripts\pip" install --quiet -r "%PROJECT_DIR%\src\requirements.txt"
+    REM language-server extra so `testium lsp` works from source (lsp_check.py)
+    call "%TESTIUM_VENV%\Scripts\pip" install --quiet "pygls>=1.3"
+)
+call "%TESTIUM_VENV%\Scripts\pip" install --quiet -e "%FAKE_EXPORTER%"
+SET CMD="%TESTIUM_VENV%\Scripts\python.exe" "%PROJECT_DIR%\src\testium"
+GOTO LAUNCH
 
 :MODE_WHEEL
 SET "WHEEL=%PROJECT_DIR%\dist\testium-%VERSION%-py3-none-any.whl"
@@ -115,10 +139,13 @@ IF NOT EXIST "%WHEEL_VENV%" (
     echo Creating wheel venv at %WHEEL_VENV%
     %PYTHON_EXE% -m venv --system-site-packages "%WHEEL_VENV%"
     call "%WHEEL_VENV%\Scripts\pip" install --quiet --upgrade pip
-    call "%WHEEL_VENV%\Scripts\pip" install --quiet "%WHEEL%"
+    REM install with the [lsp] extra so the wheel channel is validated in its
+    REM language-server-capable form (pulls pygls), matching `pip install testium[lsp]`.
+    call "%WHEEL_VENV%\Scripts\pip" install --quiet "%WHEEL%[lsp]"
 )
-"%WHEEL_VENV%\Scripts\python.exe" -m testium %TAIL%
-exit /b %ERRORLEVEL%
+call "%WHEEL_VENV%\Scripts\pip" install --quiet -e "%FAKE_EXPORTER%"
+SET CMD="%WHEEL_VENV%\Scripts\python.exe" -m testium
+GOTO LAUNCH
 
 :MODE_PYI
 SET "PYI_BIN=%PROJECT_DIR%\dist\testium-%VERSION%.exe"
@@ -127,5 +154,22 @@ IF NOT EXIST "%PYI_BIN%" (
     echo ERROR: PyInstaller binary not found in %PROJECT_DIR%\dist -- run build_all.sh first.
     exit /b 1
 )
-"%PYI_BIN%" %TAIL%
+SET CMD="%PYI_BIN%"
+GOTO LAUNCH
+
+REM ---------- launch ----------------------------------------------------------
+
+:LAUNCH
+echo -- launch: %CMD%
+
+REM LSP check (this exact channel): `schema` must keep its nested actions and
+REM `lsp` must answer initialize. Mirrors run.sh; aborts the run on failure.
+echo -- LSP check (%MODE%)
+"%VENV_PYTHON%" "%SCRIPT_DIR%\lsp_check.py" %CMD%
+IF !ERRORLEVEL! NEQ 0 (
+    echo ERROR: LSP check failed for mode %MODE%.
+    exit /b 1
+)
+
+%CMD% %TAIL%
 exit /b %ERRORLEVEL%
