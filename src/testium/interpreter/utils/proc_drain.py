@@ -77,8 +77,7 @@ def drain_and_read_port(process, prefix=""):
                 pipe.close()
             except Exception:
                 pass
-            # Unblock the waiter on EOF even if the sentinel never came.
-            holder["evt"].set()
+            holder["evt"].set()  # unblock waiter on EOF even without sentinel
 
     if process.stdout is not None:
         threading.Thread(
@@ -104,7 +103,6 @@ def wait_for_port(process, holder, deadline):
         if holder["port"] is not None:
             break
         if process.poll() is not None:
-            # Child exited; give the reader a moment to flush a trailing line.
-            holder["evt"].wait(0.2)
+            holder["evt"].wait(0.2)  # child exited; let the reader flush a trailing line
             break
     return holder["port"]

@@ -396,9 +396,7 @@ def ensure(*names):
                 f"Set '{gd_key}' in the YAML config to override."
             )
         elif not tm.gd(gd_key):
-            # Publish the resolved interpreter so test scripts can reference
-            # $(python_bin) / $(lua_bin) regardless of how testium was launched
-            # (e.g. GUI, where no -d override is passed).
+            # Publish resolved path so test scripts can use $(python_bin)/$(lua_bin).
             tm.setgd(gd_key, path)
     if missing:
         raise ETUMRuntimeError(

@@ -39,8 +39,7 @@ def main():
         thrd_api.dbg_out = stdio_redir.ini_stdout
     thrd_api.start()
 
-    # Announce the actual bound port on real stdout (before redirection) so the
-    # parent connects only once we are listening.
+    # Announce the bound port on real stdout (before redirection) so the parent connects.
     port = thrd_api.wait_bound(args.timeout)
     if port is None:
         print("py_func: failed to bind a listening port", file=sys.stderr, flush=True)

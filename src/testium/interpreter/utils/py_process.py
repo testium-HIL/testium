@@ -99,17 +99,13 @@ class PyProcessBase:
             restore_signals=False,
             **popen_kwargs,
         )
-        # Route subprocess stdout/stderr into the parent's log and read the
-        # startup port sentinel. Startup variance (cold start, antivirus) is
-        # absorbed here: we wait for the worker to announce its port before
-        # connecting.
+        # Forward subprocess output to the log and read the startup port sentinel.
         holder = drain_and_read_port(self._process, prefix="[py_func] ")
         self._port = wait_for_port(
             self._process, holder, tm.gd("proc_start_timeout", 30)
         )
         if self._port is None:
-            # Worker died before announcing its port: tear down fully so a
-            # later start() (e.g. a reused context_id engine) can retry cleanly.
+            # Worker died before announcing its port: reset so a later start() retries clean.
             self.stop()
             self.join()
             return

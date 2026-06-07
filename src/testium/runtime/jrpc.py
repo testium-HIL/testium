@@ -12,9 +12,7 @@ except:
 
 from runtime.tum_except import ETUMRuntimeError
 
-# Startup handshake: the subprocess prints this line (followed by the actual
-# bound port) on stdout once its server is listening; the parent reads it and
-# connects. Avoids guessing the port and connecting before the server is ready.
+# Startup handshake: subprocess prints this + its bound port on stdout once listening.
 RPC_PORT_SENTINEL = "__TESTIUM_RPC_PORT__="
 
 """Lightweight JSON-RPC 2.0 helpers over TCP sockets.
@@ -284,8 +282,7 @@ class JsonRpcBase(threading.Thread):
         self._req_handler = req_handler
         self._dbg_out = dbg_out
         self._event_ready = threading.Event()
-        # Event is set on success AND failure so wait_ready() never hangs;
-        # _connected carries the actual outcome.
+        # Set on success AND failure so wait_ready() never hangs; outcome in _connected.
         self._connected = False
 
     def handle_request(self, method, params):
@@ -374,11 +371,7 @@ class JsonRpcSrv(JsonRpcBase):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
-                # No SO_REUSEADDR: the OS picks a fresh ephemeral port (port 0),
-                # so there is no TIME_WAIT to override, and on Windows REUSEADDR
-                # would let another process hijack the port.
-
-                # Bind (port may be 0 -> OS-assigned) then publish the actual port
+                # No SO_REUSEADDR: fresh ephemeral port; on Windows it enables hijacking.
                 sock.bind((self._host, self._port))
 
                 # Listens incoming connections
@@ -406,8 +399,7 @@ class JsonRpcSrv(JsonRpcBase):
                         sleep(0.1)
 
         finally:
-            # Unblock wait_bound() even if bind/accept failed.
-            self._bound_evt.set()
+            self._bound_evt.set()  # unblock wait_bound() even on failure
             if self._rpc is not None:
                 self._rpc.stop()
                 self._rpc.join()
@@ -441,13 +433,10 @@ class JsonRpcClient(JsonRpcBase):
         except Exception as e:
             self.print_info(f"connection failed: {e}")
         finally:
-            # Settle wait_ready() whatever the outcome (_connected stays False
-            # on failure).
-            self._event_ready.set()
+            self._event_ready.set()  # settle wait_ready() whatever the outcome
 
     def run_win(self):
-        # Server is already listening (port handshake), so connect succeeds on
-        # the first attempt; retry on refused/timeout until the deadline anyway.
+        # Server already listening (handshake); retry on refused/timeout until deadline.
         deadline = monotonic() + self._timeout
         sock = None
         try:
