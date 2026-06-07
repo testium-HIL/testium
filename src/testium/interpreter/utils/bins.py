@@ -388,12 +388,18 @@ def ensure(*names):
     """
     missing = []
     for n in names:
-        if not _resolve(n):
-            display, gd_key, candidates, _ = _SPECS[n]
+        path = _resolve(n)
+        display, gd_key, candidates, _ = _SPECS[n]
+        if not path:
             missing.append(
                 f"  - {display}: tried {candidates} on PATH, none usable. "
                 f"Set '{gd_key}' in the YAML config to override."
             )
+        elif not tm.gd(gd_key):
+            # Publish the resolved interpreter so test scripts can reference
+            # $(python_bin) / $(lua_bin) regardless of how testium was launched
+            # (e.g. GUI, where no -d override is passed).
+            tm.setgd(gd_key, path)
     if missing:
         raise ETUMRuntimeError(
             "Required external interpreter(s) not found:\n" + "\n".join(missing)

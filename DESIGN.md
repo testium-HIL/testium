@@ -124,7 +124,7 @@ To add a new API call usable from subprocesses:
 `src/testium/interpreter/utils/bins.py` — single source of truth for the paths to the external Python and Lua interpreters used by subprocesses.
 
 - `python_bin()` / `lua_bin()` : resolve and cache. The cache is keyed by `(name, override)` so that a later change to `gd[python_bin]` (typically when a `param.yaml` sets the key) triggers a re-resolution on the next lookup instead of returning the stale auto-discovered path. Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
-- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key.
+- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key. Also **publishes** each resolved path into gd (`python_bin` / `lua_bin`) when the key is unset, so test scripts can reference `$(python_bin)` / `$(lua_bin)` regardless of launch mode (e.g. GUI, where no `-d` override is passed). A user-provided value is never overwritten.
 
 Engines (`PyProcessBase`, `LuaProcessBase`, `EvalExecEngine`) call `bins.python_bin()`/`bins.lua_bin()` themselves — call sites never pass an explicit binary path.
 
