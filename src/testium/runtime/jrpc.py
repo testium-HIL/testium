@@ -12,6 +12,11 @@ except:
 
 from runtime.tum_except import ETUMRuntimeError
 
+# Startup handshake: the subprocess prints this line (followed by the actual
+# bound port) on stdout once its server is listening; the parent reads it and
+# connects. Avoids guessing the port and connecting before the server is ready.
+RPC_PORT_SENTINEL = "__TESTIUM_RPC_PORT__="
+
 """Lightweight JSON-RPC 2.0 helpers over TCP sockets.
 
 This module implements a minimal JSON-RPC 2.0 messaging layer using
@@ -279,6 +284,9 @@ class JsonRpcBase(threading.Thread):
         self._req_handler = req_handler
         self._dbg_out = dbg_out
         self._event_ready = threading.Event()
+        # Event is set on success AND failure so wait_ready() never hangs;
+        # _connected carries the actual outcome.
+        self._connected = False
 
     def handle_request(self, method, params):
         """Override to implement server-side request handling.
@@ -314,10 +322,12 @@ class JsonRpcBase(threading.Thread):
             self.name, sock, self.handle_request, dbg_out=self.dbg_out
         )
         self._rpc.wait_ready()
+        self._connected = True
         self._event_ready.set()
 
     def wait_ready(self, timeout=None):
-        return self._event_ready.wait(timeout)
+        self._event_ready.wait(timeout)
+        return self._connected
 
     @property
     def dbg_out(self):
@@ -348,20 +358,34 @@ class JsonRpcSrv(JsonRpcBase):
     def __init__(self, host, port, req_handler=None, timeout=10):
         super().__init__(host, port, req_handler, timeout)
         self.name = f"JsonRpcSvr_{port}"
+        self._bound_port = None
+        self._bound_evt = threading.Event()
+
+    @property
+    def bound_port(self):
+        return self._bound_port
+
+    def wait_bound(self, timeout=None):
+        self._bound_evt.wait(timeout)
+        return self._bound_port
 
     def run(self):
         # TCP/IP socket creation
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                # No SO_REUSEADDR: the OS picks a fresh ephemeral port (port 0),
+                # so there is no TIME_WAIT to override, and on Windows REUSEADDR
+                # would let another process hijack the port.
 
-                # Link of the socket at the configured port
+                # Bind (port may be 0 -> OS-assigned) then publish the actual port
                 sock.bind((self._host, self._port))
 
                 # Listens incoming connections
                 sock.listen(1)
-                self.print_info(f"listening on {self._host}:{self._port}")
+                self._bound_port = sock.getsockname()[1]
+                self._bound_evt.set()
+                self.print_info(f"listening on {self._host}:{self._bound_port}")
 
                 self.print_info(f"awaiting connection for {self._timeout} secs")
                 sock.settimeout(self._timeout)
@@ -382,6 +406,8 @@ class JsonRpcSrv(JsonRpcBase):
                         sleep(0.1)
 
         finally:
+            # Unblock wait_bound() even if bind/accept failed.
+            self._bound_evt.set()
             if self._rpc is not None:
                 self._rpc.stop()
                 self._rpc.join()
@@ -407,35 +433,37 @@ class JsonRpcClient(JsonRpcBase):
         self.name = f"JsonRpcClt_{port}"
 
     def run(self):
-        if tm.OS() == "Windows":
-            self.run_win()
-        else:
-            self.run_lin()
+        try:
+            if tm.OS() == "Windows":
+                self.run_win()
+            else:
+                self.run_lin()
+        except Exception as e:
+            self.print_info(f"connection failed: {e}")
+        finally:
+            # Settle wait_ready() whatever the outcome (_connected stays False
+            # on failure).
+            self._event_ready.set()
 
     def run_win(self):
-        # TCP/IP socket creation
-        tslice = 1
-        t = self._timeout
+        # Server is already listening (port handshake), so connect succeeds on
+        # the first attempt; retry on refused/timeout until the deadline anyway.
+        deadline = monotonic() + self._timeout
         sock = None
         try:
-            while t >= 0:
+            while True:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(tslice)
-                # Link of the socket at the configured port
+                sock.settimeout(0.5)
                 try:
                     sock.connect((self._host, self._port))
                     break
-                except socket.timeout:
+                except OSError as e:
                     sock.close()
-                    t -= tslice
-                    if t < 0:
+                    if monotonic() >= deadline:
                         raise ETUMRuntimeError(
-                            f"{self.name}: failed to connect : timeout"
+                            f"{self.name}: failed to connect : {e}"
                         )
-                    else:
-                        sleep(tslice)
-                except socket.error as e:
-                    raise ETUMRuntimeError(f"{self.name}: failed to connect : {e}")
+                    sleep(0.1)
 
             self.print_info("Connected to server")
             self.connect(sock)

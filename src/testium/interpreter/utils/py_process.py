@@ -1,13 +1,12 @@
 import os
 import sys
 import subprocess
-import socket
 from runtime.jrpc import JsonRpcClient
 import api.testium as tm
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.paths import testium_path, subproc_path
 from interpreter.utils import bins
-from interpreter.utils.proc_drain import drain_to_log
+from interpreter.utils.proc_drain import drain_and_read_port, wait_for_port
 
 
 class PyProcessBase:
@@ -54,13 +53,6 @@ class PyProcessBase:
                 else:
                     env[k] = e + os.pathsep + env.get(k, "")
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("localhost", 0))
-        self._port = sock.getsockname()[1]
-        # Port was reserved until the sub-process is started. Now released.
-        if sock is not None:
-            sock.close()
-
         # In Flatpak the host can't see /app/lib/testium, so use a staged copy
         # under /tmp (shared between sandbox and host) for both cwd and as the
         # root in PYTHONPATH. Outside Flatpak the original paths are used.
@@ -75,7 +67,7 @@ class PyProcessBase:
         cmd_args = [
             "py_func",
             "-p",
-            f"{self._port}",
+            "0",
             "-t",
             f"{self._timeout}",
         ]
@@ -107,11 +99,20 @@ class PyProcessBase:
             restore_signals=False,
             **popen_kwargs,
         )
-        # Route subprocess stdout/stderr (early-startup errors,
-        # unhandled exceptions, anything written to fd 1/2 before the
-        # in-process JSON-RPC stdio_redir kicks in) into the parent's
-        # log.
-        drain_to_log(self._process, prefix="[py_func] ")
+        # Route subprocess stdout/stderr into the parent's log and read the
+        # startup port sentinel. Startup variance (cold start, antivirus) is
+        # absorbed here: we wait for the worker to announce its port before
+        # connecting.
+        holder = drain_and_read_port(self._process, prefix="[py_func] ")
+        self._port = wait_for_port(
+            self._process, holder, tm.gd("proc_start_timeout", 30)
+        )
+        if self._port is None:
+            # Worker died before announcing its port: tear down fully so a
+            # later start() (e.g. a reused context_id engine) can retry cleanly.
+            self.stop()
+            self.join()
+            return
 
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler

@@ -90,7 +90,7 @@ class TestItemPyFunc(TestItem):
 
             if not engine.is_alive():
                 engine.start()
-                if not engine.wait_ready():
+                if not engine.wait_ready(10):
                     raise ETUMRuntimeError(
                         f"""Impossible to start the external python execution process.
 Is the python path correct ?
