@@ -1,7 +1,12 @@
 version 0.2.3
 =============
-- Windows version now working reliably. Fix of a problem of jrpc ports 
-  handshakes between the py and lua processes and testium
+- Windows version now working reliably. Fix of a problem of jrpc ports
+  handshakes between the py and lua processes and testium.
+  Beneficial to linux version too.
+- Windows: UTF-8 console output and a self-sufficient validation
+  wrapper (run.bat).
+- Resolved python_bin / lua_bin are now published into the global dict,
+  so test scripts can read them via $(python_bin) / $(lua_bin).
 
 version 0.2.2
 ==============
