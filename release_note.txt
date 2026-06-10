@@ -1,6 +1,6 @@
 version 0.2.3
 =============
-- Windows version now working reliably. Problem of jrpc ports 
+- Windows version now working reliably. Fix of a problem of jrpc ports 
   handshakes between the py and lua processes and testium
 
 version 0.2.2
