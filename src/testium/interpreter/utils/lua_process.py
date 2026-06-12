@@ -4,7 +4,7 @@ import subprocess
 
 import api.testium as tm
 from runtime.jrpc import JsonRpcClient
-from interpreter.utils.paths import subproc_path
+from interpreter.utils.paths import subproc_path, no_window_kwargs
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils import bins
 from interpreter.utils.proc_drain import drain_and_read_port, wait_for_port
@@ -114,6 +114,7 @@ class LuaProcessBase:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             restore_signals=False,
+            **no_window_kwargs(),
             **popen_kwargs,
         )
         # Forward subprocess output to the log and read the startup port sentinel.

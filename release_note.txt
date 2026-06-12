@@ -7,6 +7,7 @@ version 0.2.3
   wrapper (run.bat).
 - Resolved python_bin / lua_bin are now published into the global dict,
   so test scripts can read them via $(python_bin) / $(lua_bin).
+- Windows: new per-user installer (no admin).
 
 version 0.2.2
 ==============

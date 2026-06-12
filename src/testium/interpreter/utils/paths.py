@@ -8,6 +8,14 @@ import subprocess
 import api.testium as tm
 
 
+def no_window_kwargs():
+    # Hide stray child consoles in the frozen Windows GUI exe (console=False has
+    # no console to inherit). The wheel/source keeps its console, so leave it.
+    if sys.platform == "win32" and getattr(sys, "frozen", False):
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
+
+
 def testium_path():
 
     if getattr(sys, 'frozen', False):
@@ -54,6 +62,7 @@ def sys_app_path_win(app_name):
             text=True,
             encoding="oem",
             timeout=10,
+            **no_window_kwargs(),
         )
         data = result.stdout
     except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):

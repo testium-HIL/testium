@@ -226,7 +226,8 @@ Four distribution channels coexist, all sharing the single `src/testium/` packag
 | Channel | Where | Build | Notes |
 |---------|-------|-------|-------|
 | Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. |
-| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). |
+| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). Built windowed (`console=False`) with `package/testium.ico` as the exe icon — see "Windows frozen build". |
+| Windows installer | `package/innosetup/` | `build.ps1` (Inno Setup 6) | Wraps the PyInstaller exe. Per-user, **no admin** (`PrivilegesRequired=lowest`, installs under `%LOCALAPPDATA%`). Version-scoped `AppId` + install dir so versions coexist side-by-side; one Start Menu entry per version. |
 | Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |
 | AppImage | `package/appimage/` | `build.sh` (Debian Bookworm container via Podman/Docker) | Bundles Python 3.11 for the main process; `py_func` / `lua_func` MUST run under the **host** interpreter. Build runs in a container so it works on Arch / any non-Debian host. |
 
@@ -256,6 +257,19 @@ The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserv
 - User overrides (`python_bin`/`lua_bin` in globdict): in Flatpak, both bare names and absolute paths go through `_which()` so they are validated on the host side (the sandbox can't see e.g. `/scratch/...`). Outside Flatpak, absolute paths are accepted as-is and bare names go through PATH discovery.
 - If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
 - `py_process.py` additionally pops `PYTHONUSERBASE` (set to `/var/data/python` by the Flatpak runtime, which would hide `~/.local/lib/...`).
+
+### Windows frozen build: no console, hidden subprocess windows
+
+The PyInstaller exe is built **windowed** (`console=False` in `testium.spec`) so a
+double-click doesn't open a console. The catch: a windowed process has **no console
+to inherit**, so every console subprocess it spawns (the `py_func`/`lua_func` host
+Python bridges — the otherwise-permanent window — plus the `where`/`which`/`--version`
+probes) opens its **own** console window. `paths.no_window_kwargs()` returns
+`{"creationflags": CREATE_NO_WINDOW}` on a frozen Windows build (and `{}` everywhere
+else, so the **wheel/source** keeps its console and child output stays visible). It is
+applied at every spawn site: `py_process.py`, `lua_process.py`, `bins._run_probe`,
+`paths.sys_app_path_win`. `termconsole.py` is intentionally exempt (it already hides
+`cmd.exe` via `STARTUPINFO`).
 
 ### Declarative test item parameters
 

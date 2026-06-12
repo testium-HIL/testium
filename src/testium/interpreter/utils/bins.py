@@ -25,7 +25,7 @@ import subprocess
 import tempfile
 
 import api.testium as tm
-from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
+from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win, no_window_kwargs
 from runtime.tum_except import ETUMRuntimeError
 
 
@@ -272,6 +272,7 @@ def _run_probe(cmd):
         r = subprocess.run(
             cmd, capture_output=True, text=True,
             encoding=tm.sys_encoding(), timeout=10, env=_probe_env(),
+            **no_window_kwargs(),
         )
     except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
         return None

@@ -4,7 +4,7 @@ import subprocess
 from runtime.jrpc import JsonRpcClient
 import api.testium as tm
 from runtime.tum_except import ETUMRuntimeError
-from interpreter.utils.paths import testium_path, subproc_path
+from interpreter.utils.paths import testium_path, subproc_path, no_window_kwargs
 from interpreter.utils import bins
 from interpreter.utils.proc_drain import drain_and_read_port, wait_for_port
 
@@ -97,6 +97,7 @@ class PyProcessBase:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             restore_signals=False,
+            **no_window_kwargs(),
             **popen_kwargs,
         )
         # Forward subprocess output to the log and read the startup port sentinel.
