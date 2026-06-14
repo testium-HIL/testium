@@ -451,6 +451,20 @@ class TestSet:
     def rootItem(self):
         return self._rootItem
 
+    def _load_item(self, item):
+        """Run an item's self-load, deferring a failure (e.g. a missing module)
+        to a run-time FAILURE instead of aborting the whole test load."""
+        try:
+            return item.load()
+        except Exception as e:
+            msg = getattr(e, "_message", None) or str(e)
+            item._load_error = msg
+            tm.print_warn(
+                f"'{item.cmd()}' item '{item.name()}' could not be loaded: "
+                f"{msg} (it will FAIL at run)."
+            )
+            return {}
+
     def load_test_recursively(self, tree_parent, parent_seq, file_name):
         ret = {}
         try:
@@ -534,7 +548,7 @@ class TestSet:
                     # case where the test item loads itself its descendants
                     if it == cst_type.TYPE_UNITTEST:
                         item.setTestDir(test_dir)
-                        child = item.load()
+                        child = self._load_item(item)
                     elif issubclass(it.item_class, TestItemActions):
                         child = item.load()
                     # case where the test item is an items container

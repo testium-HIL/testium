@@ -61,6 +61,13 @@ def test_run(f):
 
         self.run_test_init()
 
+        # The item could not be loaded (e.g. a missing module): FAIL at run.
+        # run_test_end -> write_footer prints the message.
+        if self._load_error is not None:
+            self.result.set(TestValue.FAILURE, self._load_error)
+            self.run_test_end()
+            return self.result
+
         while self._is_paused:
             sleep(0.2)
             if self.isStopped() :
@@ -151,6 +158,7 @@ class TestItem:
         self._expected_result = None
         self._no_fail = None
         self._is_stopped = False
+        self._load_error = None
         self._is_running = False
         self._is_breakpoint = False
         self._is_paused = False
