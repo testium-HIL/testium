@@ -3,6 +3,8 @@ version 0.3
 - New ``pytest`` test item: run your pytest files as a test step; each
   test shows up with its own PASS / FAIL / SKIP. Requires pytest to be
   installed (``pip install pytest``).
+- Search the test tree in the GUI (Ctrl+F): find items by name, type or
+  doc; matches are highlighted and you can step through them.
 - console ``read_until`` can now wait for several possible texts at once
   (it matches the first one seen), and a ``regex: true`` option lets you
   match with a regular expression.
