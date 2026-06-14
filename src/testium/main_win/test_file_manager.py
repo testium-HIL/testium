@@ -134,6 +134,7 @@ class TestFileManager:
             QApplication.processEvents()
             test_data = w.test_service.tree()
             w.treeTests.clear()
+            w._reset_search()
             QApplication.processEvents()
             w.treeTests.loadTestRecursively(w.treeTests.invisibleRootItem(), test_data)
             self._close_progress(progress)
