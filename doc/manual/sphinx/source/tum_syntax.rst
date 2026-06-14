@@ -270,6 +270,7 @@ step list attributes.
    test_items/run_test_item.rst
    test_items/sleep_test_item.rst
    test_items/unittest_test_item.rst
+   test_items/pytest_test_item.rst
 
 
 
