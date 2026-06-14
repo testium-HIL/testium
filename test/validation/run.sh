@@ -21,7 +21,7 @@
 # even Flatpak reaches it via flatpak-spawn --host. The validation venv
 # is created with --system-site-packages so existing system packages
 # (PySide6, lxml, ...) stay visible, then junit-xml is pip-installed
-# for post_execution.py.
+# for post_execution.py and pytest for the `pytest` item.
 #
 # The report file is suffixed with the mode (e.g. validation-flatpak.sqlite)
 # so consecutive runs in different modes don't overwrite each other.
@@ -73,7 +73,7 @@ if [ ! -d "$VENV_DIR" ]; then
     echo "Creating validation venv at $VENV_DIR"
     python3 -m venv --system-site-packages "$VENV_DIR"
     "$VENV_DIR/bin/pip" install --quiet --upgrade pip
-    "$VENV_DIR/bin/pip" install --quiet junit-xml
+    "$VENV_DIR/bin/pip" install --quiet junit-xml pytest
 fi
 VENV_PYTHON="$VENV_DIR/bin/python3"
 

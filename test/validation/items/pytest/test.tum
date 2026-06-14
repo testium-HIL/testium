@@ -1,0 +1,17 @@
+- pytest:
+    name: Pytest item
+    test_file: {{include_directory}}/test_cases.py
+    key: $(test)_PASS
+    test_method:
+        - test_01_pass
+        - test_02_pass
+        - test_05_param
+
+- pytest:
+    name: Pytest item
+    test_file: {{include_directory}}/test_cases.py
+    key: $(test)_FAIL
+    test_method:
+        - test_01_pass
+        - test_03_fail
+        - test_04_skip

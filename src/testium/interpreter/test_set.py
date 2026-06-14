@@ -532,7 +532,7 @@ class TestSet:
                     item.is_folded = is_folded
                     child = {}
                     # case where the test item loads itself its descendants
-                    if it == cst_type.TYPE_UNITTEST:
+                    if it in (cst_type.TYPE_UNITTEST, cst_type.TYPE_PYTEST):
                         item.setTestDir(test_dir)
                         child = item.load()
                     elif issubclass(it.item_class, TestItemActions):
