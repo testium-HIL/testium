@@ -10,9 +10,11 @@ the host interpreter** (``bins.python_bin()``), exactly like ``py_func`` /
 the host (visible across every packaging channel — source, wheel, PyInstaller,
 Flatpak, AppImage) instead of requiring them inside the bundled interpreter.
 
-A tiny stdlib-only pytest plugin (written to a temp dir and loaded with
-``-p``) streams the collected node ids and per-test results back over the
-subprocess stdout as sentinel-prefixed lines, which the parent parses live.
+A tiny stdlib-only pytest plugin is shipped as a self-contained launcher
+script (run directly and registered via ``pytest.main(plugins=[...])`` — no
+PYTHONPATH / ``-p`` / import-by-name). It streams the collected node ids and
+per-test results back over the subprocess stdout as sentinel-prefixed lines,
+which the parent parses live.
 """
 
 import os
@@ -39,8 +41,6 @@ from interpreter.utils import bins
 _SENT_COLLECTED = "__TESTIUM_PYTEST_COLLECTED__"
 _SENT_START = "__TESTIUM_PYTEST_START__"
 _SENT_RESULT = "__TESTIUM_PYTEST_RESULT__"
-
-_PLUGIN_MODULE = "_testium_pytest_plugin"
 
 # stdlib-only pytest plugin executed inside the host subprocess. It must not
 # import anything from testium. It emits one sentinel line per event so the
@@ -118,6 +118,17 @@ def pytest_runtest_logfinish(nodeid, location):
     }))
 '''
 
+# Self-contained pytest runner: the plugin source above + a main that hands the
+# module to pytest as a *plugin object* (pytest.main(plugins=[...])). Run
+# directly (``python launcher.py …``), so the plugin needs no PYTHONPATH, no
+# ``-p`` and no import-by-name — robust on every channel, AppImage included.
+_LAUNCHER_SOURCE = _PLUGIN_SOURCE + '''
+
+if __name__ == "__main__":
+    import pytest
+    sys.exit(pytest.main(plugins=[sys.modules[__name__]]))
+'''
+
 
 class TestItemPytestElement(TestItem):
     """One collected pytest test (leaf child of a pytest file item)."""
@@ -154,22 +165,23 @@ class TestItemPytestFile(TestItem):
         self._testDir = ''
         self._test_methods = self._prms.getParamAll('test_method', processed=True)
         self._cwd = ""
-        self._plugin_dir = ""
+        self._launcher = ""
 
     def setTestDir(self, dir):
         self._testDir = dir
 
     # ---- subprocess plumbing -------------------------------------------------
 
-    def _write_plugin(self):
+    def _write_launcher(self):
         # In Flatpak the host process can only read /tmp (shared), so stage the
-        # plugin there; outside Flatpak the default temp dir is fine.
+        # launcher there; outside Flatpak the default temp dir is fine.
         d = tempfile.mkdtemp(prefix="testium_pytest_",
                              dir="/tmp" if bins._in_flatpak() else None)
-        with open(os.path.join(d, _PLUGIN_MODULE + ".py"), "w") as f:
-            f.write(_PLUGIN_SOURCE)
+        path = os.path.join(d, "launcher.py")
+        with open(path, "w") as f:
+            f.write(_LAUNCHER_SOURCE)
         atexit.register(shutil.rmtree, d, ignore_errors=True)
-        return d
+        return path
 
     def _pytest_popen(self, args):
         pbin = bins.python_bin()
@@ -179,19 +191,19 @@ class TestItemPytestFile(TestItem):
         env = os.environ.copy()
         bins.apply_host_libs(env)
         env.pop("PYTHONUSERBASE", None)
-        env["PYTHONPATH"] = self._plugin_dir + os.pathsep + env.get("PYTHONPATH", "")
 
+        # Run the self-contained launcher directly: it registers our plugin via
+        # pytest.main(plugins=[...]), so no PYTHONPATH / -p / import-by-name.
         cmd_args = [
-            "-m", "pytest",
+            self._launcher,
             "--capture=no",      # let plugin sentinels + test prints reach our pipe
             "-o", "addopts=",    # neutralise user addopts (xdist/cov break parsing)
             "-p", "no:cacheprovider",
-            "-p", _PLUGIN_MODULE,
             *args,
         ]
 
         if bins._in_flatpak():
-            host_env = {k: env[k] for k in ("PYTHONPATH", "PATH") if env.get(k)}
+            host_env = {"PATH": env["PATH"]} if env.get("PATH") else {}
             params = bins.flatpak_host_spawn(
                 pbin, cmd_args, host_cwd=self._cwd, extra_env=host_env)
             popen_kwargs = {}
@@ -233,7 +245,7 @@ class TestItemPytestFile(TestItem):
 
     def _collection_error(self, output):
         """Clear reason why collection produced no test."""
-        if "No module named pytest" in output:
+        if "No module named pytest" in output or "No module named 'pytest'" in output:
             return ("pytest is not installed on the host interpreter used by "
                     "testium (python_bin). Install it, e.g. 'pip install pytest'.")
         return 'No pytest test collected from "%s".\n%s' % (self._fileName, output)
@@ -249,7 +261,7 @@ class TestItemPytestFile(TestItem):
             raise ETUMFileError('File "%s" is not found' % (self._fileName))
 
         self._cwd = os.path.dirname(self._fileName) or "."
-        self._plugin_dir = self._write_plugin()
+        self._launcher = self._write_launcher()
 
         nodeids, output = self._collect()
         if not nodeids:
