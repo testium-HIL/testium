@@ -1,3 +1,18 @@
+version 0.3
+==============
+- New ``pytest`` test item: run your pytest files as a test step; each
+  test shows up with its own PASS / FAIL / SKIP. Requires pytest to be
+  installed (``pip install pytest``).
+- console ``read_until`` can now wait for several possible texts at once
+  (it matches the first one seen), and a ``regex: true`` option lets you
+  match with a regular expression.
+- Serial console: a clear message when the device is missing, and serial
+  ports now work in the Flatpak version.
+- If a test file cannot be loaded (for example pytest is not installed),
+  only that step fails — the rest of the tests still run.
+- Fix: a variable (``$(...)``) used in a console ``telnet_port`` is now
+  correctly substituted.
+
 version 0.2.3
 =============
 - Windows version now working reliably. Fix of a problem of jrpc ports

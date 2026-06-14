@@ -212,6 +212,10 @@ Unlike `unittest` (which runs in-process), pytest runs in a **subprocess on the 
 - `load()` runs `pytest --collect-only` once to build the child tree; `execute()` runs the enabled node-ids once and maps results back by node-id.
 - pytest is invoked with `--capture=no` (so plugin sentinels + test prints reach our pipe), `-o addopts=` (neutralise user addopts — xdist/cov would break the per-test hook parsing), `-p no:cacheprovider`. `stop_on_failure` → `-x`; disabled children → NORUN without running.
 - Params: `test_file` (required), `test_method` (optional list of function names, matched against the node-id function segment with the parametrisation suffix stripped). Registered as `cst.TYPE_PYTEST` / `TYPE_PYTEST_STEP`, loaded via the same self-loading branch as `unittest` in `test_set.load_test_recursively`.
+- `load()` raises on a collection problem (pytest not installed → a dedicated "pip install pytest" message; bad file / unknown `test_method`). That raise is handled by the **Graceful item load** path below — a warning at load and a clean FAIL at run, never a crash.
+
+### Graceful item load
+A self-loading item whose `load()` fails (a `unittest` test file importing a missing module, `pytest` not installed on the host, …) must not abort the **whole** test load. `TestSet._load_item()` wraps the `load()` call: on any exception it emits `tm.print_warn(...)` and stores the reason in `item._load_error` instead of propagating. The `@test_run` wrapper (`test_item.py`) turns a non-None `_load_error` into a clean run-time `FAILURE` (the message is printed once by `write_footer`), so the rest of the campaign still loads and runs. Scoped to the self-loading, module-loading items (`unittest`, `pytest`); structural action loading (`console`/`plot`/`json_rpc`) stays fail-fast at load.
 
 ### Report exporters & plugins
 `src/testium/interpreter/test_report/test_report.py` — `_EXPORTER_REGISTRY` dict maps a format name (cmd key in the YAML `report.export`) to a lazy loader. Built-ins: `text`, `json`, `junit` (needs `junit_xml`), `html` (needs `lxml`). `sqlite` is the storage layer, no-op as an export.
