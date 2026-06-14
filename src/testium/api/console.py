@@ -2,6 +2,7 @@ from datetime import datetime
 import sys
 import os
 import re
+import errno
 from queue import Queue, Empty
 from time import sleep
 import collections
@@ -9,6 +10,8 @@ import serial
 import threading
 
 from telnetlib3 import Telnet, DO, WILL, WONT, TTYPE, IAC, SB, SE, theNULL
+
+from runtime.tum_except import ETUMRuntimeError
 
 TIMEOUT_NULL = 0.000001
 STOP_POLL_INTERVAL = 0.2
@@ -124,7 +127,29 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         #    c = ''
         return c
 
-    def read_until(self, match, timeout=None, return_data=False, mute=False, should_stop=None):
+    # Max chars of the buffer tail scanned in regex mode (bounds cost/memory).
+    REGEX_WINDOW = 65536
+
+    def _feed_match(self, data, search_deques, match_deques, matches):
+        """Append *data* to each window; return the first matched pattern or None."""
+        matched = None
+        for sd, md, m in zip(search_deques, match_deques, matches):
+            sd.append(data)
+            if matched is None and sd == md:
+                matched = m
+        return matched
+
+    def _search_regex(self, read_data, compiled):
+        """Search the buffer tail with each regex; return the first hit's text or None."""
+        tail = read_data[-self.REGEX_WINDOW:]
+        for p in compiled:
+            m = p.search(tail)
+            if m is not None:
+                return m.group(0)
+        return None
+
+    def read_until(self, match, timeout=None, return_data=False, mute=False,
+                   should_stop=None, regex=False):
         """
         read until the string 'match is found
             If timeout is not set (None), this function runs indefinitely
@@ -141,15 +166,35 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         read_data = ''
         status = -1
         if not match:
-            raise ValueError('match parameter can not be empty')
+            raise ETUMRuntimeError("'expected' pattern can not be empty")
+
+        # match: a string or list of strings; succeed as soon as any is seen.
+        if isinstance(match, (list, tuple)):
+            matches = [str(m) for m in match]
+        else:
+            matches = [str(match)]
+        if (not matches) or any(len(m) == 0 for m in matches):
+            raise ETUMRuntimeError("'expected' pattern can not be empty")
 
         if timeout is None:
             timeout = 1000000
 
-        # Fixed-length queue that will contain the readout characters
-        search_deque = collections.deque(maxlen=len(match))
-        # convert match string into a deque for faster comparisons
-        match_deque = collections.deque(match)
+        compiled = None
+        search_deques = match_deques = None
+        if regex:
+            # 'matches' are regular expressions; succeed on the first hit.
+            compiled = []
+            for m in matches:
+                try:
+                    compiled.append(re.compile(m))
+                except re.error as e:
+                    raise ETUMRuntimeError(
+                        "Invalid regular expression {!r}: {}".format(m, e)) from None
+        else:
+            # One fixed-length rolling window per literal pattern.
+            search_deques = [collections.deque(maxlen=len(m)) for m in matches]
+            match_deques = [collections.deque(m) for m in matches]
+        self._matched = None
 
         # In case of a timeout equal to zero, it must be looped until the
         # buffer is empty
@@ -167,9 +212,13 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
                         self.string_buffer += data
                     read_data += data
 
-                    search_deque.append(data)
-                    if search_deque == match_deque:
+                    if regex:
+                        matched = self._search_regex(read_data, compiled)
+                    else:
+                        matched = self._feed_match(data, search_deques, match_deques, matches)
+                    if matched is not None:
                         status = 0
+                        self._matched = matched
                         if (not mute) and (data != '\n'):
                             self.string_buffer += '\n'
 
@@ -210,9 +259,13 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
                                 self.string_buffer += data
                             read_data += data
 
-                            search_deque.append(data)
-                            if search_deque == match_deque:
+                            if regex:
+                                matched = self._search_regex(read_data, compiled)
+                            else:
+                                matched = self._feed_match(data, search_deques, match_deques, matches)
+                            if matched is not None:
                                 status = 0
+                                self._matched = matched
                                 if (not mute) and (data != '\n'):
                                     self.string_buffer += '\n'
 
@@ -407,19 +460,34 @@ class SerialConsole(Console):
             self.stop = threading.Event()
         self.port = None
         self.port_id = port
+        self._thd = None
 
     def open(self):
-        self.port = serial.Serial(port=self.port_id,
-                                  baudrate=self.baudrate,
-                                  stopbits=self.stopbits,
-                                  parity=self.parity,
-                                  xonxoff=self.xonxoff,
-                                  timeout=None)
+        try:
+            self.port = serial.Serial(port=self.port_id,
+                                      baudrate=self.baudrate,
+                                      stopbits=self.stopbits,
+                                      parity=self.parity,
+                                      xonxoff=self.xonxoff,
+                                      timeout=None)
+        except (serial.SerialException, OSError) as e:
+            raise ETUMRuntimeError(self._open_error_message(e)) from None
         self.isOpened = True
         if self.bufferize:
             self.port.timeout = 2
             self._thd = threading.Thread(target=self.read_thread)
             self._thd.start()
+
+    def _open_error_message(self, exc):
+        """Build a short, direct message for a failed serial open."""
+        errno_ = getattr(exc, "errno", None)
+        if errno_ == errno.ENOENT:
+            return "Serial device '{}' does not exist.".format(self.port_id)
+        if errno_ == errno.EACCES:
+            return ("Permission denied opening serial device '{}' "
+                    "(is your user allowed to access it, e.g. 'dialout' group?)."
+                    .format(self.port_id))
+        return "Could not open serial device '{}': {}".format(self.port_id, exc)
 
     def read_thread(self):
         while not self.stop.is_set():
@@ -428,7 +496,7 @@ class SerialConsole(Console):
                 self.rx_queue.put(c)
 
     def close(self):
-        if self.bufferize:
+        if self.bufferize and self._thd is not None:
             self.stop.set()
             self._thd.join()
         if self.port is not None:
@@ -440,10 +508,12 @@ class SerialConsole(Console):
             self.port.timeout = timeout
 
     def readchar(self, timeout):
+        if not self.isOpened:
+            raise ETUMRuntimeError("Serial console '{}' is not open".format(self.name))
         if self.bufferize:
             if not self._thd.is_alive() and not self.stop.isSet():
-                raise RuntimeError(
-                    "Impossible to read the serial console, it may be already openned")
+                raise ETUMRuntimeError(
+                    "Impossible to read the serial console, it may be already opened")
             if timeout < TIMEOUT_NULL:
                 return self.rx_queue.get(block=False)
             else:
@@ -455,10 +525,12 @@ class SerialConsole(Console):
         self.port.flush()
 
     def read_nowait(self, mute=False):
+        if not self.isOpened:
+            raise ETUMRuntimeError("Serial console '{}' is not open".format(self.name))
         if self.bufferize:
             if not self._thd.is_alive() and not self.stop.isSet():
-                raise RuntimeError(
-                    "Impossible to read the serial console, it may be already openned")
+                raise ETUMRuntimeError(
+                    "Impossible to read the serial console, it may be already opened")
             st = self.rx_queue.getAll().decode(self.encoding, errors='replace')
             if not mute:
                 date_str = str(datetime.now()).split('.')[0].split(' ')[1]

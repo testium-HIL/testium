@@ -26,13 +26,14 @@ class TestItemTestedRefsDialog(TestItemDialogBase):
         self.is_container = False
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam('question', required=True)
-            self._init_values = self._prms.getParamAll('reference', required=False, processed=True)
+            # Kept raw: expanded at run time in execute().
+            self._init_values = self._prms.getParamAll('reference', required=False)
             self._auto_result = self._prms.getParam('auto_result', required=False, default=None)
 
     @test_run
     def execute(self):
         q = self._prms.expanse(self._question)
-        init_values = ','.join(self._init_values)
+        init_values = ','.join(self._prms.expanse(v) for v in self._init_values)
         if _is_text_mode():
             print(f"References: {q}")
             rows = init_values.split(',') if init_values else ['']

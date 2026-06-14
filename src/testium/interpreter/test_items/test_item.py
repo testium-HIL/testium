@@ -145,7 +145,7 @@ class TestItem:
         self._report_key = None
         self._reported = None
         self.status_queue = status_queue
-        self._execute_on_stop = False
+        self._execute_on_stop_raw = False
         self._post_eval = None
         self._store_result = None
         self._expected_result = None
@@ -154,7 +154,7 @@ class TestItem:
         self._is_running = False
         self._is_breakpoint = False
         self._is_paused = False
-        self._stop_on_failure = False
+        self._stop_on_failure_raw = False
         self._doc = ""
         self._name = ""
         self.report = None
@@ -197,13 +197,14 @@ class TestItem:
                     self.skipped = False
 
                 self._report_key = self._prms.getParam("key", default=None)
-                self._stop_on_failure = self._prms.getParam(
-                    "stop_on_failure", default=False, processed=True
+                # Kept raw: expanded at run time by the matching properties.
+                self._stop_on_failure_raw = self._prms.getParam(
+                    "stop_on_failure", default=False
                 )
                 self._doc = self._prms.getParam("doc", default="", processed=True)
                 #
-                self._execute_on_stop = self._prms.getParam(
-                    "execute_on_stop", default=False, processed=True
+                self._execute_on_stop_raw = self._prms.getParam(
+                    "execute_on_stop", default=False
                 )
 
                 if "process_result" in dict_item:
@@ -569,6 +570,20 @@ class TestItem:
 
     def setEnabled(self):
         self.enabled = True
+
+    def _eval_flag(self, raw):
+        """Run-time flag: bool as-is, otherwise expanded and coerced to bool."""
+        if isinstance(raw, bool):
+            return raw
+        return eval_to_boolean(self._prms.expanse(raw))
+
+    @property
+    def _stop_on_failure(self):
+        return self._eval_flag(self._stop_on_failure_raw)
+
+    @property
+    def _execute_on_stop(self):
+        return self._eval_flag(self._execute_on_stop_raw)
 
     def executedOnStop(self):
         return self._execute_on_stop
