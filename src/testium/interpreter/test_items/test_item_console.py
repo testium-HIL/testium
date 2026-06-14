@@ -88,7 +88,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             telnet_host = self._prms.getParam(
                 "telnet_host", required=True, processed=True
             )
-            telnet_port = self._prms.getParam("telnet_port", default=69)
+            telnet_port = self._prms.getParam("telnet_port", default=69, processed=True)
 
         elif self._protocol == "ssh":
             if tm.OS() == "Windows":
@@ -226,8 +226,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             cons.open()
             self.result.set(TestValue.SUCCESS)
         except ETUMRuntimeError as e:
-            # Expected, user-facing console error (device missing, no permission,
-            # …): report a single clear line, no traceback.
+            # Expected console error (device missing, no permission…): one line.
             msg = "Impossible to open the console '{}': {}".format(cname, e._message)
             self.result.set(result=TestValue.FAILURE, message=msg)
             print(msg)

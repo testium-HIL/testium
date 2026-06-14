@@ -127,13 +127,11 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         #    c = ''
         return c
 
-    # Upper bound (in characters) of the accumulated buffer tail scanned in
-    # regex mode, so cost/memory stay bounded on long-running streams.
+    # Max chars of the buffer tail scanned in regex mode (bounds cost/memory).
     REGEX_WINDOW = 65536
 
     def _feed_match(self, data, search_deques, match_deques, matches):
-        """Append *data* to every rolling window and return the first matched
-        pattern string, or None if none completed on this character."""
+        """Append *data* to each window; return the first matched pattern or None."""
         matched = None
         for sd, md, m in zip(search_deques, match_deques, matches):
             sd.append(data)
@@ -142,8 +140,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         return matched
 
     def _search_regex(self, read_data, compiled):
-        """Search the (bounded) tail of *read_data* with each compiled regex;
-        return the matched text of the first hit, or None."""
+        """Search the buffer tail with each regex; return the first hit's text or None."""
         tail = read_data[-self.REGEX_WINDOW:]
         for p in compiled:
             m = p.search(tail)
@@ -171,8 +168,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         if not match:
             raise ETUMRuntimeError("'expected' pattern can not be empty")
 
-        # match may be a single string or a list/tuple of strings: the read
-        # succeeds as soon as ANY of them is seen in the stream.
+        # match: a string or list of strings; succeed as soon as any is seen.
         if isinstance(match, (list, tuple)):
             matches = [str(m) for m in match]
         else:
@@ -195,8 +191,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
                     raise ETUMRuntimeError(
                         "Invalid regular expression {!r}: {}".format(m, e)) from None
         else:
-            # One fixed-length rolling window per match pattern, compared
-            # against the corresponding pattern deque.
+            # One fixed-length rolling window per literal pattern.
             search_deques = [collections.deque(maxlen=len(m)) for m in matches]
             match_deques = [collections.deque(m) for m in matches]
         self._matched = None
