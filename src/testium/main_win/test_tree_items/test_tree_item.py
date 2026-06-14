@@ -13,7 +13,7 @@ _ITEM_CONFIG = {
     "unittest":             {"icon": "folder.png",        "icon_on": "folder-open.png", "expanded": True,  "no_breakpoint": True},
     "unittest step":        {"icon": "document.png",                                                        "no_breakpoint": True},
     "pytest":               {"icon": "pytest.png",                                       "expanded": True,  "no_breakpoint": True},
-    "pytest step":          {"icon": "document.png",                                                        "no_breakpoint": True},
+    "pytest step":          {"icon": "pytest.png",                                                          "no_breakpoint": True},
     "Console":              {"icon": "terminal.png",       "unfoldable": False},
     "Console action":       {"icon": "terminal.png"},
     "Cycle":                {"icon": "cycle.png",          "expanded": True},
