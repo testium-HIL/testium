@@ -231,6 +231,13 @@ class TestItemPytestFile(TestItem):
         proc.wait()
         return nodeids, "\n".join(output)
 
+    def _collection_error(self, output):
+        """Clear reason why collection produced no test."""
+        if "No module named pytest" in output:
+            return ("pytest is not installed on the host interpreter used by "
+                    "testium (python_bin). Install it, e.g. 'pip install pytest'.")
+        return 'No pytest test collected from "%s".\n%s' % (self._fileName, output)
+
     def load(self):
         ret = {}
         if self._fileName == '':
@@ -246,8 +253,7 @@ class TestItemPytestFile(TestItem):
 
         nodeids, output = self._collect()
         if not nodeids:
-            raise ETUMFileError(
-                'No pytest test collected from "%s".\n%s' % (self._fileName, output))
+            raise ETUMFileError(self._collection_error(output))
 
         if self._test_methods:
             present = {nid.split("::")[-1].split("[")[0] for nid in nodeids}
