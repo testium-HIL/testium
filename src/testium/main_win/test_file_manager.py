@@ -127,7 +127,8 @@ class TestFileManager:
                 del w.ts_controller
                 w.ts_controller = None
                 raise ETUMRuntimeError(
-                    "Test could not be loaded (test process crashed for any reason)"
+                    "Test could not be loaded. See the log above for the cause "
+                    "(syntax error, missing file, missing module, ...)."
                 )
 
             progress.setLabelText("Building test tree…")
