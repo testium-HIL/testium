@@ -1,10 +1,7 @@
 # run item: launches a .tum file in a new testium instance.
-# In batch mode the sub-instance runs with -b; in GUI mode with -r.
-# The run item result is SUCCESS if the sub-instance launched successfully,
-# regardless of its own test result.
-#
-# log_file points the sub-instance log at the throwaway report dir (gitignored)
-# so a GUI run does not litter the repo with sub_*.log files.
+# Child mode: -b in batch / -r in the GUI, or forced -b (captured) by batch: true.
+# Result is SUCCESS if the sub-instance launched, regardless of its own result.
+# log_file (GUI -r only) goes to the gitignored report dir to avoid repo litter.
 
 - run:
     name: run PASS (valid file, passing sub-test)
@@ -30,3 +27,18 @@
     tum: $(test_path)$(psep)sub_pass.tum
     wait_for_exec: true
     log_file: $(validation_report_path)$(psep)run_sub.log
+
+# batch: true forces a headless, captured sub-run even in the GUI; its log is
+# kept as the result value and pushed to the gdict by store_result.
+- run:
+    name: run batch (capture sub-run log to the gdict)
+    key: $(test)_PASS
+    tum: $(test_path)$(psep)sub_pass.tum
+    batch: true
+    store_result: captured_log
+
+- py_func:
+    name: captured sub-run log is post-processable from the gdict
+    key: $(test)_PASS
+    file: $(test_path)$(psep)check_capture.py
+    func_name: assert_captured
