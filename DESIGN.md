@@ -202,7 +202,7 @@ A find bar (Ctrl+F) over the `QTestTree` (`src/testium/main_win/test_tree.py`) h
 - `QTestTreeItem._refresh_highlight()` is the single source of truth for the name-column colours: the **search** highlight (pastel amber bg + forced black text, readable in light *and* dark themes) and the green **run** highlight (`setHighlighted`) are recomputed from state flags with precedence **run > search > default**. No brush is saved/restored, so the two layers never leave a stale/permanent colour when they overlap (e.g. searching while a test runs).
 
 ### `run` item
-`src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance (`-b` in batch mode, `-r` in GUI mode). Result:
+`src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance. Child mode: `-b` in batch, `-r` (own window) in the GUI, or forced `-b` by `batch: true`. A `-b` child is **captured** (launched `-o`, no colour): its stdout/stderr stream through `proc_drain.drain_to_log()` into this test's log/report, and the full text is kept as the result value, so `store_result` pushes it to the gdict and `expected_result`/`process_result`/a py_func can post-process it. Stop kills the child via the poll loop. Result:
 - **PASS** if the sub-instance launched and ran to completion (exit code is ignored)
 - **FAIL** if the file is not found, `wait_for_exec` is set without `start_time`/`end_time`, the time window was not reached, or any other launch error
 
