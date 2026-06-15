@@ -1,5 +1,7 @@
 version 0.3.2
 ==============
+- The variables window (F1) now has a filter box: type to show only the
+  variables whose name matches. Tick "values" to also match on the value.
 - The ``run`` item now captures the output of the test it launches into your
   log and report (it used to go only to the terminal and was lost from the
   report). New ``batch: true`` option runs that test headless (and captured)
