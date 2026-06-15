@@ -1,3 +1,11 @@
+version 0.3.1
+==============
+- Clearer errors when a test file fails to load. The message now names the
+  exact file and item and explains the problem (unknown item or action, a
+  step holding two items, a missing ``steps:`` list, a misplaced value, ...)
+  and lists the valid names, instead of a cryptic failure. A problem inside
+  an ``!include``-d file points to that file.
+
 version 0.3
 ==============
 - New ``pytest`` test item: run your pytest files as a test step; each
