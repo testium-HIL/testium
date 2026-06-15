@@ -1,3 +1,12 @@
+version 0.3.2
+==============
+- The ``run`` item now captures the output of the test it launches into your
+  log and report (it used to go only to the terminal and was lost from the
+  report). New ``batch: true`` option runs that test headless (and captured)
+  even when testium is in the GUI.
+- The captured output of a ``run`` step can be saved with ``store_result`` and
+  inspected afterwards (for example with ``expected_result`` or a ``py_func``).
+
 version 0.3.1
 ==============
 - Clearer errors when a test file fails to load. The message now names the
