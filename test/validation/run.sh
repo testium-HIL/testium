@@ -158,6 +158,12 @@ echo "-- launch: ${CMD[*]}"
 echo "-- LSP check ($MODE)"
 "$VENV_PYTHON" "$SCRIPT_DIR/lsp_check.py" "${CMD[@]}"
 
+# ---------- load-error check (this exact channel) -----------------------------
+# Deliberately broken .tum files must fail to load with a specific, located
+# message (not a raw traceback): guards the load-time error handling.
+echo "-- load-error check ($MODE)"
+"$VENV_PYTHON" "$SCRIPT_DIR/load_errors_check.py" "${CMD[@]}"
+
 if [ "$GUI" -eq 1 ]; then
     echo "-- GUI mode: the suite is loaded; press Start to run. Window stays open."
 fi

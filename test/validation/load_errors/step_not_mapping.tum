@@ -1,0 +1,5 @@
+main:
+  name: root
+  steps:
+    # A step that is a bare scalar instead of a '<item>: ...' mapping.
+    - just some text

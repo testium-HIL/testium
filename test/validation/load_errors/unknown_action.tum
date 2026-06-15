@@ -1,0 +1,8 @@
+main:
+  name: root
+  steps:
+    - console:
+        console_name: c1
+        steps:
+          - opens:
+              device: /dev/ttyUSB0
