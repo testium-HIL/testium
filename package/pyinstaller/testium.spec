@@ -79,26 +79,60 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.datas,
-    [],
-    name='testium',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    # UPX is CPU+IO heavy for a marginal size gain — build_all --ram sets
-    # TESTIUM_NO_UPX=1 to skip it (much faster on slow/flash storage).
-    upx=not os.environ.get("TESTIUM_NO_UPX"),
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    ico='../testium.ico'
-)
+# TESTIUM_ONEDIR=1 => one-folder build (fast startup), used by the Windows
+# installer; default one-file keeps the Linux build_all portable binary.
+ONEDIR = bool(os.environ.get("TESTIUM_ONEDIR"))
+# UPX skipped via TESTIUM_NO_UPX (build_all --ram) — slow for a marginal gain.
+_upx = not os.environ.get("TESTIUM_NO_UPX")
+
+if ONEDIR:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='testium',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=_upx,
+        upx_exclude=[],
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        ico='../testium.ico'
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=_upx,
+        upx_exclude=[],
+        name='testium',
+    )
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='testium',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=_upx,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        ico='../testium.ico'
+    )

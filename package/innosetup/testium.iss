@@ -49,9 +49,12 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 ; PATH off by default: the exe is windowed (console=False), so CLI shows no output.
 Name: "addtopath"; Description: "Ajouter Testium au PATH (usage en ligne de commande)"; Flags: unchecked
+; Shown only if another version is already installed; unchecked => keep it.
+Name: "removeold"; Description: "Désinstaller les autres versions de Testium déjà installées"; Check: OtherVersionsExist; Flags: unchecked
 
 [Files]
-Source: "..\pyinstaller\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; One-folder build: the exe plus its _internal\ tree (fast startup, no re-extract).
+Source: "..\pyinstaller\dist\testium\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 ; Ship the .ico so shortcuts/uninstall reference it directly, not the embedded one.
 Source: "..\testium.ico"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -67,6 +70,54 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}
 [Code]
 const
   EnvKey = 'Environment';
+  UninstallRoot = 'Software\Microsoft\Windows\CurrentVersion\Uninstall';
+  AppGuid = '{B7E6F1C2-9A4D-4E3B-8F71-7C2D5A6E0B14}';
+
+// Inno's uninstall subkey for *this* version: "{AppId}_is1".
+function CurrentUninstallSubkey(): string;
+begin
+  Result := AppGuid + '_{#MyAppVersion}_is1';
+end;
+
+// Uninstall subkeys of every installed Testium version except this one.
+function OtherTestiumSubkeys(): TArrayOfString;
+var
+  names: TArrayOfString;
+  i: Integer;
+  prefix, cur: string;
+begin
+  SetArrayLength(Result, 0);
+  prefix := Uppercase(AppGuid + '_');
+  cur := Uppercase(CurrentUninstallSubkey());
+  if RegGetSubkeyNames(HKEY_CURRENT_USER, UninstallRoot, names) then
+    for i := 0 to GetArrayLength(names) - 1 do
+      if (Pos(prefix, Uppercase(names[i])) = 1) and (Uppercase(names[i]) <> cur) then
+      begin
+        SetArrayLength(Result, GetArrayLength(Result) + 1);
+        Result[GetArrayLength(Result) - 1] := names[i];
+      end;
+end;
+
+// Drives the "removeold" task: only offered when another version exists.
+function OtherVersionsExist(): Boolean;
+begin
+  Result := GetArrayLength(OtherTestiumSubkeys()) > 0;
+end;
+
+// Silently run each other version's uninstaller.
+procedure RemoveOtherVersions();
+var
+  subs: TArrayOfString;
+  i, rc: Integer;
+  cmd: string;
+begin
+  subs := OtherTestiumSubkeys();
+  for i := 0 to GetArrayLength(subs) - 1 do
+    if RegQueryStringValue(HKEY_CURRENT_USER, UninstallRoot + '\' + subs[i],
+         'UninstallString', cmd) and (cmd <> '') then
+      Exec(RemoveQuotes(cmd), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART',
+           '', SW_HIDE, ewWaitUntilTerminated, rc);
+end;
 
 // True if Param is not already a full segment of the per-user PATH.
 function NeedsAddPath(Param: string): Boolean;
@@ -97,6 +148,8 @@ begin
       Path := Path + ExpandConstant('{app}');
       RegWriteStringValue(HKEY_CURRENT_USER, EnvKey, 'Path', Path);
     end;
+    if WizardIsTaskSelected('removeold') then
+      RemoveOtherVersions();
   end;
 end;
 

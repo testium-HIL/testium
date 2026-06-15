@@ -1,16 +1,36 @@
-# Build the Testium installer from testium.iss (needs Inno Setup 6 / ISCC.exe).
+# Build the Windows installer: PyInstaller one-folder build (fast start) + Inno Setup.
 # Install ISCC without admin: winget install --id JRSoftware.InnoSetup -e
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Resolve-Path (Join-Path $scriptDir '..\..')
+$pyiDir = Join-Path $repoRoot 'package\pyinstaller'
 
-# The PyInstaller exe must exist first.
-$exe = Join-Path $scriptDir '..\pyinstaller\dist\testium.exe'
-if (-not (Test-Path $exe)) {
-    throw "PyInstaller build not found: $exe`nRun package\pyinstaller\build first."
+# Locate PyInstaller: PATH first, then the known project venvs.
+$pyi = (Get-Command pyinstaller.exe -ErrorAction SilentlyContinue).Source
+if (-not $pyi) {
+    foreach ($p in @(
+        (Join-Path $repoRoot 'test\tmp\testium_venv\Scripts\pyinstaller.exe'),
+        (Join-Path $repoRoot 'test\tmp\.venv\Scripts\pyinstaller.exe'))) {
+        if (Test-Path $p) { $pyi = $p; break }
+    }
+}
+if (-not $pyi) { throw "pyinstaller.exe not found (PATH or project venv)." }
+
+# One-folder PyInstaller build => dist\testium\testium.exe + dist\testium\_internal\.
+Write-Host "Building one-folder exe with: $pyi"
+Remove-Item -Recurse -Force (Join-Path $pyiDir 'build'), (Join-Path $pyiDir 'dist') -ErrorAction SilentlyContinue
+Push-Location $pyiDir
+try {
+    $env:TESTIUM_ONEDIR = '1'
+    & $pyi 'testium.spec'
+    if ($LASTEXITCODE -ne 0) { throw "pyinstaller failed with exit code $LASTEXITCODE" }
+} finally {
+    Remove-Item Env:\TESTIUM_ONEDIR -ErrorAction SilentlyContinue
+    Pop-Location
 }
 
-# Locate ISCC.exe: PATH, then the usual install dirs.
+# Locate ISCC: PATH, then the usual install dirs.
 $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
 if (-not $iscc) {
     foreach ($p in @(
