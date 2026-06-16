@@ -13,6 +13,7 @@ from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QD
 from PySide6.QtCore import Qt, QUrl, Slot
 
 from main_win.f1_win.f1_win_core import Ui_F1Dialog
+from interpreter.utils import bins
 
 
 class YamlHighlighter(QSyntaxHighlighter):
@@ -304,9 +305,11 @@ class DialogF1(QDialog):
 
     def on_butlocopen_click(self):
         file = self.ui.sequenceFileNameLineEdit.text()
-        if os.path.exists(file):
-            if sys.platform.startswith("win"):
-                subprocess.Popen(f'explorer "{file}"')
-            else:
-                subprocess.Popen(["xdg-open", file])
+        if not os.path.exists(file):
+            return
+        if bins.host_open_path(file):
+            return
+        if sys.platform.startswith("win"):
+            subprocess.Popen(f'explorer "{file}"')
+        else:
             QDesktopServices.openUrl(QUrl.fromLocalFile(file))
