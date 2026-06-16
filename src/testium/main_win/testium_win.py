@@ -40,6 +40,7 @@ from runtime.string_queue import StringQueue
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.icons import icon_prefix
+from interpreter.utils import bins
 
 from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
@@ -639,7 +640,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage(
             "Opening the logfile (" + s + "): " + self.logFileName, 100000
         )
-        QDesktopServices.openUrl(QUrl.fromLocalFile(self.logFileName))
+        if not bins.host_open_path(self.logFileName):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.logFileName))
 
     @Slot()
     def on_actionHelp_triggered(self):

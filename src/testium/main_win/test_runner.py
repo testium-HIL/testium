@@ -181,7 +181,8 @@ class TestRunner:
             w.actionStart_test.setText("Pause test")
             w.actionPreferences.setDisabled(True)
             w.actionRefresh_test.setDisabled(True)
-            w.actionShow_Results.setDisabled(True)
+            # Show Results stays available during the run (log grows live).
+            w.actionShow_Results.setEnabled(True)
             w.actionSave_report.setDisabled(True)
             w.logSettingsBox.setDisabled(True)
             w.actionStop_test.setEnabled(True)

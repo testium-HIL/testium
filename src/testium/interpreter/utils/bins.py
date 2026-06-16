@@ -199,6 +199,23 @@ def host_console_command(shell_cmd, cwd):
     return ["flatpak-spawn", "--host", f"--directory={cwd}", *argv]
 
 
+def host_open_path(path):
+    """Open *path* with the host default application (Flatpak only).
+
+    QDesktopServices/openUrl routes through the OpenURI portal inside Flatpak,
+    which often fails to open a plain editor for a log file. Spawn xdg-open on
+    the host so the user's real default app is used. Returns True on dispatch;
+    False (incl. outside Flatpak) so the caller can fall back to openUrl.
+    """
+    if not _in_flatpak():
+        return False
+    try:
+        subprocess.Popen(["flatpak-spawn", "--host", "xdg-open", path])
+        return True
+    except (FileNotFoundError, PermissionError):
+        return False
+
+
 def _which_host_flatpak(name):
     """Resolve a binary name (or absolute path) on the host via flatpak-spawn.
 
