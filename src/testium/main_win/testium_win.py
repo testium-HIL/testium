@@ -1,5 +1,7 @@
 import sys
 import os
+import shlex
+import subprocess
 import webbrowser
 from multiprocessing import Queue
 from threading import Thread
@@ -745,7 +747,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (self.logFileName is not None) and os.access(self.logFileName, os.R_OK):
             ln = tm.line_number("@@{}@@".format(item.timestamp()), self.logFileName)
             if ln > 0:
-                os.system("{} -g {}:{} &".format("code", self.logFileName, ln + 1))
+                self._open_in_editor(self.logFileName, ln + 1)
+
+    def _open_in_editor(self, path, line):
+        """Open path at line via the configured editor template ({file}/{line}).
+        Empty template or failure falls back to opening the file without line."""
+        tmpl = prefs.settings.editor_cmd
+        if tmpl:
+            try:
+                argv = [p.format(file=path, line=line) for p in shlex.split(tmpl)]
+                subprocess.Popen(bins.host_console_command(argv, os.path.dirname(path) or "."))
+                return
+            except (KeyError, ValueError, IndexError, OSError):
+                pass
+        if not bins.host_open_path(path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_spacePressed(self):
         item = self.treeTests.currentItem()

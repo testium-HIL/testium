@@ -8,6 +8,11 @@ version 0.3.2
   even when testium is in the GUI.
 - The captured output of a ``run`` step can be saved with ``store_result`` and
   inspected afterwards (for example with ``expected_result`` or a ``py_func``).
+- "Show Results" now opens the log on Flatpak (it used to do nothing) and can
+  be used while a test is running, not only after it finishes.
+- Double-clicking a test item to open the log now uses an editor of your choice:
+  a new preference holds the command (default ``code -g {file}:{line}``); set it
+  to your editor (for example ``kate -l {line} {file}``). Works on Flatpak too.
 
 version 0.3.1
 ==============
