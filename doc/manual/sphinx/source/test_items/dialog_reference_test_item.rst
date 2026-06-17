@@ -31,11 +31,13 @@ The example above displays the dialog box in :numref:`Figure %s<dialog-reference
 Attributes
 ---------------
 
-All the following attributes are mandatory.
+``question`` and ``reference`` are mandatory.
 
 * ``question``: Question to be displayed in the dialog box.
 * ``reference``: For each of this parameter in the test correspond to a
   row to fill in the dialog.
+* ``auto_result``: Optional. Outcome used in batch / non-interactive mode.
+  If set, the step succeeds with the pre-filled references; if not set, it fails.
 
 Every field for a reference can be pre-filled using separating
 each filed with an '/' (cf :numref:`Figure %s<dialog-reference>`).

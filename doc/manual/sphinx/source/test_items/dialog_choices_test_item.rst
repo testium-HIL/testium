@@ -65,6 +65,8 @@ The supported attributes of the ``dialog_choices`` test item are:
 * ``choices``: List of the choicies presented to the user.
 * ``icon``: Optional. Path of the icon used in the
   selection tree, for all the items by default.
+* ``auto_result``: Optional. Selection used in batch / non-interactive mode
+  (choice path or label). If not set, the step fails.
 
 ``Choices`` attribute content
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
