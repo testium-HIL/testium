@@ -10,6 +10,8 @@ version 0.3.2
   inspected afterwards (for example with ``expected_result`` or a ``py_func``).
 - "Show Results" now opens the log on Flatpak (it used to do nothing) and can
   be used while a test is running, not only after it finishes.
+- Other places that open a file now work on Flatpak too: clicking a file path
+  in the log output, and the "open location" button in the variables (F1) window.
 - Double-clicking a test item to open the log now uses an editor of your choice:
   a new preference holds the command (default ``code -g {file}:{line}``); set it
   to your editor (for example ``kate -l {line} {file}``). Works on Flatpak too.
