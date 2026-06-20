@@ -24,7 +24,7 @@ care of the JSON-RPC framing.
 Architecture notes
 ------------------
 
-The schema is built once at server start (``dump_all_schemas()``) and
+The schema is built once at server start (``dump_jsonschema()``) and
 kept in memory; an editor restart picks up upstream changes. The schema
 is the **only** source of truth — when testium adds a new item type or
 parameter, the LSP automatically exposes it without any change here.
@@ -71,7 +71,7 @@ except ImportError as exc:
     raise
 
 
-from lsp.schema import dump_all_schemas
+from lsp.schema import dump_jsonschema
 
 
 _LINE_START_STEP = re.compile(r"^\s*-\s*([A-Za-z_][A-Za-z0-9_]*)?\s*:?\s*$")
@@ -89,53 +89,105 @@ _NAME_FIELD = re.compile(r"^\s*name\s*:\s*(?P<value>.+?)\s*$")
 _IDENT_AT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
-def _render_item_markdown(cmd, entry):
-    """Render an item-type's schema entry as a Markdown hover string.
+def _common_param_names():
+    """Return the set of parameter names shared by every test item."""
+    from interpreter.test_items.test_item import COMMON_PARAMS
+    return set(COMMON_PARAMS.names())
+
+
+def _walk_schema(schema):
+    """Index the JSON Schema for LSP consumption.
+
+    Returns ``(top_level, actions)``:
+
+    - ``top_level`` maps every item ``$def`` name (``sleep``, ``console``,
+      ``py_func`` …) to its entry.
+    - ``actions`` maps an action's YAML key (``open``, ``read_until``,
+      ``add`` …) to the first action entry encountered for it. Action
+      entries reachable as ``$ref`` (``console_open`` …) are pruned from
+      ``top_level``.
+
+    Detection relies on the schema structure rather than a hardcoded
+    parent list: an entry whose ``properties.steps.items`` is a
+    ``additionalProperties: false`` mapping is treated as an action
+    parent, and the keys of that mapping are its action names.
+    """
+    defs = schema.get("$defs", {})
+    action_subdefs = set()
+    actions = {}
+    for cmd, entry in defs.items():
+        if cmd.startswith("_"):
+            continue
+        steps_items = ((entry.get("properties") or {})
+                       .get("steps") or {}).get("items") or {}
+        if steps_items.get("additionalProperties") is not False:
+            continue
+        for action_name, val in (steps_items.get("properties") or {}).items():
+            ref = val.get("$ref", "") if isinstance(val, dict) else ""
+            if ref.startswith("#/$defs/"):
+                sub = ref[len("#/$defs/"):]
+                action_subdefs.add(sub)
+                actions.setdefault(action_name, defs.get(sub, {}))
+            else:
+                actions.setdefault(action_name, val if isinstance(val, dict) else {})
+    top_level = {
+        cmd: entry for cmd, entry in defs.items()
+        if not cmd.startswith("_") and cmd not in action_subdefs
+    }
+    return top_level, actions
+
+
+def _render_item_markdown(cmd, entry, common_names):
+    """Render a schema entry as a Markdown hover string.
 
     Reused by both the completion-item documentation and the hover
     handler so the editor presents identical information regardless of
     how the user reached it.
+
+    Common parameters (``name``, ``doc``, ``stop_on_failure`` …) are
+    filtered out so only the item-specific surface is listed.
     """
-    detail = entry.get("display_name", cmd)
+    detail = entry.get("description", cmd)
     lines = [f"**{cmd}** — {detail}", ""]
-    if entry.get("params_declared"):
-        non_common = [p for p in entry["params"] if not p["common"]]
-        required = [p for p in non_common if p["required"]]
-        optional = [p for p in non_common if not p["required"]]
-        if required:
-            lines.append("Required parameters:")
-            for p in required:
-                lines.append(f"- `{p['name']}` — {p['doc']}")
-            lines.append("")
-        if optional:
-            lines.append("Optional parameters:")
-            for p in optional:
-                lines.append(f"- `{p['name']}` — {p['doc']}")
-    else:
+    properties = entry.get("properties")
+    if not properties:
         lines.append("(Parameter list is not described — this item's body is the "
                      "raw user value.)")
+        return "\n".join(lines)
+    required = set(entry.get("required", []))
+    own = [name for name in properties if name not in common_names]
+    req = [n for n in own if n in required]
+    opt = [n for n in own if n not in required]
+    if req:
+        lines.append("Required parameters:")
+        for n in req:
+            doc = properties[n].get("description", "")
+            lines.append(f"- `{n}` — {doc}")
+        lines.append("")
+    if opt:
+        lines.append("Optional parameters:")
+        for n in opt:
+            doc = properties[n].get("description", "")
+            lines.append(f"- `{n}` — {doc}")
     return "\n".join(lines)
 
 
-def _build_item_completions(schema):
+def _build_item_completions(top_level, common_names):
     """Return a list of CompletionItem covering every top-level item type.
 
     Each completion inserts ``<name>:`` with the cursor positioned after
     the colon so the user can immediately start typing parameters.
     """
     items = []
-    for cmd, entry in schema["items"].items():
-        if cmd == "default":
-            # Root sentinel; never appears as a YAML key.
-            continue
+    for cmd, entry in top_level.items():
         items.append(
             CompletionItem(
                 label=cmd,
                 kind=CompletionItemKind.Class,
-                detail=entry.get("display_name", cmd),
+                detail=entry.get("description", cmd),
                 documentation=MarkupContent(
                     kind=MarkupKind.Markdown,
-                    value=_render_item_markdown(cmd, entry),
+                    value=_render_item_markdown(cmd, entry, common_names),
                 ),
                 insert_text=f"{cmd}:",
                 insert_text_format=InsertTextFormat.PlainText,
@@ -232,17 +284,13 @@ def _build_document_symbols(lines, item_cmds):
 
 def _make_server():
     server = LanguageServer("testium-lsp", "0.1.0")
-    schema = dump_all_schemas()
-    item_completions = _build_item_completions(schema)
-    # Set of cmd names accepted by the outline / hover passes. We include
-    # action names (console open/close/…, plot open/close/…, …) too so they
-    # appear in the outline tree and respond to hover.
-    item_cmds = set()
-    for cmd, entry in schema["items"].items():
-        if cmd == "default":
-            continue
-        item_cmds.add(cmd)
-        item_cmds.update(entry.get("actions", {}).keys())
+    schema = dump_jsonschema()
+    common_names = _common_param_names()
+    top_level, actions = _walk_schema(schema)
+    item_completions = _build_item_completions(top_level, common_names)
+    # Known YAML keys accepted by outline / hover: top-level items plus
+    # nested action names (open, close, write, read_until, add …).
+    item_cmds = set(top_level) | set(actions)
 
     @server.feature(
         TEXT_DOCUMENT_COMPLETION,
@@ -278,20 +326,13 @@ def _make_server():
         start, end, text = word
         if text != step_match.group("ident") or text not in item_cmds:
             return None
-        # Resolve the entry: top-level item, or action of any parent.
-        entry = schema["items"].get(text)
-        if entry is None:
-            for parent_entry in schema["items"].values():
-                actions = parent_entry.get("actions") or {}
-                if text in actions:
-                    entry = actions[text]
-                    break
+        entry = top_level.get(text) or actions.get(text)
         if entry is None:
             return None
         return Hover(
             contents=MarkupContent(
                 kind=MarkupKind.Markdown,
-                value=_render_item_markdown(text, entry),
+                value=_render_item_markdown(text, entry, common_names),
             ),
             range=Range(
                 start=Position(line=line_idx, character=start),

@@ -1,18 +1,14 @@
-"""Schema export of the test item registry.
+"""JSON Schema export of the test item registry.
 
-Two output formats coexist:
-
-- ``dump_jsonschema()`` — JSON Schema draft 2020-12, the standard form
-  consumed by editors (yaml-language-server), external linters (ajv,
-  check-jsonschema), and AI agents that need a formal description of
-  valid ``.tum`` files. ``testium schema`` emits this.
-- ``dump_all_schemas()`` — legacy custom dict still consumed internally
-  by ``lsp/server.py`` for completion / hover rendering. Will be
-  retired once the LSP server is migrated to read JSON Schema.
-
-Both formats are derived from the same source of truth: each item's
+``dump_jsonschema()`` produces a JSON Schema (draft 2020-12) describing
+every valid ``.tum`` file. Derived from each item's declarative
 ``PARAMS = ParamSet(...)`` and ``ACTIONS = {key: cls}`` class
-attributes (see ``interpreter/utils/param_decl.py``).
+attributes (see ``interpreter/utils/param_decl.py``). Consumed by:
+
+- the LSP server (``testium lsp``) for completion / hover;
+- the ``testium schema`` CLI dump;
+- external validators (yaml-language-server, ajv, check-jsonschema);
+- AI agents that need a formal description of ``.tum``.
 """
 
 import json
@@ -37,95 +33,6 @@ def _collect_action_classes(parent_class):
     """
     return dict(getattr(parent_class, "ACTIONS", None) or {})
 
-
-def _params_to_schema(item_class, common_params):
-    """Return the params-portion of an item's schema entry.
-
-    Common params are flagged so consumers can render them differently
-    (an editor might show "common" parameters in a separate group).
-    """
-    own = getattr(item_class, "PARAMS", None)
-    if own is None:
-        return {"params_declared": False}
-    common_names = set(common_params.names())
-    params = []
-    for p in common_params:
-        d = p.to_schema()
-        d["common"] = True
-        params.append(d)
-    for p in own:
-        if p.name in common_names:
-            # Subclass overrode a common param (e.g. tightened doc).
-            for d in params:
-                if d["name"] == p.name:
-                    d.update(p.to_schema())
-                    break
-            continue
-        d = p.to_schema()
-        d["common"] = False
-        params.append(d)
-    return {"params_declared": True, "params": params}
-
-
-def dump_all_schemas():
-    """Return the full schema as a Python dict ready for json.dumps.
-
-    Shape:
-        {
-          "items": {
-            "sleep": {
-              "display_name": "Sleep",
-              "params_declared": true,
-              "params": [{name, kind, required, default?, doc, common}, ...],
-            },
-            "console": {
-              ...,
-              "actions": {"open": {...}, "close": {...}, ...},
-            },
-            ...
-          }
-        }
-    """
-    _constants_init()
-    # Imported lazily — pulls test_item.py which references constants.
-    from interpreter.test_items.test_item import COMMON_PARAMS
-
-    out = {"items": {}}
-    for tp in TestItemType:
-        cls = getattr(tp, "item_class", None)
-        if cls is None:
-            continue
-        # Action types (CONSOLE_ACTION, GRAPH_ACTION, JSON_RPC_ACTION) have no
-        # standalone YAML representation — skip them here, they show up under
-        # their parent's "actions" key.
-        cmd = tp.item_cmd
-        if cmd.endswith("_action"):
-            continue
-        entry = {"display_name": tp.item_name}
-        entry.update(_params_to_schema(cls, COMMON_PARAMS))
-
-        actions = _collect_action_classes(cls)
-        if actions:
-            entry["actions"] = {
-                name: _params_to_schema(acls, COMMON_PARAMS)
-                for name, acls in actions.items()
-            }
-            for name in entry["actions"]:
-                entry["actions"][name]["display_name"] = name
-
-        out["items"][cmd] = entry
-    return out
-
-
-def dump_all_schemas_json(indent=2):
-    """Same as ``dump_all_schemas`` but serialised to a JSON string."""
-    return json.dumps(dump_all_schemas(), indent=indent, sort_keys=False,
-                      default=str)
-
-
-# ---------------------------------------------------------------------------
-# JSON Schema (draft 2020-12) generation
-# ---------------------------------------------------------------------------
 
 # JSON Schema id; opaque URN (no fetch required, see DESIGN.md schema notes).
 _JSONSCHEMA_ID_PREFIX = "urn:testium:tum-schema:"

@@ -111,18 +111,6 @@ class Param:
     def has_default(self):
         return self.default is not _MISSING
 
-    def to_schema(self):
-        """Return a dict suitable for the legacy LSP dict format."""
-        s = {"name": self.name, "required": self.required, "doc": self.doc}
-        if isinstance(self.kind, Enum):
-            s["kind"] = "enum"
-            s["enum"] = list(self.kind.values)
-        else:
-            s["kind"] = self.kind
-        if self.has_default():
-            s["default"] = self.default
-        return s
-
     def to_jsonschema(self):
         """Return a JSON Schema property descriptor for this param.
 
@@ -184,9 +172,6 @@ class ParamSet:
         merged = ParamSet()
         merged._params = {**self._params, **other._params}
         return merged
-
-    def to_schema(self):
-        return [p.to_schema() for p in self._params.values()]
 
 
 # ---------- Validation primitives --------------------------------------------
