@@ -70,6 +70,9 @@ value of the methodName Lua function.
 The ``lua_func`` will always result ``PASS``, except if the called function raises
 an exception or if the ``expected_result`` attribute is used.
 
+If the called function returns several values, they are kept as a list in the
+result; a single return value stays a scalar.
+
 .. _sec_lua_func_context:
 
 Sharing state between ``lua_func`` calls
