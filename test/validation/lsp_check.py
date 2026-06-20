@@ -78,28 +78,102 @@ def check_schema(cmd):
           f"{', '.join(EXPECTED_ACTIONS)})")
 
 
+def _frame(msg):
+    body = json.dumps(msg).encode()
+    return b"Content-Length: %d\r\n\r\n%s" % (len(body), body)
+
+
+def _parse_frames(data):
+    pos = 0
+    while pos < len(data):
+        end_headers = data.find(b"\r\n\r\n", pos)
+        if end_headers < 0:
+            return
+        headers = data[pos:end_headers].decode("latin-1")
+        body_start = end_headers + 4
+        content_length = None
+        for line in headers.split("\r\n"):
+            if line.lower().startswith("content-length:"):
+                content_length = int(line.split(":", 1)[1].strip())
+        if content_length is None:
+            return
+        body_end = body_start + content_length
+        if body_end > len(data):
+            return
+        try:
+            yield json.loads(data[body_start:body_end])
+        except json.JSONDecodeError:
+            return
+        pos = body_end
+
+
 def check_lsp(cmd):
-    body = json.dumps({
-        "jsonrpc": "2.0", "id": 1, "method": "initialize",
-        "params": {"processId": None, "rootUri": None, "capabilities": {}},
-    }).encode()
-    msg = b"Content-Length: %d\r\n\r\n%s" % (len(body), body)
+    # Single-document session: line 0 is "- sleep:" (target for hover on the
+    # 'sleep' identifier), line 1 is "- " (target for completion after the
+    # dash so the start-of-step regex matches).
+    doc_uri = "file:///tmp/testium-lsp-check.tum"
+    doc_text = "- sleep:\n- "
+    messages = [
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+         "params": {"processId": None, "rootUri": None, "capabilities": {}}},
+        {"jsonrpc": "2.0", "method": "initialized", "params": {}},
+        {"jsonrpc": "2.0", "method": "textDocument/didOpen",
+         "params": {"textDocument": {
+             "uri": doc_uri, "languageId": "yaml",
+             "version": 1, "text": doc_text}}},
+        {"jsonrpc": "2.0", "id": 2, "method": "textDocument/completion",
+         "params": {"textDocument": {"uri": doc_uri},
+                    "position": {"line": 1, "character": 2}}},
+        {"jsonrpc": "2.0", "id": 3, "method": "textDocument/hover",
+         "params": {"textDocument": {"uri": doc_uri},
+                    "position": {"line": 0, "character": 4}}},
+        {"jsonrpc": "2.0", "id": 4, "method": "shutdown"},
+        {"jsonrpc": "2.0", "method": "exit"},
+    ]
+    payload = b"".join(_frame(m) for m in messages)
     try:
-        out = subprocess.run(cmd + ["lsp"], input=msg,
+        out = subprocess.run(cmd + ["lsp"], input=payload,
                              capture_output=True, timeout=30)
         stdout, stderr = out.stdout, out.stderr
     except subprocess.TimeoutExpired as e:
-        # A server that stays alive past initialize is fine — it just never saw
-        # a shutdown. Use whatever it wrote so far as the response.
         stdout, stderr = e.stdout or b"", e.stderr or b""
-    blob = stdout + stderr
-    if b"dependencies missing" in blob:
+
+    if b"dependencies missing" in stdout + stderr:
         fail("`lsp` reports the pygls dependency missing — this channel did "
              "not bundle the [lsp] extra.")
-    if b'"capabilities"' not in stdout:
-        fail("`lsp` did not return an initialize result. "
+
+    responses = {f.get("id"): f for f in _parse_frames(stdout) if "id" in f}
+    init = responses.get(1)
+    if not init or "capabilities" not in (init.get("result") or {}):
+        fail(f"`lsp` did not return initialize capabilities. "
              f"stdout[:200]={stdout[:200]!r} stderr[:200]={stderr[:200]!r}")
     print("LSP CHECK: lsp initialize OK (server answered with capabilities)")
+
+    comp = responses.get(2)
+    items = (comp or {}).get("result")
+    if isinstance(items, dict):
+        items = items.get("items")
+    if not items:
+        fail(f"`lsp` returned no completion items at '- |' position. "
+             f"response={comp!r}")
+    labels = {it.get("label") for it in items}
+    expected = {"sleep", "let", "console", "py_func", "group"}
+    missing = expected - labels
+    if missing:
+        fail(f"`lsp` completion is missing expected items: {sorted(missing)} "
+             f"(got {len(labels)} labels)")
+    print(f"LSP CHECK: lsp completion OK ({len(labels)} item types proposed)")
+
+    hov = responses.get(3)
+    hover_text = ((hov or {}).get("result") or {}).get("contents")
+    if isinstance(hover_text, dict):
+        hover_text = hover_text.get("value", "")
+    elif not isinstance(hover_text, str):
+        hover_text = ""
+    if "sleep" not in hover_text.lower():
+        fail(f"`lsp` hover on 'sleep' did not return relevant content. "
+             f"response={hov!r}")
+    print("LSP CHECK: lsp hover OK (sleep description returned)")
 
 
 def main():
