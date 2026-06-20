@@ -357,7 +357,7 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
             ru = [self._prms.expanse(m) for m in self._read_until]
         else:
             ru = self._prms.expanse(self._read_until)
-        read_timeout = int(self._prms.getParam("timeout", default=-1, processed=True))
+        read_timeout = float(self._prms.getParam("timeout", default=-1, processed=True))
         mute = self._prms.getParam("mute", default=False, processed=True)
         use_regex = self._prms.getParam("regex", default=False, processed=True)
         if read_timeout < 0:

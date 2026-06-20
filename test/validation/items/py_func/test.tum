@@ -1,7 +1,7 @@
 - let:
     name: py_func test constants,
     values:
-      py_func test parameter: test parameter
+      - func_test_parameter: test parameter
 
 - py_func:
     name: pass py_func
@@ -70,7 +70,7 @@
     file: $(test_path)$(psep)py_func.py
     func_name: checkglobal
     param:
-        - $(py_func test parameter)
+        - $(func_test_parameter)
 
 - let:
     name:  python2func
@@ -79,11 +79,32 @@
         - py: $(test_path)$(psep)py_func.py
 
 - py_func:
-    name: global param py_func 2
+    name: global param int
     key: $(test)_PASS
-    file: $(py)
+    file: $(test_path)$(psep)py_func.py
     func_name: checkglobal2
-    expected_result: $(py_func test parameter)
+    param:
+        - 0
+    expected_result: ($(data_to_be_returned))[0]
+
+- py_func:
+    name: global param dict
+    key: $(test)_PASS
+    file: $(test_path)$(psep)py_func.py
+    func_name: checkglobal2
+    param:
+        - 1
+    expected_result: ($(data_to_be_returned))[1]
+
+- py_func:
+    name: global param list
+    key: $(test)_PASS
+    file: $(test_path)$(psep)py_func.py
+    func_name: checkglobal2
+    param:
+        - 2
+    expected_result: ($(data_to_be_returned))[2]
+
 
 
 - py_func:
@@ -92,104 +113,162 @@
     file: $(py)
     func_name: checkglobal
     param:
-        - $(py_func test parameter)
+        - $(func_test_parameter)
 
 - py_func:
     name: skipped_checkglobal
+    key: $(test)_PASS
     file: $(test_path)$(psep)py_func.py
     func_name: should_not_be_called
     param:
-        - $(py_func test parameter)
+        - $(func_test_parameter)
 
 - py_func:
     name: skipped true
+    key: $(test)_FAIL
     file: $(test_path)$(psep)py_func.py
-    func_name: checkglobal
+    func_name: echo
     skipped: true
     param:
-        - $(py_func test parameter)
+        - "skipped"
 
 - py_func:
     name: skipped 1
+    key: $(test)_FAIL
     file: $(test_path)$(psep)py_func.py
-    func_name: checkglobal
+    func_name: echo
     skipped: 1
     param:
-        - $(py_func test parameter)
+        - "skipped"
 
 - py_func:
     name: FunctionItem test
+    key: $(test)_PASS
     file: $(test_path)$(psep)py_func.py
     func_name: ValidationTest
     param:
-        - $(py_func test parameter)
+        - $(func_test_parameter)
 
 - group:
     name: Function results check
     steps:
         - group:
-            name: Function result 1
+            name: Functions result
             steps:
                 - py_func:
-                    name: int failure
+                    name: int
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: echo
                     param: [-1]
-                    expected_result: -1
                 - py_func:
-                    name: float failure
+                    name: float 
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: echo
-                    param: [-1.3]
-                    expected_result: -1.3
+                    param: [-20.3]
                 - py_func:
-                    name: String failure
+                    name: String 
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: echo
                     param: [ "FAIL" ]
-                    expected_result: FAIL
                 - py_func:
-                    name: Tuple int,str failure
+                    name: Tuple int,str 
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: tuple_return
-                    param: [ -1, "Got a failure" ]
-                    expected_result: [-1, "Got a failure"]
+                    param: [ 0, "OK" ]
         - group:
-            name: Functions result 2
+            name: Functions result expected
             steps:
                 - py_func:
-                    name: int success
+                    name: int expected
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: echo
-                    param: [0]
-                    expected_result: 0
+                    param: [18]
+                    expected_result: 18
                 - py_func:
-                    name: float success
+                    name: float expected
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: echo
                     param: [0.3]
                     expected_result: 0.3
                 - py_func:
-                    name: String success
+                    name: String expected
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: echo
-                    param: [ "Something that is not only strictly FAIL" ]
-                    expected_result: Something that is not only strictly FAIL
+                    param: [ "Something" ]
+                    expected_result: Something
                 - py_func:
-                    name: Tuple int,str success
+                    name: Tuple int,str expected
                     key: $(test)_PASS
                     file: $(test_path)$(psep)py_func.py
                     func_name: tuple_return
                     param: [ 0, "OK" ]
                     expected_result: [0, "OK"]
-
+                - py_func:
+                    name: small list expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [ [-23] ]
+                    expected_result: [-23]
+                - py_func:
+                    name: big list expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [ [-23, 17, 67] ]
+                    expected_result: [-23, 17, 67]
+        - group:
+            name: Function result not expected
+            steps:
+                - py_func:
+                    name: int not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [18]
+                    expected_result: 17
+                - py_func:
+                    name: float not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [0.3]
+                    expected_result: 0.5
+                - py_func:
+                    name: String not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [ "Something" ]
+                    expected_result: Nothing
+                - py_func:
+                    name: Tuple int,str not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: tuple_return
+                    param: [ 0, "OK" ]
+                    expected_result: [0, "OUPS"]
+                - py_func:
+                    name: small list not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [ [-23] ]
+                    expected_result: [-22]
+                - py_func:
+                    name: big list not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: echo
+                    param: [ [-23, 17, 67] ]
+                    expected_result: [-23, 16, 67]
 - py_func:
     name: delgd test
     key: $(test)_PASS

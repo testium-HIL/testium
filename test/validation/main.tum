@@ -31,7 +31,11 @@ main:
 
 {% for item in items %}
                 # item test
-                - let: {name: {{ item }} test constants, values: {test: {{ item }}, test_path: items/$(test)}}
+                - let: 
+                    name: {{ item }} test constants
+                    values: 
+                        - test: {{ item }}
+                        - test_path: items/$(test)
                 - group:
                     name: {{ item }} test
                     steps:

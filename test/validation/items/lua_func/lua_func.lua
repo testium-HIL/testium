@@ -12,12 +12,12 @@ function module.assertparam(param)
 end
 
 function module.checkglobal(param)
-    local res = tm.gd(param)
-    return res
+    assert(param=='test parameter')
+    return 0
 end
 
 function module.checkglobal2(index)
-    return tm.gd("lua_data_to_be_returned")[index]
+    return tm.gd("data_to_be_returned")[index+1]
 end
 
 function module.should_not_be_called(param)
@@ -53,7 +53,7 @@ function module.return_nothing()
     -- Returns no value: ret is nil but no error.
 end
 
-function module.return_explicit_nil()
+function module.return_explicit_none()
     return nil
 end
 
