@@ -1,532 +1,2261 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-
-    "$defs": {
-        "config_file":{
-            "desciption": "The list of the configuration files",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:testium:tum-schema:0.3.3",
+  "title": "testium TUM file",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "main"
+  ],
+  "properties": {
+    "config_file": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional list of YAML config files to load."
+    },
+    "main": {
+      "$ref": "#/$defs/_main"
+    },
+    "report": {
+      "type": "object",
+      "description": "Top-level report configuration (enabled, log_stored, export, \u2026)."
+    }
+  },
+  "$defs": {
+    "unittest": {
+      "type": "object",
+      "description": "unittest",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
         },
-
-        "items":{
-            "properties": {
-                "name": { "type": "string" },
-                "stop_on_failure":{ "type": "boolean" },
-                "execute_on_stop":{ "type": "boolean" },
-                "skipped":{ "type": "boolean" },
-                "no_fail":{ "type": "boolean" },
-                "doc":{ "type": "string" },
-                "key":{ "type": "string" },
-                "report":{ "$ref": "#/$defs/report_export" },
-                "condition":{ "type": "string" },
-                "process_result":{ "type": "string" },
-                "expected_result":{ },
-                "store_result":{ "type": "string" }
-            }
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
         },
-
-        "steps" : {
-            "required": ["steps"],
-            "properties": {
-                "version": { "type": "string" },
-                "steps": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties":{
-                            "let": { "$ref": "#/$defs/let" },
-                            "check": { "$ref": "#/$defs/check" },
-                            "dialog_question": { "$ref": "#/$defs/dialog" },
-                            "dialog_message": { "$ref": "#/$defs/dialog" },
-                            "dialog_note": { "$ref": "#/$defs/dialog" },
-                            "dialog_value": { "$ref": "#/$defs/dialog" },
-                            "dialog_image": { "$ref": "#/$defs/dialog" },
-                            "lua_func": { "$ref": "#/$defs/func" },
-                            "py_func": { "$ref": "#/$defs/func" },
-                            "console": { "$ref": "#/$defs/console" },
-                            "sleep": { "$ref": "#/$defs/sleep" },
-                            "json_rpc": { "$ref": "#/$defs/json_rpc" },
-                            "group": { "$ref": "#/$defs/group" },
-                            "sequence": { "$ref": "#/$defs/sequence" },
-                            "report": { "$ref": "#/$defs/report" },
-                            "loop": { "$ref": "#/$defs/loop" },
-                            "git": { "$ref": "#/$defs/git" },
-                            "unittest": { "$ref": "#/$defs/unittest" }
-
-                        }
-                    }
-                }
-            }
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
         },
-
-        "cons_open" : {
-            "type":"object",
-            "allOf": 
-            [
-                { "$ref": "#/$defs/items" },
-                { 
-                    "properties": {
-                        "protocol" : {
-                            "enum": ["telnet", "ssh", "serial", "rawtcp", "terminal"]
-                        },
-                        "telnet_host" : {"type": "string" },
-                        "telnet_port" : {"type": "number" },
-                        "ssh_host": {"type": "string" },
-                        "ssh_user": {"type": "string" },
-                        "ssh_pwd": {"type": "string" },
-                        "serial_port": {"type": "string" },
-                        "serial_baudrate": {"type": "integer" },
-                        "buffered": {"type": "boolean" },
-                        "tcp_host" : {"type": "string" },
-                        "tcp_port" : {"type": "number" },
-                        "terminal_path": {"type":"string" },
-                        "shell": {"type":"string" }
-                    },
-                    "required": ["protocol"]
-                }
-            ]   
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
-
-        "cons_read": {
-            "type":"object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties": {
-                        "protocol" : {
-                            "enum": ["telnet", "ssh", "serial", "rawtcp", "terminal"]
-                        },
-                        "expected" : {"type": "string" },
-                        "timeout": {"type": "number" },
-                        "mute": {"type": "boolean" }
-                    },
-                    "required":["expected"]
-                }
-            ]
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
         },
-
-        "console" : {
-            "description": "The let items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "required": ["steps", "console_name"],
-                    "properties":{
-                        "console_name": {"type":"string" },
-                        "steps": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties":{
-                                    "open": {
-                                        "$ref": "#/$defs/cons_open"
-                                    },
-                                    "write": { "type": "string" },
-                                    "writeln": { "type": "string" },
-                                    "read_until": {
-                                        "$ref": "#/$defs/cons_read"
-                                    },
-                                    "close": { 
-                                        "anyOf": [
-                                            {"type": "null"},
-                                            {"type": "string"}
-                                        ]
-                                    }
-                                },
-                                "additionalProperties": false
-                            }
-                        }
-                    }
-                }
-            ]
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
         },
-
-        "json_rpc_console": {
-            "type":"object",
-            "properties": {
-                "name" : {"type": "string" },
-                "prompt" : {"type": "string" }
-            },
-            "required":["name"],
-            "additionalProperties": false
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
         },
-
-        "json_rpc_udp": {
-            "type":"object",
-            "properties": {
-                "server" : {"type": "string" },
-                "udp_snd_port" : {"type": "integer" },
-                "udp_rcv_port" : {"type": "integer" },
-                "bufsize" : {"type": "integer" }
-            },
-            "required":["name"],
-            "additionalProperties": false
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
         },
-        
-        "json_rpc_query": {
-            "type":"object",
-            "properties": {
-                "method" : { "type": "string" },
-                "params" : { "type": "array" },
-                "id" : {"type": "integer" },
-                "no_wait" : {"type": "boolean" }
-            },
-            "required":["method"],
-            "additionalProperties": false
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
         },
-
-        "json_rpc_receive": {
-            "type":"object",
-            "properties": {
-                "id" : {"type": "integer" },
-                "timeout" : {"type": "number" }
-            },
-            "required":["id"],
-            "additionalProperties": false
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
         },
-
-        "json_rpc" : {
-            "description": "The json_rpc items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "required": ["steps"],
-                    "properties":{
-                    
-                        "udp" : { "$ref": "#/$defs/json_rpc_udp" },
-                        "console" : { "$ref": "#/$defs/json_rpc_console" },
-                        "timeout": {"type": "number" },
-                        "version": {"enum": ["1.0", "2.0"]},
-                        "steps": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties":{
-                                    "open": { "type": "null" },
-                                    "query": { "$ref": "#/$defs/json_rpc_query" },
-                                    "receive": { "$ref": "#/$defs/json_rpc_receive" },
-                                    "writeln": { "type": "string" },
-                                    "read_until": { "$ref": "#/$defs/cons_read"
-                                    },
-                                    "close": { "type": "null" }
-                                }
-                            }
-                        }
-                    }
-                }
-            ]
+        "report": {
+          "description": "Per-step reporting override."
         },
-
-        "group" : {
-            "description": "The group items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                { "$ref": "#/$defs/steps" }
-            ]
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
         },
-
-        "sequence" : {
-            "description": "The sequence items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                { "$ref": "#/$defs/steps" },
-                {
-                    "properties": {
-                        "filename": { "type": "string" }
-                    },
-                    "required": ["filename"]
-                }
-            ]
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
         },
-
-        "loop" : {
-            "description": "The loop items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                { "$ref": "#/$defs/steps" },
-                {
-                    "properties": {
-                        "iterator": { },
-                        "exit_condition": {
-                            "description": "the posibility to stop the loop",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "time" : {"type":"number"},
-                                "value" : {"type":"number"},
-                                "file" : {"type":"string"},
-                                "func_name" : {"type":"string"},
-                                "eval" : {"type":"string"}
-                            },
-                            "dependentRequired": {
-                                "file" : ["func_name"]
-                            }
-
-                        }
-                    }
-                }
-            ]
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
         },
-
-        "main" : {
-            "description": "The Main items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                { "$ref": "#/$defs/steps" },
-                {
-                    "properties": {
-                        "version": { "type": "string" }
-                    }
-                }
-            ]
+        "test_file": {
+          "description": "Path to the Python unittest file (TestCase subclass)."
         },
-
-        "sleep" : {
-            "description": "Sleep for X time [secondes",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "dialog": { "type": "boolean" },
-                        "timeout": { "type": "number" }
-                    },
-                    "required": ["timeout"]
-                }
-            ]
-        },
-
-        "let" : {
-            "description": "The let items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "values": {
-                            "anyOf": [
-                                {
-                                    "type": "array",
-                                    "items": {"type": "object" }
-                                },
-                                { "type":"object" }
-                            ]
-                        }
-                    },
-                    "required": ["values"]
-                }
-            ]
-        },
-
-        "check" : {
-            "description": "The let items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "values": { 
-                            "type": "array",
-                            "items": {"type": "string" }
-                        }
-                    },
-                    "required": ["values"]
-                }
-            ]
-        },
-
-        "git" : {
-            "description": "The git items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "repo": { "type": "string" }
-                    },
-                    "required": ["repo"]
-                }
-            ]
-        },
-
-        "unittest" : {
-            "description": "The unittest items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "test_file": { "type": "string" },
-                        "test_method": {
-                            "anyOf": [
-                                {"type":"string"},
-                                {
-                                    "type":"array",
-                                    "items": {"type":"string"}
-                                }
-                            ]
-                        }
-                    },
-                    "required": ["test_file"]
-                }
-            ]
-        },
-
-        "dialog" : {
-            "description": "The let items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "question": { "type": "string" },
-                        "auto_result": { "type": "string" },
-                        "auto_value": { "type": ["number", "string"] },
-                        "filename" : {"type": "string"},
-                        "reference" : {
-                            "type":"array",
-                            "items": { "type":"string"}
-                        }
-                    },
-                    "required": ["question"]
-                }
-            ]
-        },
-
-        "dialog_choice" : {
-            "description": "The one choi items",
-            "type": "object",
-            "additionalProperties": false,
-            "properties":{
-                "name": { "type": "string" },
-                "description": { "type": "string" },
-                "icon": { "type": "string"},
-                "choices": {
-                    "type":"array",
-                    "items": { "$ref": "#/$defs/dialog_choice" }
-                }
-            },
-            "required": ["name", "description"]
-        },
-        "dialog_choices" : {
-            "description": "The dialog choices items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "name": { "type": "string" },
-                        "question": { "type": "string" },
-                        "icon": { "type": "string"},
-                        "choices": {
-                            "type":"array",
-                            "items": { "$ref": "#/$defs/dialog_choice" }
-                        }
-                    },
-                    "required": ["question"]
-                }
-            ]
-        },
-        "func" : {
-            "description": "The py_fun and lua_func items",
-            "type": "object",
-            "unevaluatedProperties": false,
-            "allOf": [
-                { "$ref": "#/$defs/items" },
-                {
-                    "properties":{
-                        "file": { "type": "string" },
-                        "func_name": { "type": "string" },
-                        "context_id": { "type": "string" },
-                        "param" : {
-                            "anyOf": [
-                                {"type": "array"},
-                                {"type": "object"}
-                            ]
-                        }
-                    },
-                    "required": ["file", "func_name"]
-                }
-            ]
-        },
-
-        "report_export": {
-            "type": "object",
-            "properties": {
-                "path": {"type":"string" },
-                "file_name": {"type":"string" },
-                "pattern": {"type":"string" },
-                "key": {"type":"string" }
-            }
-        },
-
-        "report":{
-            "desciption": "The list of the configuration files",
-            "type": "object",
-            "additional_properties":false,
-            "properties": {
-                "enabled": {"type":"boolean" },
-                "log_stored": {"type":"boolean" },
-                "export": {
-                    "anyOf": [
-                        {
-                            "type": "object",
-                            "properties":{
-                                "html": { "$ref": "#/$defs/report_export" },
-                                "sqlite": { "$ref": "#/$defs/report_export" },
-                                "junit": { "$ref": "#/$defs/report_export" }
-                            }
-                        },
-                        {
-                            "type": "array",
-                            "items": {
-                                "type":"object",
-                                "properties":{
-                                    "html": { "$ref": "#/$defs/report_export" },
-                                    "sqlite": { "$ref": "#/$defs/report_export" },
-                                    "junit": { "$ref": "#/$defs/report_export" }
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
+        "test_method": {
+          "description": "Optional list of method names to restrict the run to. When empty, every test_* method in the file is run.",
+          "type": "array"
         }
-
+      },
+      "required": [
+        "test_file"
+      ]
     },
-    
-    "type": "object",
-    "properties": {
-        "config_file" : { "$ref": "#/$defs/config_file"  },
-        "main": {  "$ref": "#/$defs/main"  },
-        "report" : { "$ref": "#/$defs/report"  }
-
+    "pytest": {
+      "type": "object",
+      "description": "pytest",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "test_file": {
+          "description": "Path to the pytest test file."
+        },
+        "test_method": {
+          "description": "Optional list of test function names to restrict the run to (matched against the function part of each node id, parametrisation suffix stripped). When empty, every collected test in the file is run.",
+          "type": "array"
+        }
+      },
+      "required": [
+        "test_file"
+      ]
     },
-    "required" : ["main"],
-    "additionalProperties": false
-
+    "console_open": {
+      "type": "object",
+      "description": "open",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "protocol": {
+          "description": "Transport: 'telnet', 'ssh', 'rawtcp', 'serial' or 'terminal'."
+        },
+        "write_delay": {
+          "description": "Inter-character write delay in ms (slow devices).",
+          "default": 0
+        },
+        "log": {
+          "description": "Path to a log file capturing the console traffic."
+        },
+        "overwrite_log": {
+          "description": "If true, truncate the log file at open; else append.",
+          "default": true
+        },
+        "telnet_host": {
+          "description": "Hostname/IP for the telnet target."
+        },
+        "telnet_port": {
+          "description": "TCP port for telnet.",
+          "default": 69
+        },
+        "ssh_host": {
+          "description": "Hostname/IP for the SSH target."
+        },
+        "ssh_user": {
+          "description": "SSH login user."
+        },
+        "ssh_pwd": {
+          "description": "SSH password (if key-based auth is not used)."
+        },
+        "tcp_host": {
+          "description": "Hostname/IP for a raw-TCP connection."
+        },
+        "tcp_port": {
+          "description": "TCP port for a raw-TCP connection."
+        },
+        "serial_port": {
+          "description": "Serial device path (e.g. /dev/ttyUSB0 or COM3)."
+        },
+        "serial_baudrate": {
+          "description": "Serial baudrate."
+        },
+        "buffered": {
+          "description": "If true, the serial console buffers received bytes between reads.",
+          "default": true
+        },
+        "terminal_path": {
+          "description": "Working directory for the local terminal protocol."
+        },
+        "shell": {
+          "description": "Shell command used for the local terminal protocol (default: 'cmd.exe' on Windows, '/usr/bin/env bash' elsewhere)."
+        }
+      },
+      "required": [
+        "protocol"
+      ]
+    },
+    "console_close": {
+      "description": "close"
+    },
+    "console_write": {
+      "description": "write"
+    },
+    "console_writeln": {
+      "description": "writeln"
+    },
+    "console_read_until": {
+      "type": "object",
+      "description": "read_until",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "expected": {
+          "description": "Literal string \u2014 or a list of strings \u2014 matched against the incoming console output. The read succeeds as soon as one of them is seen, or fails on timeout."
+        },
+        "timeout": {
+          "description": "Seconds before giving up. Negative means infinite.",
+          "default": -1
+        },
+        "mute": {
+          "description": "If true, don't echo received bytes to testium's stdout/log.",
+          "default": false
+        },
+        "regex": {
+          "description": "If true, each 'expected' entry is treated as a Python regular expression (searched, not anchored) instead of a literal string.",
+          "default": false
+        }
+      },
+      "required": [
+        "expected"
+      ]
+    },
+    "console": {
+      "type": "object",
+      "description": "Console",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "open": {
+                "$ref": "#/$defs/console_open"
+              },
+              "close": {
+                "$ref": "#/$defs/console_close"
+              },
+              "write": {
+                "$ref": "#/$defs/console_write"
+              },
+              "writeln": {
+                "$ref": "#/$defs/console_writeln"
+              },
+              "read_until": {
+                "$ref": "#/$defs/console_read_until"
+              }
+            }
+          }
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "console_name": {
+          "description": "Identifier of the console \u2014 used by every nested action to reach back the same transport. Multiple consoles can coexist as long as their names differ."
+        }
+      },
+      "required": [
+        "console_name"
+      ]
+    },
+    "loop": {
+      "type": "object",
+      "description": "Cycle",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "iterator": {
+          "description": "Iterable (or string expanding to one) driving the loop. The current value is exposed as $(loop_param)."
+        },
+        "exit_condition": {
+          "description": "Optional block stopping the loop early: combine 'time', 'value', or a 'file'+'func_name' pair (with optional 'param' and 'eval').",
+          "type": "object"
+        }
+      }
+    },
+    "py_func": {
+      "type": "object",
+      "description": "python Function",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "file": {
+          "description": "Path to the .py file containing the function."
+        },
+        "func_name": {
+          "description": "Name of the function to call in the file."
+        },
+        "param": {
+          "description": "Arguments passed to the function. Each entry is expanded before the call. Special tokens $(loop_param) / $(loop_index) resolve from the surrounding cycle.",
+          "type": "array"
+        },
+        "context_id": {
+          "description": "If set, the py_func subprocess is kept alive and reused by every other py_func item with the same context_id \u2014 enables shared in-memory state between successive calls."
+        }
+      },
+      "required": [
+        "file",
+        "func_name"
+      ]
+    },
+    "lua_func": {
+      "type": "object",
+      "description": "lua Function",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "file": {
+          "description": "Path to the .lua file containing the function."
+        },
+        "func_name": {
+          "description": "Name of the function to call in the file."
+        },
+        "param": {
+          "description": "Arguments passed to the function. Each entry is expanded before the call. Special tokens $(loop_param) / $(loop_index) resolve from the surrounding cycle.",
+          "type": "array"
+        },
+        "context_id": {
+          "description": "If set, the lua_func subprocess is kept alive and reused by every other lua_func item with the same context_id \u2014 enables shared in-memory state between successive calls."
+        }
+      },
+      "required": [
+        "file",
+        "func_name"
+      ]
+    },
+    "report": {
+      "type": "object",
+      "description": "Report",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "export": {
+          "description": "List of exporters to run (junit, sqlite, \u2026). Each entry is a mapping describing the exporter type and its parameters.",
+          "type": "array"
+        }
+      },
+      "required": [
+        "export"
+      ]
+    },
+    "git": {
+      "type": "object",
+      "description": "git repository",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "repo": {
+          "description": "Path to a git checkout, or list of such paths. Each is reported with its current version (tag + dirty state).",
+          "type": "array"
+        }
+      },
+      "required": [
+        "repo"
+      ]
+    },
+    "plot_open": {
+      "type": "object",
+      "description": "open",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "log_path": {
+          "description": "Optional file to which the plot data are appended."
+        }
+      }
+    },
+    "plot_close": {
+      "type": "object",
+      "description": "close",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "wait_dialog_exit": {
+          "description": "If true, the close action blocks until the user closes the plot window (or timeout).",
+          "default": false
+        },
+        "timeout": {
+          "description": "Seconds to wait when wait_dialog_exit is true. Negative \u21d2 infinite.",
+          "default": -1
+        }
+      }
+    },
+    "plot_periodic": {
+      "type": "object",
+      "description": "periodic",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "period": {
+          "description": "Seconds between two calls of the periodic function."
+        },
+        "file": {
+          "description": "Path to the .py file holding the periodic function."
+        },
+        "func_name": {
+          "description": "Name of the periodic function."
+        },
+        "param": {
+          "description": "Arguments passed to the periodic function on each call.",
+          "type": "array"
+        },
+        "eval": {
+          "description": "Post-evaluation applied to the function's return value.",
+          "default": ""
+        }
+      },
+      "required": [
+        "period",
+        "file",
+        "func_name"
+      ]
+    },
+    "plot_add": {
+      "description": "add"
+    },
+    "plot_last_value": {
+      "type": "object",
+      "description": "last_value",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "List of plot variable names whose last sample is returned. Result is stored in $(plv_<plot_name>) as a dict.",
+          "type": "array"
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        }
+      }
+    },
+    "plot_export": {
+      "description": "export"
+    },
+    "plot": {
+      "type": "object",
+      "description": "Runtime plot",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "open": {
+                "$ref": "#/$defs/plot_open"
+              },
+              "close": {
+                "$ref": "#/$defs/plot_close"
+              },
+              "periodic": {
+                "$ref": "#/$defs/plot_periodic"
+              },
+              "add": {
+                "$ref": "#/$defs/plot_add"
+              },
+              "last_value": {
+                "$ref": "#/$defs/plot_last_value"
+              },
+              "export": {
+                "$ref": "#/$defs/plot_export"
+              }
+            }
+          }
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "plot_name": {
+          "description": "Identifier of the plot window \u2014 referenced by every nested action and by $(plv_<plot_name>) for last-values output."
+        }
+      },
+      "required": [
+        "plot_name"
+      ]
+    },
+    "group": {
+      "type": "object",
+      "description": "Group",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        }
+      }
+    },
+    "dialog_image": {
+      "type": "object",
+      "description": "Image Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Prompt shown above the image."
+        },
+        "filename": {
+          "description": "Path to the image file (relative to the test directory or absolute)."
+        },
+        "auto_result": {
+          "description": "Outcome used in batch/non-interactive mode. Truthy \u21d2 SUCCESS, None \u21d2 FAILURE."
+        }
+      },
+      "required": [
+        "question",
+        "filename"
+      ]
+    },
+    "dialog_message": {
+      "type": "object",
+      "description": "Message Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Message body shown to the user. Multi-line strings are supported."
+        },
+        "auto_result": {
+          "description": "Outcome used in batch/non-interactive mode instead of waiting for the user. Truthy \u21d2 SUCCESS, None \u21d2 FAILURE."
+        }
+      },
+      "required": [
+        "question"
+      ]
+    },
+    "let": {
+      "type": "object",
+      "description": "Let",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "values": {
+          "description": "Mapping (or list of single-pair mappings) of global-dict key \u2192 value to set. Values are expanded at execution time.",
+          "type": "array"
+        }
+      },
+      "required": [
+        "values"
+      ]
+    },
+    "check": {
+      "type": "object",
+      "description": "Check value",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "values": {
+          "description": "List of expressions to evaluate. Each is expanded then evaluated; non-truthy results fail the check.",
+          "type": "array"
+        }
+      },
+      "required": [
+        "values"
+      ]
+    },
+    "dialog_note": {
+      "type": "object",
+      "description": "Note Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Prompt shown above the note input field."
+        },
+        "auto_result": {
+          "description": "Batch-mode outcome: None \u21d2 FAILURE, 'cancel' \u21d2 cancelled, any other truthy \u21d2 SUCCESS with auto_value."
+        },
+        "auto_value": {
+          "description": "Note text used in batch mode when auto_result is set."
+        }
+      },
+      "required": [
+        "question"
+      ]
+    },
+    "dialog_question": {
+      "type": "object",
+      "description": "Question Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Yes/No prompt presented to the user."
+        },
+        "auto_result": {
+          "description": "Batch-mode answer ('yes'/'no' or truthy/falsy). None \u21d2 FAILURE."
+        }
+      },
+      "required": [
+        "question"
+      ]
+    },
+    "sleep": {
+      "type": "object",
+      "description": "Sleep",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "timeout": {
+          "description": "Duration to sleep. Number of seconds, or a string like '1d 2h 30m 15s'."
+        },
+        "dialog": {
+          "description": "If true, show a cancel dialog (GUI mode) or an interactive Ctrl+C-able countdown (text mode).",
+          "default": false
+        }
+      },
+      "required": [
+        "timeout"
+      ]
+    },
+    "dialog_references": {
+      "type": "object",
+      "description": "References Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Prompt asking the operator to enter the tested references."
+        },
+        "reference": {
+          "description": "Pre-filled list of references shown in the dialog.",
+          "type": "array"
+        },
+        "auto_result": {
+          "description": "Batch-mode outcome: None \u21d2 FAILURE, truthy \u21d2 SUCCESS with the pre-filled references."
+        }
+      },
+      "required": [
+        "question"
+      ]
+    },
+    "dialog_value": {
+      "type": "object",
+      "description": "Value Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Prompt shown above the value input field."
+        },
+        "default": {
+          "description": "Pre-filled value of the input field.",
+          "default": ""
+        },
+        "auto_result": {
+          "description": "Batch-mode outcome: None \u21d2 FAILURE, 'cancel' \u21d2 cancelled, any other truthy \u21d2 SUCCESS with auto_value."
+        },
+        "auto_value": {
+          "description": "Value used in batch mode when auto_result is set."
+        }
+      },
+      "required": [
+        "question"
+      ]
+    },
+    "dialog_choices": {
+      "type": "object",
+      "description": "Choices Dialog",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "question": {
+          "description": "Prompt shown above the list of choices."
+        },
+        "choices": {
+          "description": "Tree of choices: either a list of strings, or a nested mapping {label: subchoices, ...} to build a multi-level menu.",
+          "type": "object"
+        },
+        "icon": {
+          "description": "Default icon name shown next to each choice."
+        },
+        "auto_result": {
+          "description": "Batch-mode selection (path or label). None \u21d2 FAILURE."
+        }
+      },
+      "required": [
+        "question",
+        "choices"
+      ]
+    },
+    "run": {
+      "type": "object",
+      "description": "Run tum",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "tum": {
+          "description": "Path to the .tum file launched in a fresh testium instance."
+        },
+        "param_file": {
+          "description": "Optional path to a param.yaml passed to the sub-instance.",
+          "default": ""
+        },
+        "log_file": {
+          "description": "Path where the sub-instance writes its log.",
+          "default": ""
+        },
+        "report_file": {
+          "description": "Path where the sub-instance writes its report.",
+          "default": ""
+        },
+        "start_time": {
+          "description": "HH:MM time of day after which the sub-instance may run."
+        },
+        "end_time": {
+          "description": "HH:MM time of day after which the sub-instance no longer runs."
+        },
+        "wait_for_exec": {
+          "description": "If true, block until the time window opens. Requires both start_time and end_time."
+        },
+        "batch": {
+          "description": "Run the sub-instance headless (-b) with its output captured into this test's log/report and result value, even in the GUI.",
+          "default": false
+        }
+      },
+      "required": [
+        "tum"
+      ]
+    },
+    "json_rpc_open": {
+      "description": "open"
+    },
+    "json_rpc_close": {
+      "description": "close"
+    },
+    "json_rpc_query": {
+      "type": "object",
+      "description": "query",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "method": {
+          "description": "JSON-RPC method name to call."
+        },
+        "params": {
+          "description": "Parameters payload (list, dict or scalar) sent to the method."
+        },
+        "id": {
+          "description": "JSON-RPC request id. 'rand' (default) \u21d2 a random integer is used.",
+          "default": "rand"
+        },
+        "no_wait": {
+          "description": "If true, send the request without waiting for a response.",
+          "default": false
+        },
+        "timeout": {
+          "description": "Seconds to wait for a response. None \u21d2 inherits the transport default."
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "json_rpc_receive": {
+      "type": "object",
+      "description": "receive",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "id": {
+          "description": "JSON-RPC request id whose response we expect."
+        },
+        "timeout": {
+          "description": "Seconds to wait for the response. None \u21d2 transport default."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "json_rpc": {
+      "type": "object",
+      "description": "JSON-RPC",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "open": {
+                "$ref": "#/$defs/json_rpc_open"
+              },
+              "close": {
+                "$ref": "#/$defs/json_rpc_close"
+              },
+              "query": {
+                "$ref": "#/$defs/json_rpc_query"
+              },
+              "receive": {
+                "$ref": "#/$defs/json_rpc_receive"
+              }
+            }
+          }
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "console": {
+          "description": "Console-transport block: {name, \u2026} (name = console_name of an open console). Either 'console' or 'udp' must be set.",
+          "type": "object"
+        },
+        "udp": {
+          "description": "UDP-transport block: {server, snd_port, rcv_port, \u2026}. Either 'console' or 'udp' must be set.",
+          "type": "object"
+        },
+        "version": {
+          "description": "JSON-RPC protocol version ('1.0' or '2.0').",
+          "default": "1.0"
+        },
+        "timeout": {
+          "description": "Default seconds to wait for a JSON-RPC response across all child query/receive actions."
+        },
+        "mute": {
+          "description": "If true, don't echo wire traffic to the log.",
+          "default": false
+        }
+      },
+      "required": [
+        "timeout"
+      ]
+    },
+    "parallel": {
+      "type": "object",
+      "description": "Parallel",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "branches": {
+          "description": "List of branch blocks (each branch holds its own 'steps' and optional 'wait_for').",
+          "type": "array"
+        },
+        "sync": {
+          "description": "'all' (default) waits for every branch; 'any' returns as soon as the first branch completes.",
+          "enum": [
+            "all",
+            "any"
+          ],
+          "default": "all"
+        }
+      },
+      "required": [
+        "branches"
+      ]
+    },
+    "parallel_branch": {
+      "type": "object",
+      "description": "Parallel branch",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "wait_for": {
+          "description": "Optional block {condition, timeout} that defers the branch start until the condition is truthy (or the timeout elapses).",
+          "type": "object"
+        }
+      }
+    },
+    "_step": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "unittest": {
+          "$ref": "#/$defs/unittest"
+        },
+        "pytest": {
+          "$ref": "#/$defs/pytest"
+        },
+        "console": {
+          "$ref": "#/$defs/console"
+        },
+        "loop": {
+          "$ref": "#/$defs/loop"
+        },
+        "py_func": {
+          "$ref": "#/$defs/py_func"
+        },
+        "lua_func": {
+          "$ref": "#/$defs/lua_func"
+        },
+        "report": {
+          "$ref": "#/$defs/report"
+        },
+        "git": {
+          "$ref": "#/$defs/git"
+        },
+        "plot": {
+          "$ref": "#/$defs/plot"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "dialog_image": {
+          "$ref": "#/$defs/dialog_image"
+        },
+        "dialog_message": {
+          "$ref": "#/$defs/dialog_message"
+        },
+        "let": {
+          "$ref": "#/$defs/let"
+        },
+        "check": {
+          "$ref": "#/$defs/check"
+        },
+        "dialog_note": {
+          "$ref": "#/$defs/dialog_note"
+        },
+        "dialog_question": {
+          "$ref": "#/$defs/dialog_question"
+        },
+        "sleep": {
+          "$ref": "#/$defs/sleep"
+        },
+        "dialog_references": {
+          "$ref": "#/$defs/dialog_references"
+        },
+        "dialog_value": {
+          "$ref": "#/$defs/dialog_value"
+        },
+        "dialog_choices": {
+          "$ref": "#/$defs/dialog_choices"
+        },
+        "run": {
+          "$ref": "#/$defs/run"
+        },
+        "json_rpc": {
+          "$ref": "#/$defs/json_rpc"
+        },
+        "parallel": {
+          "$ref": "#/$defs/parallel"
+        },
+        "parallel_branch": {
+          "$ref": "#/$defs/parallel_branch"
+        }
+      }
+    },
+    "_steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/_step"
+      }
+    },
+    "_main": {
+      "type": "object",
+      "description": "Top-level test container",
+      "additionalProperties": false,
+      "required": [
+        "steps"
+      ],
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "If true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "If true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "Post-evaluation expression applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome; the step is failed if it doesn't match."
+        },
+        "no_fail": {
+          "description": "If truthy, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "$ref": "#/$defs/_steps"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        }
+      }
+    }
+  }
 }

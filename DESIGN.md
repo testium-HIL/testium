@@ -311,6 +311,8 @@ The schema is the realized source of truth for the LSP server (`testium lsp`), t
 
 `testium schema` emits a **JSON Schema (draft 2020-12)** describing valid `.tum` files: each item has its own `$def`, action parents (`console`, `plot`, `json_rpc`) carry a strictly-constrained `steps` array, common parameters apply via property inheritance. `$id` is a versioned URN (`urn:testium:tum-schema:<version>`) — opaque, no fetch required. Built from each `Param`'s declarative shape (`kind`, optional `type`, `doc`, `required`, `default`). Consumed by editors (yaml-language-server), external validators (ajv, check-jsonschema), and AI agents that need a formal description of `.tum`. A second internal dict format (`dump_all_schemas`) still backs the LSP server's hover/completion rendering; it will be retired when the server is migrated to read JSON Schema directly.
 
+`schema/tum.json` ships a snapshot of the generated schema (regenerated with `testium schema > schema/tum.json` when `PARAMS`/`ACTIONS` change) so that any agent reading the repo, or any yaml-language-server config pointing at a local file, finds it without running testium. `schema/test_schema/*.tum` are positive fixtures exercising every item type. `test/validation/schema_check.py` (called by `run.sh` before the suite) verifies that (1) the live `testium schema` output is a valid draft-2020-12 schema, (2) the versioned file is in sync, (3) every fixture validates — drift in any direction fails the suite.
+
 ### Language server (`testium lsp`) across channels
 
 The `testium_assist` editor extension is a thin LSP client that spawns `testium lsp` and talks JSON-RPC over stdio, so the language server must work from *every* distribution channel. Two requirements:
