@@ -11,6 +11,7 @@ from interpreter.test_items.item_actions.action import TestItemAction
 
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import evaluate
+from interpreter.utils.param_decl import Param, ParamSet, BLOCK
 
 from interpreter.test_items.test_item_json_rpc.jsonrpc_adapters import (
     JrpcAdapter,
@@ -76,6 +77,20 @@ class TestItemJSRPCActionClose(TestItemAction):
 
 class TestItemJSRPCActionQuery(TestItemAction):
 
+    PARAMS = ParamSet(
+        Param("method", required=True,
+              doc="JSON-RPC method name to call."),
+        Param("params",
+              doc="Parameters payload (list, dict or scalar) sent to the method."),
+        Param("id", default="rand",
+              doc="JSON-RPC request id. 'rand' (default) ⇒ a random integer is used."),
+        Param("no_wait", default=False,
+              doc="If true, send the request without waiting for a response."),
+        Param("timeout", default=None,
+              doc="Seconds to wait for a response. None ⇒ inherits the transport "
+                  "default."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -129,6 +144,13 @@ class TestItemJSRPCActionQuery(TestItemAction):
 
 class TestItemJSRPCActionReceive(TestItemAction):
 
+    PARAMS = ParamSet(
+        Param("id", required=True,
+              doc="JSON-RPC request id whose response we expect."),
+        Param("timeout", default=None,
+              doc="Seconds to wait for the response. None ⇒ transport default."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -172,18 +194,34 @@ class TestItemJSON_RPC(TestItemActions):
     This item TBD
     """
 
+    PARAMS = ParamSet(
+        Param("console", kind=BLOCK,
+              doc="Console-transport block: {name, …} (name = console_name of an "
+                  "open console). Either 'console' or 'udp' must be set."),
+        Param("udp", kind=BLOCK,
+              doc="UDP-transport block: {server, snd_port, rcv_port, …}. Either "
+                  "'console' or 'udp' must be set."),
+        Param("version", default="1.0",
+              doc="JSON-RPC protocol version ('1.0' or '2.0')."),
+        Param("timeout", required=True,
+              doc="Default seconds to wait for a JSON-RPC response across all "
+                  "child query/receive actions."),
+        Param("mute", default=False,
+              doc="If true, don't echo wire traffic to the log."),
+    )
+
+    ACTIONS = {
+        "open": TestItemJSRPCActionOpen,
+        "close": TestItemJSRPCActionClose,
+        "query": TestItemJSRPCActionQuery,
+        "receive": TestItemJSRPCActionReceive,
+    }
+
     def __init__(
         self, dict_item: dict, parent: TestItem = None, status_queue=None, filename=""
     ):
         super().__init__(
             cst.TYPE_JSON_RPC, dict_item, parent, status_queue, filename=filename
-        )
-
-        self.register_actions(
-            open=TestItemJSRPCActionOpen,
-            close=TestItemJSRPCActionClose,
-            query=TestItemJSRPCActionQuery,
-            receive=TestItemJSRPCActionReceive,
         )
 
         # Console specific params

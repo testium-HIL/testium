@@ -1,0 +1,5 @@
+main:
+  name: root
+  steps:
+    # The body of an item must be a mapping of parameters, not a scalar.
+    - sleep: 5

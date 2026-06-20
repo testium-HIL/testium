@@ -221,6 +221,11 @@ def main(args, conn=None):
 
     if conn:
         settings.setValue(SettingsLastChoices, result)
+        # Flush before sending: the parent terminates this subprocess as soon
+        # as it reads the result, so the QSettings destructor never runs and
+        # the write would race the kill (lost under Flatpak — see the
+        # tested-references dialog for the full rationale).
+        settings.sync()
         conn.send([result, success])
         conn.close()
     else:

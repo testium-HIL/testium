@@ -1,5 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.utils.hooks import collect_submodules
+
+# Language-server dependencies for `testium lsp`. pygls/lsprotocol register
+# converters and features dynamically, so we collect their submodules wholesale
+# and force-import their pure-python deps (cattrs/attrs/typing_extensions).
+# The testium lsp modules are imported lazily by the CLI dispatch
+# (`from lsp.server import serve`), which PyInstaller's static analysis misses —
+# hence the explicit names. No source files need bundling: the schema export is
+# now fully declarative (PARAMS + ACTIONS class attributes), so it no longer
+# reads .py source via inspect.getsource (which fails in a frozen build).
+_LSP_HIDDEN = (
+    collect_submodules("pygls")
+    + collect_submodules("lsprotocol")
+    + ["cattrs", "attr", "attrs", "typing_extensions",
+       "lsp", "lsp.server", "lsp.schema"]
+)
 
 # junit_xml is imported by post_exec scripts running under the *host* Python,
 # not the frozen interpreter — so bundling it via hiddenimports alone is not
@@ -54,7 +70,7 @@ a = Analysis(
                    "colorama",
                    "matplotlib",
                    "junit_xml",
-                   "lxml"],
+                   "lxml"] + _LSP_HIDDEN,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -63,24 +79,60 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.datas,
-    [],
-    name='testium',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    ico='../testium.png'
-)
+# TESTIUM_ONEDIR=1 => one-folder build (fast startup), used by the Windows
+# installer; default one-file keeps the Linux build_all portable binary.
+ONEDIR = bool(os.environ.get("TESTIUM_ONEDIR"))
+# UPX skipped via TESTIUM_NO_UPX (build_all --ram) — slow for a marginal gain.
+_upx = not os.environ.get("TESTIUM_NO_UPX")
+
+if ONEDIR:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='testium',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=_upx,
+        upx_exclude=[],
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        ico='../testium.ico'
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=_upx,
+        upx_exclude=[],
+        name='testium',
+    )
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='testium',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=_upx,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        ico='../testium.ico'
+    )

@@ -121,15 +121,44 @@ writeln function is similar to the write function except that a '\n' (newline) c
 The ``read_until`` action is waiting for a string pattern from the console,
 its parameter are listed below
 
-* ``expected``: Character string to wait for
+* ``expected``: the pattern(s) to wait for. It accepts either a **single
+  value** or a **list of values**; when a list is given the action succeeds
+  as soon as **any** of the values is seen.
+* ``regex``: Boolean value (``True`` or ``False``, default ``False``). When
+  ``True`` every ``expected`` entry is interpreted as a Python regular
+  expression (searched in the incoming stream, not anchored) instead of a
+  literal string.
 * ``timeout``: Timeout setting for the action (in seconds)
 * ``no_fail``: Boolean value (``True`` or ``False``) leading to no error reported
   if the expected input is not read
 * ``mute``: Boolean value (``True`` or ``False``) does not log any readen data
 
+.. code-block:: yaml
+    :caption: matching several values, and with a regular expression
+
+    # succeeds as soon as one of the three strings is received
+    - read_until:
+        expected: [login:, "Password:", "$ "]
+        timeout: 10
+
+    # regex: wait for "version X.Y.Z" with any numbers
+    - read_until:
+        expected: 'version \d+\.\d+\.\d+'
+        regex: True
+        timeout: 5
+
 The text read by the ``read_until`` action is stored in the global
 variable named ``cn_<test_name>`` (See :ref:`global variables<sec_global_variables>`
 for more detail on accessing global variables from test items and scripts).
+When a list of values is given, the report also records, under the
+``matched`` key, which pattern actually matched.
+
+.. note::
+
+    ``regex`` matching scans a bounded tail of the received stream
+    (``Console.REGEX_WINDOW`` characters), so a pattern that could only match
+    after a very large amount of output — or across more than that window —
+    may not be detected. Literal matching (the default) has no such limit.
 
 In the example above, the global variable ``$(cn_test name in GUI)``
 would be created at the end of the step. It would contain the resulting

@@ -17,6 +17,8 @@ Attributes
 ``dialog_message`` has the following specific attribute:
 
 * ``question``: Sentence to be displayed in the dialog box
+* ``auto_result``: Optional. Outcome used in batch / non-interactive mode.
+  If not set, the step fails.
 
 Feature
 ---------------------

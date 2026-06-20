@@ -8,9 +8,12 @@ exceptions before the in-process redirection kicks in, lua
 ``require`` failures, anything written to fd 1/2 directly).
 """
 import threading
+from time import monotonic
+
+from runtime.jrpc import RPC_PORT_SENTINEL
 
 
-def _drain_pipe(pipe, prefix):
+def _drain_pipe(pipe, prefix, sink=None):
     try:
         for raw in iter(pipe.readline, b""):
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
@@ -20,6 +23,9 @@ def _drain_pipe(pipe, prefix):
                 print(f"{prefix}{line}")
             else:
                 print(line)
+            # sink keeps the clean (unprefixed) line for reuse as a result value
+            if sink is not None:
+                sink.append(line)
     finally:
         try:
             pipe.close()
@@ -27,22 +33,74 @@ def _drain_pipe(pipe, prefix):
             pass
 
 
-def drain_to_log(process, prefix=""):
-    """Spawn daemon threads that read ``process.stdout`` and
-    ``process.stderr`` line by line and print each line through the
-    parent's stdout (so it reaches the log + live output).
-
-    Each thread exits cleanly when the subprocess closes the
-    corresponding pipe (i.e. when it exits). Daemon flag ensures they
-    do not block testium exit.
-    """
+def drain_to_log(process, prefix="", sink=None):
+    """Stream the subprocess stdout/stderr line by line through the parent's
+    print pipeline (log + live output). If ``sink`` is a list, each clean line
+    is also appended to it (GIL-atomic, shared by both threads). Daemon threads."""
     threads = []
     for pipe in (process.stdout, process.stderr):
         if pipe is None:
             continue
         t = threading.Thread(
-            target=_drain_pipe, args=(pipe, prefix), daemon=True,
+            target=_drain_pipe, args=(pipe, prefix, sink), daemon=True,
         )
         t.start()
         threads.append(t)
     return threads
+
+
+def drain_and_read_port(process, prefix=""):
+    """Like :func:`drain_to_log`, but the stdout reader also watches for the
+    startup port sentinel. Returns a ``holder`` dict (passed to
+    :func:`wait_for_port`); all non-sentinel lines are still forwarded to the
+    log. stderr is drained as usual.
+    """
+    holder = {"port": None, "evt": threading.Event()}
+
+    def _read_stdout(pipe):
+        try:
+            for raw in iter(pipe.readline, b""):
+                line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+                if holder["port"] is None and line.startswith(RPC_PORT_SENTINEL):
+                    try:
+                        holder["port"] = int(line[len(RPC_PORT_SENTINEL):].strip())
+                    except ValueError:
+                        continue
+                    holder["evt"].set()
+                    continue
+                if line:
+                    print(f"{prefix}{line}" if prefix else line)
+        finally:
+            try:
+                pipe.close()
+            except Exception:
+                pass
+            holder["evt"].set()  # unblock waiter on EOF even without sentinel
+
+    if process.stdout is not None:
+        threading.Thread(
+            target=_read_stdout, args=(process.stdout,), daemon=True,
+        ).start()
+    if process.stderr is not None:
+        threading.Thread(
+            target=_drain_pipe, args=(process.stderr, prefix), daemon=True,
+        ).start()
+    return holder
+
+
+def wait_for_port(process, holder, deadline):
+    """Block until the port sentinel arrives, the process dies, or *deadline*
+    seconds elapse. Returns the port int or ``None``.
+    """
+    end = monotonic() + deadline
+    while holder["port"] is None:
+        remaining = end - monotonic()
+        if remaining <= 0:
+            break
+        holder["evt"].wait(min(remaining, 0.2))
+        if holder["port"] is not None:
+            break
+        if process.poll() is not None:
+            holder["evt"].wait(0.2)  # child exited; let the reader flush a trailing line
+            break
+    return holder["port"]

@@ -11,6 +11,7 @@ import api.testium as tm
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 _PY_FUNC_CONTEXTS_KEY = "_py_func_contexts"
 
@@ -20,6 +21,21 @@ class TestItemPyFunc(TestItem):
     func file: func_file.py, func_name: func, param: [$(variable1), [1, 2, 3], true]
     Optional: context_id: <id>  — share a persistent process with other py_func items using the same id.
     """
+
+    PARAMS = ParamSet(
+        Param("file", required=True,
+              doc="Path to the .py file containing the function."),
+        Param("func_name", required=True,
+              doc="Name of the function to call in the file."),
+        Param("param", kind=LIST,
+              doc="Arguments passed to the function. Each entry is expanded "
+                  "before the call. Special tokens $(loop_param) / $(loop_index) "
+                  "resolve from the surrounding cycle."),
+        Param("context_id", default=None,
+              doc="If set, the py_func subprocess is kept alive and reused by "
+                  "every other py_func item with the same context_id — enables "
+                  "shared in-memory state between successive calls."),
+    )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_PY_FUNCTION.item_name
@@ -74,7 +90,7 @@ class TestItemPyFunc(TestItem):
 
             if not engine.is_alive():
                 engine.start()
-                if not engine.wait_ready():
+                if not engine.wait_ready(10):
                     raise ETUMRuntimeError(
                         f"""Impossible to start the external python execution process.
 Is the python path correct ?

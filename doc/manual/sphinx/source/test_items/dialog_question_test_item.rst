@@ -19,6 +19,8 @@ Attributes
 ``dialog_question`` has the following specific attribute:
 
 * ``question``: Question to be asked in the dialog box
+* ``auto_result``: Optional. Answer used in batch / non-interactive mode
+  ('yes' or 'no'). If not set, the step fails.
 
 Feature
 ----------------------

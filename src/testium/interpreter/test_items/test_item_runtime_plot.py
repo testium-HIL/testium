@@ -11,6 +11,7 @@ from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import evaluate
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 
 class TestItemPlotAction(TestItemAction):
@@ -21,6 +22,12 @@ class TestItemPlotAction(TestItemAction):
 
 
 class TestItemPlotActionOpen(TestItemPlotAction):
+
+    PARAMS = ParamSet(
+        Param("log_path", default=None,
+              doc="Optional file to which the plot data are appended."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -57,6 +64,15 @@ class TestItemPlotActionOpen(TestItemPlotAction):
 
 
 class TestItemPlotActionClose(TestItemPlotAction):
+
+    PARAMS = ParamSet(
+        Param("wait_dialog_exit", default=False,
+              doc="If true, the close action blocks until the user closes the "
+                  "plot window (or timeout)."),
+        Param("timeout", default=-1,
+              doc="Seconds to wait when wait_dialog_exit is true. Negative ⇒ infinite."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -96,6 +112,20 @@ class TestItemPlotActionClose(TestItemPlotAction):
 
 
 class TestItemPlotActionPeriodic(TestItemPlotAction):
+
+    PARAMS = ParamSet(
+        Param("period", required=True,
+              doc="Seconds between two calls of the periodic function."),
+        Param("file", required=True,
+              doc="Path to the .py file holding the periodic function."),
+        Param("func_name", required=True,
+              doc="Name of the periodic function."),
+        Param("param", kind=LIST,
+              doc="Arguments passed to the periodic function on each call."),
+        Param("eval", default="",
+              doc="Post-evaluation applied to the function's return value."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -169,6 +199,13 @@ class TestItemPlotActionAdd(TestItemPlotAction):
 
 
 class TestItemPlotActionLastValues(TestItemPlotAction):
+
+    PARAMS = ParamSet(
+        Param("name", kind=LIST,
+              doc="List of plot variable names whose last sample is returned. "
+                  "Result is stored in $(plv_<plot_name>) as a dict."),
+    )
+
     def __init__(self, action_name, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(
             action_name, cst.TYPE_GRAPH_ACTION, dict_item, parent, status_queue, filename=filename
@@ -219,18 +256,25 @@ class TestItemPlotActionExport(TestItemPlotAction):
 
 
 class TestItemPlot(TestItemActions):
+
+    PARAMS = ParamSet(
+        Param("plot_name", required=True,
+              doc="Identifier of the plot window — referenced by every nested "
+                  "action and by $(plv_<plot_name>) for last-values output."),
+    )
+
+    ACTIONS = {
+        "open": TestItemPlotActionOpen,
+        "close": TestItemPlotActionClose,
+        "periodic": TestItemPlotActionPeriodic,
+        "add": TestItemPlotActionAdd,
+        "last_value": TestItemPlotActionLastValues,
+        "export": TestItemPlotActionExport,
+    }
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(
             cst.TYPE_GRAPH, dict_item, parent, status_queue, filename=filename
-        )
-
-        self.register_actions(
-            open=TestItemPlotActionOpen,
-            close=TestItemPlotActionClose,
-            periodic=TestItemPlotActionPeriodic,
-            add=TestItemPlotActionAdd,
-            last_value=TestItemPlotActionLastValues,
-            export=TestItemPlotActionExport,
         )
 
         self.actions_token = self._prms.getParam("plot_name", required=True)

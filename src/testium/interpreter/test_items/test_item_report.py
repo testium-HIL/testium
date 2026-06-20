@@ -3,9 +3,17 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from runtime.tum_except import ETUMSyntaxError
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 from interpreter.test_report.test_report import Export
 
 class TestItemReport(TestItem):
+
+    PARAMS = ParamSet(
+        Param("export", kind=LIST, required=True,
+              doc="List of exporters to run (junit, sqlite, …). Each entry is a "
+                  "mapping describing the exporter type and its parameters."),
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_REPORT.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

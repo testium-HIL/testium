@@ -17,11 +17,15 @@ Public API
 ``reset()``             : clear the cache (mostly useful for tests)
 """
 
+import atexit
 import os
+import shlex
+import shutil
 import subprocess
+import tempfile
 
 import api.testium as tm
-from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
+from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win, no_window_kwargs
 from runtime.tum_except import ETUMRuntimeError
 
 
@@ -29,20 +33,6 @@ from runtime.tum_except import ETUMRuntimeError
 
 _PYTHON_CANDIDATES = ["python3", "python"]
 _LUA_CANDIDATES = ["lua", "lua5.5", "lua5.4", "lua5.3", "lua5.2", "lua5.1"]
-
-# When running inside a Flatpak, --filesystem=host-os mounts the host at
-# /run/host (read-only). Binaries and libraries from the host are not on the
-# sandbox PATH/LD_LIBRARY_PATH, so we probe and inject them explicitly.
-_FLATPAK_HOST_DIRS = [
-    "/run/host/usr/local/bin",
-    "/run/host/usr/bin",
-    "/run/host/bin",
-]
-_FLATPAK_HOST_LIB_DIRS = [
-    "/run/host/usr/lib",
-    "/run/host/usr/lib64",
-    "/run/host/usr/local/lib",
-]
 
 # Inside an AppImage, AppRun prepends $APPDIR/usr/bin to PATH and exports a
 # bundle-local PYTHONHOME / PYTHONPATH / LD_LIBRARY_PATH. We want py_func and
@@ -64,78 +54,200 @@ def _in_appimage():
     return "APPIMAGE" in os.environ
 
 
-def apply_host_lua_paths(env):
-    """Prepend host Lua module dirs to LUA_PATH / LUA_CPATH (Flatpak only).
+def apply_host_libs(env):
+    """Strip bundle-local entries from *env* so a host binary can run cleanly.
 
-    Must be called after user-defined lua_env overrides are applied, so host
-    paths are always first regardless of user config. User-defined paths remain
-    in the variable but after the host ones.
+    Only meaningful for AppImage: removes $APPDIR-prefixed entries from
+    LD_LIBRARY_PATH / PYTHONPATH / PATH and drops PYTHONHOME, so the host
+    interpreter doesn't try to load the bundled (incompatible) Python
+    lib/site-packages. Flatpak is handled via flatpak-spawn --host instead
+    (see flatpak_host_spawn), so the sandbox env is irrelevant there.
+    """
+    if not _in_appimage():
+        return
+    appdir = os.environ.get("APPDIR", "")
+    if appdir:
+        for var, sep in (("LD_LIBRARY_PATH", ":"),
+                         ("PYTHONPATH", os.pathsep),
+                         ("PATH", os.pathsep)):
+            cur = env.get(var, "")
+            if not cur:
+                continue
+            cleaned = sep.join(
+                p for p in cur.split(sep)
+                if p and not p.startswith(appdir)
+            )
+            if cleaned:
+                env[var] = cleaned
+            else:
+                env.pop(var, None)
+    env.pop("PYTHONHOME", None)
+
+
+# ---------- Flatpak: spawn on host outside the sandbox -----------------------
+#
+# Inside a Flatpak the sandbox glibc is incompatible with host shared libraries,
+# so we can't run host Python/Lua under the sandbox runtime — `LD_LIBRARY_PATH`
+# tricks hit a `_dl_call_libc_early_init` assertion. The supported way out is
+# `flatpak-spawn --host`, which talks to the session-bus Flatpak D-Bus service
+# (org.freedesktop.Flatpak.Development) and asks it to spawn a process in the
+# host execution environment instead of inside our sandbox. The manifest must
+# grant `--talk-name=org.freedesktop.Flatpak` for the D-Bus call to be allowed.
+#
+# The host process can't see our /app/ contents (sandbox-only), so when we
+# spawn host Python/Lua to run `py_func` / `lua_func`, the cwd must be a
+# directory both sides can reach. /tmp is shared (--filesystem=/tmp), so we
+# stage the testium package there once per process and reuse it for every
+# spawn. In source mode (testium under $HOME) the host already sees the
+# original path, so we skip the copy.
+
+_staged_testium_path = None
+
+
+def _get_host_testium_path():
+    """Return a path to the testium package that the host can read.
+
+    - Source / wheel / PyInstaller install under $HOME → return testium_path()
+      as-is (host sees the same path via --filesystem=home).
+    - Flatpak bundle (testium under /app/) → stage a copy under /tmp on first
+      call and reuse it for the rest of the process.
+    """
+    global _staged_testium_path
+    if _staged_testium_path is not None:
+        return _staged_testium_path
+
+    # Imported lazily to avoid a circular import (paths.py -> api.testium).
+    from interpreter.utils.paths import testium_path
+    tp = testium_path()
+
+    if not tp.startswith("/app/"):
+        _staged_testium_path = tp
+        return tp
+
+    staged = tempfile.mkdtemp(prefix="testium_host_", dir="/tmp")
+    # copytree refuses to write into an existing dir unless dirs_exist_ok=True.
+    # mkdtemp creates the dir, so we copy *into* it.
+    for entry in os.listdir(tp):
+        src = os.path.join(tp, entry)
+        dst = os.path.join(staged, entry)
+        if os.path.isdir(src):
+            shutil.copytree(src, dst, symlinks=True)
+        else:
+            shutil.copy2(src, dst, follow_symlinks=False)
+    _staged_testium_path = staged
+    atexit.register(shutil.rmtree, staged, ignore_errors=True)
+    return staged
+
+
+_FORWARDED_ENV_KEYS = (
+    "HOME", "USER", "LOGNAME", "TMPDIR",
+    "XDG_RUNTIME_DIR", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME",
+    "DBUS_SESSION_BUS_ADDRESS", "DISPLAY", "WAYLAND_DISPLAY",
+    "LANG", "LC_ALL",
+)
+
+
+def flatpak_host_spawn(interp_bin, cmd_args, host_cwd, extra_env=None):
+    """Build a flatpak-spawn --host command vector.
+
+    Args:
+        interp_bin: absolute path to the host interpreter (e.g. /usr/bin/python3).
+        cmd_args: list of arguments passed to the interpreter.
+        host_cwd: working directory on the host (must be reachable from host).
+        extra_env: optional {name: value} of env vars to set on the host side
+                   in addition to the default forwarded set. Values of ""
+                   unset the variable on the host.
+
+    Returns a list suitable for subprocess.Popen.
+    """
+    spawn = ["flatpak-spawn", "--host", f"--directory={host_cwd}"]
+    forwarded = {}
+    for key in _FORWARDED_ENV_KEYS:
+        val = os.environ.get(key)
+        if val:
+            forwarded[key] = val
+    if extra_env:
+        forwarded.update(extra_env)
+    for k, v in forwarded.items():
+        if v == "":
+            spawn.append(f"--unset-env={k}")
+        else:
+            spawn.append(f"--env={k}={v}")
+    spawn.append(interp_bin)
+    spawn.extend(cmd_args)
+    return spawn
+
+
+def host_console_command(shell_cmd, cwd):
+    """Build the argv to start *shell_cmd* as an ordinary interactive console.
+
+    *shell_cmd* is the command the caller chose (a string — shell-split — or
+    an argv list); the choice is preserved verbatim.
+
+    Outside Flatpak the command is returned unchanged. Inside Flatpak a bare
+    spawn would run in the sandbox under the runtime python3, so a host venv
+    (``/path/venv/bin/python3 -m mod``) can't see its pip deps. We simply run
+    it on the host with ``flatpak-spawn --host`` so it behaves like any other
+    terminal: flatpak-spawn passes the current environment through unchanged
+    and the shell (sourced venv, profile, …) sets things up as the user wants.
+    No env forwarding or scrubbing — the launcher's leaked PYTHONPATH points at
+    /app paths absent on the host, so it's inert there.
+    """
+    argv = shlex.split(shell_cmd) if isinstance(shell_cmd, str) else list(shell_cmd)
+    if not _in_flatpak():
+        return argv
+    return ["flatpak-spawn", "--host", f"--directory={cwd}", *argv]
+
+
+def host_open_path(path):
+    """Open *path* with the host default application (Flatpak only).
+
+    QDesktopServices/openUrl routes through the OpenURI portal inside Flatpak,
+    which often fails to open a plain editor for a log file. Spawn xdg-open on
+    the host so the user's real default app is used. Returns True on dispatch;
+    False (incl. outside Flatpak) so the caller can fall back to openUrl.
     """
     if not _in_flatpak():
-        return
-    _LUA_VERSIONS = ["5.5", "5.4", "5.3", "5.2", "5.1"]
-    _HOST = "/run/host/usr"
-    cpath_dirs, lpath_dirs = [], []
-    for v in _LUA_VERSIONS:
-        for base in [f"{_HOST}/lib/lua/{v}",
-                     f"{_HOST}/lib64/lua/{v}",
-                     f"{_HOST}/lib/x86_64-linux-gnu/lua/{v}"]:
-            cpath_dirs.append(f"{base}/?.so")
-        lpath_dirs.append(f"{_HOST}/share/lua/{v}/?.lua")
-        lpath_dirs.append(f"{_HOST}/share/lua/{v}/?/init.lua")
-    sep = ";"
-    host_cpath = sep.join(cpath_dirs)
-    host_lpath = sep.join(lpath_dirs)
-    # ;; keeps Lua's compiled-in defaults at the end as last resort
-    env["LUA_CPATH"] = host_cpath + sep + env.get("LUA_CPATH", ";;")
-    env["LUA_PATH"]  = host_lpath + sep + env.get("LUA_PATH",  ";;")
+        return False
+    try:
+        subprocess.Popen(["flatpak-spawn", "--host", "xdg-open", path])
+        return True
+    except (FileNotFoundError, PermissionError):
+        return False
 
 
-def apply_host_libs(env):
-    """Prepare *env* for launching a host binary from inside our bundle.
+def _which_host_flatpak(name):
+    """Resolve a binary name (or absolute path) on the host via flatpak-spawn.
 
-    - Flatpak: prepend host library dirs to LD_LIBRARY_PATH so the dynamic
-      linker can find host .so files mounted under /run/host.
-    - AppImage: strip $APPDIR-prefixed entries from LD_LIBRARY_PATH and
-      PYTHONPATH and drop PYTHONHOME, so the host interpreter doesn't try
-      to load the bundled (incompatible) Python lib/site-packages.
-    - Otherwise: no-op.
+    We can't probe /run/host/... because (a) only host-os is mounted there,
+    not arbitrary paths like /scratch, and (b) returning a /run/host path
+    would be useless — the host-side spawn sees a different filesystem and
+    needs the host-native path anyway.
     """
-    if _in_flatpak():
-        dirs = ":".join(d for d in _FLATPAK_HOST_LIB_DIRS if os.path.isdir(d))
-        if dirs:
-            existing = env.get("LD_LIBRARY_PATH", "")
-            env["LD_LIBRARY_PATH"] = dirs + (":" + existing if existing else "")
-        return
-    if _in_appimage():
-        appdir = os.environ.get("APPDIR", "")
-        if appdir:
-            for var, sep in (("LD_LIBRARY_PATH", ":"),
-                             ("PYTHONPATH", os.pathsep),
-                             ("PATH", os.pathsep)):
-                cur = env.get(var, "")
-                if not cur:
-                    continue
-                cleaned = sep.join(
-                    p for p in cur.split(sep)
-                    if p and not p.startswith(appdir)
-                )
-                if cleaned:
-                    env[var] = cleaned
-                else:
-                    env.pop(var, None)
-        env.pop("PYTHONHOME", None)
+    if os.path.isabs(name):
+        cmd = flatpak_host_spawn("/bin/sh", ["-c", f'test -x "{name}"'],
+                                 host_cwd="/tmp")
+        try:
+            r = subprocess.run(cmd, capture_output=True, timeout=10)
+        except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
+            return ""
+        return name if r.returncode == 0 else ""
+    cmd = flatpak_host_spawn("/bin/sh", ["-c", f'command -v "{name}"'],
+                             host_cwd="/tmp")
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
+        return ""
+    if r.returncode != 0:
+        return ""
+    return r.stdout.strip()
 
 
 def _which(name):
     if tm.OS() == "Windows":
         return sys_app_path_win(name)
     if _in_flatpak():
-        for d in _FLATPAK_HOST_DIRS:
-            p = os.path.join(d, name)
-            if os.path.isfile(p) and os.access(p, os.X_OK):
-                return p
-        return ""
+        return _which_host_flatpak(name)
     if _in_appimage():
         for d in _APPIMAGE_HOST_DIRS:
             p = os.path.join(d, name)
@@ -146,23 +258,50 @@ def _which(name):
 
 
 def _probe_env():
-    """Subprocess env for probing host binaries (adds host libs in Flatpak)."""
+    """Subprocess env for probing host binaries.
+
+    In AppImage we still need to scrub APPDIR-prefixed entries; in Flatpak we
+    delegate execution to the host via flatpak-spawn so the sandbox env doesn't
+    matter, but apply_host_libs is a no-op cost.
+    """
     env = os.environ.copy()
     apply_host_libs(env)
     return env
 
 
-def _python_version(path):
-    cmd = [path, "-c", "import sys; print(sys.version_info[:3])"]
+def _run_probe(cmd):
+    """Run a probe command, dispatching through flatpak-spawn --host in Flatpak.
+
+    Returns (stdout, stderr) as str, or None on failure.
+    """
+    if _in_flatpak():
+        spawn = flatpak_host_spawn(cmd[0], cmd[1:], host_cwd="/tmp")
+        try:
+            r = subprocess.run(
+                spawn, capture_output=True, text=True, timeout=10,
+            )
+        except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
+            return None
+        if r.returncode != 0:
+            return None
+        return r.stdout, r.stderr
     try:
         r = subprocess.run(
             cmd, capture_output=True, text=True,
             encoding=tm.sys_encoding(), timeout=10, env=_probe_env(),
+            **no_window_kwargs(),
         )
     except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
         return None
+    return r.stdout, r.stderr
+
+
+def _python_version(path):
+    out = _run_probe([path, "-c", "import sys; print(sys.version_info[:3])"])
+    if out is None:
+        return None
     try:
-        return eval(r.stdout)
+        return eval(out[0])
     except Exception:
         return None
 
@@ -173,15 +312,11 @@ def _is_python3(path):
 
 
 def _lua_version(path):
-    try:
-        r = subprocess.run(
-            [path, "-v"], capture_output=True, text=True, timeout=10,
-            env=_probe_env(),
-        )
-    except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
+    out = _run_probe([path, "-v"])
+    if out is None:
         return None
     # On Windows the version banner goes to stderr.
-    line = r.stdout or r.stderr
+    line = out[0] or out[1]
     try:
         major, minor, _patch = line.split(" ")[1].split(".")
         return (int(major), int(minor))
@@ -202,22 +337,33 @@ _SPECS = {
     "lua":    ("Lua 5.1+",  "lua_bin",    _LUA_CANDIDATES,    _is_lua51),
 }
 
+# Cached per (name, override) so that runtime changes to gd[gd_key] —
+# e.g. ``python_bin`` set from a YAML config file loaded *after*
+# eval_proc has already resolved its own interpreter — are picked up by
+# the next lookup instead of returning the stale, auto-discovered path.
+# Long-lived subprocesses (eval_proc) keep whatever they captured at
+# construction time, but every new PyProcessBase / FuncExecEngine spawned
+# afterwards sees the current override.
 _resolved = {}
 
 
 def _resolve(name):
-    if name in _resolved:
-        return _resolved[name]
-
     display, gd_key, candidates, validator = _SPECS[name]
     override = tm.gd(gd_key, "") or ""
+
+    cached = _resolved.get(name)
+    if cached is not None and cached[0] == override:
+        return cached[1]
 
     path = ""
     if override:
         # Absolute path: accept as-is (user knows exactly what they want).
         # Bare name: resolve via _which() so the override stays host-only in
         # Flatpak/AppImage instead of silently picking the bundled interpreter.
-        if os.path.isabs(override):
+        # In Flatpak we always defer to _which() so even absolute paths are
+        # checked from the host's perspective (the sandbox can't see e.g.
+        # /scratch/... paths that the user may have configured).
+        if os.path.isabs(override) and not _in_flatpak():
             resolved = override if (os.path.isfile(override)
                                     and os.access(override, os.X_OK)) else ""
         else:
@@ -239,7 +385,7 @@ def _resolve(name):
                 path = p
                 break
 
-    _resolved[name] = path
+    _resolved[name] = (override, path)
     return path
 
 
@@ -260,12 +406,16 @@ def ensure(*names):
     """
     missing = []
     for n in names:
-        if not _resolve(n):
-            display, gd_key, candidates, _ = _SPECS[n]
+        path = _resolve(n)
+        display, gd_key, candidates, _ = _SPECS[n]
+        if not path:
             missing.append(
                 f"  - {display}: tried {candidates} on PATH, none usable. "
                 f"Set '{gd_key}' in the YAML config to override."
             )
+        elif not tm.gd(gd_key):
+            # Publish resolved path so test scripts can use $(python_bin)/$(lua_bin).
+            tm.setgd(gd_key, path)
     if missing:
         raise ETUMRuntimeError(
             "Required external interpreter(s) not found:\n" + "\n".join(missing)

@@ -1,14 +1,13 @@
 import os
 import sys
 import subprocess
-import socket
 
 import api.testium as tm
 from runtime.jrpc import JsonRpcClient
-from interpreter.utils.paths import subproc_path
+from interpreter.utils.paths import subproc_path, no_window_kwargs
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils import bins
-from interpreter.utils.proc_drain import drain_to_log
+from interpreter.utils.proc_drain import drain_and_read_port, wait_for_port
 
 
 class LuaProcessBase:
@@ -47,9 +46,16 @@ class LuaProcessBase:
         if self._process is not None:
             raise ETUMRuntimeError("The function subprocess has already been started.")
 
-        func_proc_path = os.path.realpath(
-            os.path.join(subproc_path(), "lua_func")
-        )
+        # In Flatpak the host can't see /app/lib/testium/lua_func, so use a
+        # staged copy under /tmp (shared between sandbox and host).
+        if bins._in_flatpak():
+            func_proc_path = os.path.join(
+                bins._get_host_testium_path(), "lua_func"
+            )
+        else:
+            func_proc_path = os.path.realpath(
+                os.path.join(subproc_path(), "lua_func")
+            )
 
         # POpen config
         CUST_ENV = {
@@ -71,39 +77,56 @@ class LuaProcessBase:
                     env[k] = e
                 else:
                     env[k] = e + ";" + env.get(k, "")
-        bins.apply_host_lua_paths(env)
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("localhost", 0))
-        self._port = sock.getsockname()[1]
-        sock.close()
-
-        # POpen params
-        params = [
-            self._lbin,
+        # POpen params (port 0 -> the Lua server picks a free port and reports it)
+        cmd_args = [
             "main.lua",
             "--timeout",
             f"{self._timeout}",
             "--host",
             "127.0.0.1",
             "--port",
-            f"{self._port}",
+            "0",
         ]
 
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
-            params.append("--verbose")
+            cmd_args.append("--verbose")
+
+        if bins._in_flatpak():
+            # Run on the host outside the sandbox: avoids glibc ABI mismatches
+            # between the Flatpak runtime and host shared libraries.
+            host_env = {
+                k: env[k] for k in ("LUA_PATH", "LUA_CPATH", "PATH")
+                if k in env and env[k]
+            }
+            params = bins.flatpak_host_spawn(
+                self._lbin, cmd_args, host_cwd=func_proc_path,
+                extra_env=host_env,
+            )
+            popen_kwargs = {}
+        else:
+            params = [self._lbin, *cmd_args]
+            popen_kwargs = {"env": env, "cwd": func_proc_path}
 
         self._process = subprocess.Popen(
-            params, env=env, cwd=func_proc_path,
+            params,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             restore_signals=False,
+            **no_window_kwargs(),
+            **popen_kwargs,
         )
-        # Route subprocess stdout/stderr (lua require failures, syntax
-        # errors, anything written to fd 1/2 before the in-script
-        # remote_print is set up) into the parent's log.
-        drain_to_log(self._process, prefix="[lua_func] ")
+        # Forward subprocess output to the log and read the startup port sentinel.
+        holder = drain_and_read_port(self._process, prefix="[lua_func] ")
+        self._port = wait_for_port(
+            self._process, holder, tm.gd("proc_start_timeout", 30)
+        )
+        if self._port is None:
+            # Worker died before announcing its port: reset so a later start() retries clean.
+            self.stop()
+            self.join()
+            return
 
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler

@@ -42,6 +42,7 @@
         <file alias="exit.png">black/exit.png</file>
         <file alias="terminal.png">black/terminal.png</file>
         <file alias="python.png">black/python.png</file>
+        <file alias="pytest.png">black/pytest.png</file>
         <file alias="lua.png">black/lua.png</file>
         <file alias="verif.png">black/verif.png</file>
         <file alias="view-refresh.png">black/view-refresh.png</file>
@@ -91,6 +92,7 @@
         <file alias="exit.png">white/exit.png</file>
         <file alias="terminal.png">white/terminal.png</file>
         <file alias="python.png">white/python.png</file>
+        <file alias="pytest.png">white/pytest.png</file>
         <file alias="lua.png">white/lua.png</file>
         <file alias="verif.png">white/verif.png</file>
         <file alias="view-refresh.png">white/view-refresh.png</file>
@@ -140,6 +142,7 @@
         <file alias="exit.png">color/exit.png</file>
         <file alias="terminal.png">color/terminal.png</file>
         <file alias="python.png">color/python.png</file>
+        <file alias="pytest.png">color/pytest.png</file>
         <file alias="lua.png">color/lua.png</file>
         <file alias="verif.png">color/verif.png</file>
         <file alias="view-refresh.png">color/view-refresh.png</file>

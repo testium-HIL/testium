@@ -1,10 +1,31 @@
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import QDialog, QFileDialog
+from collections import namedtuple
+
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import QDialog, QFileDialog, QLabel, QLineEdit
 from PySide6.QtGui import QFont
 
 from main_win.preference_win.preference_core_win import Ui_preferenceWindow
+from main_win import file_dialog
 
 import interpreter.utils.settings as prefs
+
+
+def _set_font(w, v):
+    f = QFont()
+    f.fromString(v)
+    w.setCurrentFont(f)
+
+
+# Per-type widget <-> value bridge: (read from widget, write to widget).
+_FIELD = {
+    "bool":  (lambda w: w.isChecked(),              lambda w, v: w.setChecked(v)),
+    "text":  (lambda w: w.text(),                   lambda w, v: w.setText(v)),
+    "int":   (lambda w: int(w.value()),             lambda w, v: w.setValue(v)),
+    "combo": (lambda w: int(w.currentIndex()),      lambda w, v: w.setCurrentIndex(v)),
+    "font":  (lambda w: w.currentFont().toString(), _set_font),
+}
+
+Field = namedtuple("Field", "key type widget")
 
 
 class PrefWindow(QDialog):
@@ -16,162 +37,57 @@ class PrefWindow(QDialog):
         self.ui.buttonBox.accepted.connect(self.on_buttOKPressed)
         self.ui.buttonBox.rejected.connect(self.on_buttCancelPressed)
         self.finished.connect(self.on_finishedPressed)
-        self.ui.butLogPath.triggered.connect(self.on_butLogPath_pressed)
-        self.ui.butReportPath.triggered.connect(self.on_butReportPath_pressed)
-        self.ui.butPythonPath.triggered.connect(self.on_butPythonPath_pressed)
-        self.ui.butLuaPath.triggered.connect(self.on_butLuaPath_pressed)
-        self.elements = {
-            prefs.settings.SettingsHideDocPane: {
-                "type": "bool",
-                "widget": self.ui.checkDocPane,
-                "value": prefs.settings.hide_doc_pane,
-                "default": False,
-                "changed": False,
-            },
-            prefs.settings.SettingsHideLogPane: {
-                "type": "bool",
-                "widget": self.ui.checkLogPane,
-                "value": prefs.settings.hide_log_pane,
-                "default": False,
-                "changed": False,
-            },
-            prefs.settings.SettingsShowCheckboxes: {
-                "type": "bool",
-                "widget": self.ui.checkBoxTest,
-                "value": prefs.settings.show_checkboxes,
-                "default": False,
-                "changed": False,
-            },
-            prefs.settings.SettingsShowTimeColumn: {
-                "type": "bool",
-                "widget": self.ui.checkShowTime,
-                "value": prefs.settings.show_time_column,
-                "default": False,
-                "changed": False,
-            },
-            prefs.settings.SettingsLogPath: {
-                "type": "text",
-                "widget": self.ui.editDefaultLogPath,
-                "value": prefs.settings.log_path,
-                "default": "$(test_directory)",
-                "changed": False,
-            },
-            prefs.settings.SettingsReportPath: {
-                "type": "text",
-                "widget": self.ui.editDefaultReportPath,
-                "value": prefs.settings.report_path,
-                "default": "$(test_directory)",
-                "changed": False,
-            },
-            prefs.settings.SettingsDblClickEnabled: {
-                "type": "bool",
-                "widget": self.ui.checkDblClick,
-                "value": prefs.settings.dbl_click_enabled,
-                "default": False,
-                "changed": False,
-            },
-            prefs.settings.SettingsIconsTheme: {
-                "type": "combo",
-                "widget": self.ui.choiceIconsTheme,
-                "value": prefs.settings.icons_theme,
-                "default": 0,
-                "changed": False,
-            },
-            prefs.settings.SettingsLogFont: {
-                "type": "font",
-                "widget": self.ui.font_choice,
-                "value": prefs.settings.log_font,
-                "default": "Monospace",
-                "changed": False,
-            },
-            prefs.settings.SettingsLogFontSize: {
-                "type": "int",
-                "widget": self.ui.font_size,
-                "value": prefs.settings.log_font_size,
-                "default": 8,
-                "changed": False,
-            },
-            prefs.settings.SettingsGitSupported: {
-                "type": "bool",
-                "widget": self.ui.checkGitSupported,
-                "value": prefs.settings.git_supported,
-                "default": True,
-                "changed": False,
-            },
-            prefs.settings.SettingsPythonPath: {
-                "type": "text",
-                "widget": self.ui.editPythonPath,
-                "value": prefs.settings.python_bin,
-                "default": "",
-                "changed": False,
-            },
-            prefs.settings.SettingsLuaPath: {
-                "type": "text",
-                "widget": self.ui.editLuaPath,
-                "value": prefs.settings.lua_bin,
-                "default": "",
-                "changed": False,
-            },
-        }
 
+        self.ui.butLogPath.triggered.connect(
+            lambda: self._pick_dir(self.ui.editDefaultLogPath, "Select the default log directory"))
+        self.ui.butReportPath.triggered.connect(
+            lambda: self._pick_dir(self.ui.editDefaultReportPath, "Select the default report directory"))
+        self.ui.butPythonPath.triggered.connect(
+            lambda: self._pick_file(self.ui.editPythonPath, "Select the python interpreter"))
+        self.ui.butLuaPath.triggered.connect(
+            lambda: self._pick_file(self.ui.editLuaPath, "Select the lua interpreter"))
+
+        # Editor command field, added in code (mirrors the F1 filter approach) so the
+        # generated UI stays untouched. Sits with the double-click toggle it feeds.
+        self.editEditorCmd = QLineEdit(self.ui.scrollAreaWidgetContents)
+        self.editEditorCmd.setPlaceholderText("ex: code -g {file}:{line}")
+        self.ui.formLayout.addRow(QLabel("Open log line in editor"), self.editEditorCmd)
+
+        s = prefs.settings
+        self.fields = [
+            Field(s.SettingsHideDocPane,     "bool",  self.ui.checkDocPane),
+            Field(s.SettingsHideLogPane,     "bool",  self.ui.checkLogPane),
+            Field(s.SettingsShowCheckboxes,  "bool",  self.ui.checkBoxTest),
+            Field(s.SettingsShowTimeColumn,  "bool",  self.ui.checkShowTime),
+            Field(s.SettingsLogPath,         "text",  self.ui.editDefaultLogPath),
+            Field(s.SettingsReportPath,      "text",  self.ui.editDefaultReportPath),
+            Field(s.SettingsDblClickEnabled, "bool",  self.ui.checkDblClick),
+            Field(s.SettingsEditorCmd,       "text",  self.editEditorCmd),
+            Field(s.SettingsIconsTheme,      "combo", self.ui.choiceIconsTheme),
+            Field(s.SettingsLogFont,         "font",  self.ui.font_choice),
+            Field(s.SettingsLogFontSize,     "int",   self.ui.font_size),
+            Field(s.SettingsGitSupported,    "bool",  self.ui.checkGitSupported),
+            Field(s.SettingsPythonPath,      "text",  self.ui.editPythonPath),
+            Field(s.SettingsLuaPath,         "text",  self.ui.editLuaPath),
+        ]
+        self._changed = set()
         self.restore_prefs()
 
     def store_prefs(self):
-        for k, v in self.elements.items():
-            self.elements[k]["changed"] = False
-            if v["type"] == "bool":
-                val = v["widget"].isChecked()
-                if self.elements[k]["value"] != val:
-                    self.elements[k]["value"] = val
-                    self.elements[k]["changed"] = True
-
-            if v["type"] == "text":
-                val = v["widget"].text()
-                if self.elements[k]["value"] != val:
-                    self.elements[k]["value"] = val
-                    self.elements[k]["changed"] = True
-
-            if v["type"] == "font":
-                val = v["widget"].currentFont().toString()
-                if self.elements[k]["value"] != val:
-                    self.elements[k]["value"] = val
-                    self.elements[k]["changed"] = True
-
-            if v["type"] == "int":
-                val = int(v["widget"].value())
-                if self.elements[k]["value"] != val:
-                    self.elements[k]["value"] = val
-                    self.elements[k]["changed"] = True
-
-            if v["type"] == "combo":
-                val = int(v["widget"].currentIndex())
-                if self.elements[k]["value"] != val:
-                    self.elements[k]["value"] = val
-                    self.elements[k]["changed"] = True
-
-            if self.elements[k]["changed"]:
-                prefs.settings.set_value(k, v["value"])
-
+        self._changed = set()
+        for f in self.fields:
+            val = _FIELD[f.type][0](f.widget)
+            if val != prefs.settings.value(f.key):
+                prefs.settings.set_value(f.key, val)
+                self._changed.add(f.key.name)
         prefs.settings.sync()
 
     def restore_prefs(self):
-        for k, v in self.elements.items():
-            v["value"] = prefs.settings.value(k, v["default"])
-            if v["type"] == "bool":
-                v["widget"].setChecked(v["value"])
-            elif v["type"] == "text":
-                v["widget"].setText(self.elements[k]["value"])
-            elif v["type"] == "font":
-                f = QFont()
-                f.fromString(self.elements[k]["value"])
-                v["widget"].setCurrentFont(f)
-            elif v["type"] == "int":
-                v["widget"].setValue(self.elements[k]["value"])
-            elif v["type"] == "combo":
-                v["widget"].setCurrentIndex(self.elements[k]["value"])
+        for f in self.fields:
+            _FIELD[f.type][1](f.widget, prefs.settings.value(f.key))
 
     def isChanged(self, setting):
-        return self.elements[setting]["changed"]
+        return setting.name in self._changed
 
     @Slot()
     def on_buttOKPressed(self):
@@ -187,40 +103,14 @@ class PrefWindow(QDialog):
     def on_finishedPressed(self):
         self.restore_prefs()
 
-    @Slot()
-    def on_butReportPath_pressed(self):
+    def _pick_dir(self, edit, caption):
         path = QFileDialog.getExistingDirectory(
-            self,
-            caption="Select the default report directory",
-            dir=self.ui.editDefaultReportPath.text(),
-        )
+            self, caption=caption, dir=edit.text(), options=file_dialog.options())
         if path:
-            self.ui.editDefaultReportPath.setText(path)
+            edit.setText(path)
 
-    @Slot()
-    def on_butLogPath_pressed(self):
-        path = QFileDialog.getExistingDirectory(
-            self,
-            caption="Select the default log directory",
-            dir=self.ui.editDefaultLogPath.text(),
-        )
-        if path:
-            self.ui.editDefaultLogPath.setText(path)
-
-    @Slot()
-    def on_butPythonPath_pressed(self):
+    def _pick_file(self, edit, caption):
         path, _ = QFileDialog.getOpenFileName(
-            self,
-            caption="Select the python interpreter",
-            dir=self.ui.editPythonPath.text(),
-        )
+            self, caption=caption, dir=edit.text(), options=file_dialog.options())
         if path:
-            self.ui.editPythonPath.setText(path)
-
-    @Slot()
-    def on_butLuaPath_pressed(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, caption="Select the lua interpreter", dir=self.ui.editLuaPath.text()
-        )
-        if path:
-            self.ui.editLuaPath.setText(path)
+            edit.setText(path)

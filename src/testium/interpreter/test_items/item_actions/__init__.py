@@ -5,6 +5,13 @@ from interpreter.test_items.item_actions.action import TestItemAction
 
 
 class TestItemActions(TestItem):
+    # Declarative action registry: subclasses set ``ACTIONS = {yaml_key: class}``
+    # as a class attribute (mirroring ``PARAMS``). It is read here to populate
+    # the runtime registry, and read identically by the schema export — no
+    # instantiation or source inspection required. ``register_actions()`` stays
+    # available as an imperative escape hatch for dynamic/conditional cases.
+    ACTIONS = {}
+
     def __init__(
         self, item_type, dict_actions, parent=None, status_queue=None, filename=""
     ):
@@ -12,7 +19,7 @@ class TestItemActions(TestItem):
         super().__init__(dict_actions, parent, status_queue, filename=filename)
         self._type = item_type
         self.is_container = False
-        self.action_classes = {}
+        self.action_classes = dict(type(self).ACTIONS)
         self.actions_token = None
         self.actions = []
         try:
@@ -24,25 +31,44 @@ class TestItemActions(TestItem):
             )
 
     def register_actions(self, **args: TestItemAction):
+        # Imperative escape hatch. The declarative ``ACTIONS`` class attribute
+        # covers every current subclass; use this only to add actions that
+        # can't be known at class-definition time (e.g. platform-conditional).
         for action_name, action_class in args.items():
             self.action_classes.update({action_name: action_class})
 
     def load(self):
         ret = {}
+        if self.dict_actions is None:
+            self.dict_actions = []
+        if not isinstance(self.dict_actions, (list, tuple)):
+            raise ETUMSyntaxError(
+                f"The '{self.cmd()}' test item named '{self.name()}' expects a "
+                f"list of actions under 'steps' but got "
+                f"{type(self.dict_actions).__name__} ({self.dict_actions!r}).",
+                self.seqFilename()
+            )
+        known_actions = ", ".join(sorted(self.action_classes.keys())) or "(none)"
         for action in self.dict_actions:
-            # Action should be only dict of length 1
-            if not isinstance(action, dict) or (not len(action) == 1):
+            # Each action must be a single-key mapping ``{action_name: {...}}``.
+            if not isinstance(action, dict) or len(action) != 1:
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' action should be only dict of length = 1.",
+                    f"The '{self.cmd()}' test item named '{self.name()}' has an "
+                    f"invalid action: each action must be a single-key mapping "
+                    f"('<action>: ...'), got {type(action).__name__} ({action!r}).",
                     self.seqFilename()
                 )
             action_name = list(action.keys())[0]
-            if not (action_name in self.action_classes.keys()):
+            if action_name not in self.action_classes:
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' has an unknown action '{action.keys()[0]}'.",
+                    f"The '{self.cmd()}' test item named '{self.name()}' has an "
+                    f"unknown action '{action_name}'.\n"
+                    f"Known actions: {known_actions}.",
                     self.seqFilename()
                 )
-
+            # NB: an action body is not necessarily a mapping — several actions
+            # accept a scalar shorthand (e.g. ``writeln: 'echo hi'``); the action
+            # class validates its own body. Pass it through untouched.
             item = (self.action_classes[action_name])(
                 action_name,
                 action[action_name],

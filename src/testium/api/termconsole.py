@@ -81,9 +81,13 @@ class TermConsole(Console):
                                    bufsize=0)
 
         else:
-            self.term = pexpect.spawn(  shell_cmd,
-                                        echo=False,
-                                        cwd=self.ppath)
+            # In Flatpak this returns a `flatpak-spawn --host` wrapper so the
+            # console behaves like a host shell (matching py_func / lua_func /
+            # run); elsewhere it's the chosen command unchanged.
+            from interpreter.utils import bins
+            argv = bins.host_console_command(shell_cmd, self.ppath)
+            self.term = pexpect.spawn(argv[0], args=argv[1:],
+                                      echo=False, cwd=self.ppath)
 
         self.q = BytesStore()
         self.t = threading.Thread(target=self.enqueue_output)

@@ -11,7 +11,7 @@ import api.testium as tm
 import interpreter.utils.globdict as globdict
 import interpreter.utils.settings as prefs
 from interpreter.utils.paths import testium_path
-from interpreter.utils.yaml_load import yaml_load
+from interpreter.utils.yaml_load import yaml_load, YAML_BASE_LOADER
 from interpreter.utils import clear_recursively
 from runtime.tum_except import ETUMSyntaxError
 from interpreter.utils.params import expanse, eval_func_init
@@ -25,6 +25,7 @@ from interpreter.utils.version import (
 from interpreter.test_items.test_item import TestItem
 from interpreter.test_items.test_item_sleep import TestItemSleep
 from interpreter.test_items.test_item_unittest import TestItemUnittestFile
+from interpreter.test_items.test_item_pytest import TestItemPytestFile
 from interpreter.test_items.test_item_cycle import TestItemCycle
 from interpreter.test_items.test_item_runtime_plot import TestItemPlot
 from interpreter.test_items.test_item_group import TestItemGroup
@@ -69,6 +70,7 @@ def _constants_init():
     cst.TYPE_RUN.item_class = TestItemRun
     cst.TYPE_SLEEP.item_class = TestItemSleep
     cst.TYPE_UNITTEST.item_class = TestItemUnittestFile
+    cst.TYPE_PYTEST.item_class = TestItemPytestFile
     cst.TYPE_VALUE_DLG.item_class = TestItemValueDialog
     cst.TYPE_PARALLEL.item_class = TestItemParallel
     cst.TYPE_PARALLEL_BRANCH.item_class = TestItemParallelBranch
@@ -89,7 +91,7 @@ def locate_report_file(rep_file):
 def yamltodict(param_file, silent=True):
     # load of the file
     with open(param_file, "r") as fd:
-        dp = yaml_load(fd, param_file, yaml.Loader)
+        dp = yaml_load(fd, param_file, YAML_BASE_LOADER)
 
     if dp is None:
         tm.print_info(f"The YAML file '{param_file}' is empty.")
@@ -165,11 +167,14 @@ def env_init():
     _constants_init()
 
 
-def update_global(config_files, defines, gui_defaults, silent=False):
-    """Global dict updated with the content of the config file and a dict provided.
-    this function returns the resulting dict.
+def apply_overrides(defines, gui_defaults):
+    """Push GUI defaults then CLI defines into the global dict.
+
+    Extracted from update_global so it can be called *before* eval_proc
+    starts: interpreter overrides (python_bin, lua_bin) must be visible
+    to bins.python_bin() on its first lookup, which happens during
+    eval_process_init.
     """
-    # GUI preferences applied first
     for k, v in gui_defaults.items():
         try:
             val = ast.literal_eval(v)
@@ -177,13 +182,20 @@ def update_global(config_files, defines, gui_defaults, silent=False):
             val = v
         tm.setgd(k, val)
 
-    # Then command line defines
     for k, v in defines.items():
         try:
             val = ast.literal_eval(v)
         except:
             val = v
         tm.setgd(k, val)
+
+
+def update_global(config_files, defines, gui_defaults, silent=False):
+    """Global dict updated with the content of the config file and a dict provided.
+    this function returns the resulting dict.
+    """
+    # GUI preferences applied first, then command line defines
+    apply_overrides(defines, gui_defaults)
 
     # Then the configuration files
     # load global dic before test item

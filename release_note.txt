@@ -1,7 +1,108 @@
+version 0.3.3
+==============
+- console ``read_until``: ``timeout`` accepts fractional seconds.
+- Lua functions returning several values: extra returns kept as a list.
+- Reload no longer disables the test tree when checkboxes are off.
+- ``let`` / ``config_file``: prefer the bullet-list form (``- key: value``);
+  the previous flat-mapping form still works.
+
+version 0.3.2
+==============
+- The variables window (F1) now has a filter box: type to show only the
+  variables whose name matches. Tick "values" to also match on the value.
+- The ``run`` item now captures the output of the test it launches into
+  your log and report (used to be lost). New ``batch: true`` option runs
+  that test headless even when testium is in the GUI.
+- The captured output of a ``run`` step can be saved with ``store_result``
+  and inspected with ``expected_result`` or a ``py_func``.
+- "Show Results" now opens the log on Flatpak, and can be used while a
+  test is running.
+- File-opening also works on Flatpak for the file paths in the log and
+  for the "open location" button in the variables (F1) window.
+- Double-clicking a test item to open the log now uses an editor of your
+  choice (new preference; default ``code -g {file}:{line}``).
+
+version 0.3.1
+==============
+- Clearer errors when a test file fails to load. The message names the
+  exact file and item and explains the problem (unknown item or action,
+  a step holding two items, a missing ``steps:`` list, a misplaced
+  value, ...) and lists the valid names. A problem inside an included
+  file points to that file.
+
+version 0.3
+==============
+- New ``pytest`` test item: run your pytest files as a test step; each
+  test shows up with its own PASS / FAIL / SKIP. Requires pytest
+  (``pip install pytest``).
+- Search the test tree in the GUI (Ctrl+F): find items by name, type or
+  doc; matches are highlighted and you can step through them.
+- console ``read_until`` can now wait for several possible texts at once
+  (it matches the first one seen), and a ``regex: true`` option lets you
+  match with a regular expression.
+- Serial console: a clear message when the device is missing, and serial
+  ports now work in the Flatpak version.
+- A test file that cannot be loaded (for example pytest not installed)
+  no longer aborts the run: only that step fails.
+- Fix: a variable (``$(...)``) used in a console ``telnet_port`` is now
+  correctly substituted.
+
+version 0.2.3
+=============
+- Windows: reliable startup of py_func / lua_func steps (port handshake
+  fixed). Benefits Linux too.
+- Windows: UTF-8 console output.
+- ``$(python_bin)`` / ``$(lua_bin)`` are now usable in test scripts (set
+  from the resolved interpreter paths).
+- Windows: new per-user installer (no admin).
+
+version 0.2.2
+==============
+- Flatpak: the term console behaves like a host console.
+- Flatpak: dialog persistence fix.
+
+version 0.2.1
+==============
+- Faster test loading on tests built with jinja templates and
+  ``!include`` (typically 3-6x lower load time on include /
+  template-heavy tests; behaviour unchanged).
+- Fix: a nested list holding more than one step under ``steps`` no
+  longer duplicates its entries.
+
+version 0.2
+==============
+- Test items: typos in a ``.tum`` (unknown parameter name) are now
+  surfaced as a WARN listing the accepted names; missing required
+  parameters error out at load time with the source ``.tum`` as context.
+- Editor support: testium now ships a language server. ``testium lsp``
+  gives ``.tum`` files item-type completion, hover documentation and an
+  outline view in any LSP-capable editor (a VSCode / VSCodium client is
+  provided separately). ``testium schema`` dumps the item/parameter
+  schema as JSON. Bundled in every channel; for wheel installs use
+  ``pip install testium[lsp]``.
+
+version 0.1.3
+==============
+- Stop interrupts engaged blocking steps (console, py_func, lua_func,
+  json_rpc, sleep) within ~200 ms instead of waiting for the step to
+  finish.
+- GUI Start / Stop / Pause flow simplified.
+- lua_func: a function returning nil is no longer reported as a failure.
+- ``-d python_bin=...`` and the GUI ``python_bin`` preference now reach
+  the eval subprocess (used to be silently ignored). ``param.yaml`` can
+  also override ``python_bin`` for py_func / cycle / post_exec.
+- Flatpak: every GUI file / directory dialog (open test, save report,
+  log path, default report/log dirs, python/lua interpreter pickers)
+  bypasses the XDG document portal — the v0.1.2 fix was only on the
+  "open test" dialog.
+- Flatpak: py_func / lua_func / ``run`` sub-instance use the host
+  Python / Lua, so your host-installed modules are visible again.
+- GUI: the "Run tum" test item now uses the testium logo.
+
 version 0.1.2
 ==============
 - Flatpak: opening a test from the GUI now correctly finds its companion
-  files (param.yaml, .py scripts, ...).
+  files (``param.yaml``, ``.py`` scripts, ...).
 
 version 0.1.1
 ==============
@@ -11,8 +112,8 @@ version 0.1.1
   (used to display "unknown").
 - GUI dialogs no longer hang on pure-Wayland sessions.
 - Plot "last values" API: more tolerant timeout on loaded machines.
-- run item: `testium_path` and `python_bin` parameters removed —
-  sub-instances are launched in the same packaging mode as the parent.
+- ``run`` item: ``testium_path`` and ``python_bin`` parameters removed
+  — sub-instances are launched in the same packaging mode as the parent.
 - License: EUPL-1.2.
 
 version 0.1

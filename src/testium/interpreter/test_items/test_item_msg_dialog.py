@@ -5,6 +5,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import item_load_context
 
 
@@ -12,6 +13,15 @@ class TestItemMsgDialog(TestItemDialogBase):
     """dialog_message item usage.
     dialog_message name: Nice message, question: Open the door and press OK
     """
+
+    PARAMS = ParamSet(
+        Param("question", required=True,
+              doc="Message body shown to the user. Multi-line strings are supported."),
+        Param("auto_result", default=None,
+              doc="Outcome used in batch/non-interactive mode instead of waiting "
+                  "for the user. Truthy ⇒ SUCCESS, None ⇒ FAILURE."),
+    )
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_MESSAGE_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
