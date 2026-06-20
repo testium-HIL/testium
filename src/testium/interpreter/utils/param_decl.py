@@ -85,6 +85,16 @@ class Param:
         default was set (used to distinguish "absent" from "None").
     doc : str
         Free-form description used for hover / generated documentation.
+    type : Optional[str | tuple]
+        JSON Schema ``type`` of the literal value (``"string"``,
+        ``"integer"``, ``"number"``, ``"boolean"``, ``"array"``,
+        ``"object"``, or a tuple for a union). ``None`` (the default)
+        means "no type constraint" — the value may be a literal of any
+        type or a testium expression. Most params should leave this
+        unset because expressions (``$(...)`` / ``<| ... |>``) appear as
+        strings; set it only when the schema-level constraint is
+        meaningful even after expression expansion is considered out of
+        scope.
     validate : Optional[Callable[[Any], bool]]
         Optional post-expansion validator, evaluated at ``execute()``
         time on the effective (expanded) value. Returning ``False``
@@ -95,13 +105,14 @@ class Param:
     required: bool = False
     default: Any = _MISSING
     doc: str = ""
+    type: Optional[Union[str, tuple]] = None
     validate: Optional[Callable[[Any], bool]] = None
 
     def has_default(self):
         return self.default is not _MISSING
 
     def to_schema(self):
-        """Return a dict suitable for JSON Schema generation."""
+        """Return a dict suitable for the legacy LSP dict format."""
         s = {"name": self.name, "required": self.required, "doc": self.doc}
         if isinstance(self.kind, Enum):
             s["kind"] = "enum"
@@ -109,6 +120,29 @@ class Param:
         else:
             s["kind"] = self.kind
         if self.has_default():
+            s["default"] = self.default
+        return s
+
+    def to_jsonschema(self):
+        """Return a JSON Schema property descriptor for this param.
+
+        Maps ``kind`` to JSON Schema shape, ``Enum`` to ``enum``, and
+        attaches the literal ``type`` when set. Permissive by default
+        (no type constraint) because most parameter values are testium
+        expressions whose effective type is only known after expansion.
+        """
+        s = {}
+        if self.doc:
+            s["description"] = self.doc
+        if isinstance(self.kind, Enum):
+            s["enum"] = list(self.kind.values)
+        elif self.kind == LIST:
+            s["type"] = "array"
+        elif self.kind == BLOCK:
+            s["type"] = "object"
+        elif self.type is not None:
+            s["type"] = list(self.type) if isinstance(self.type, tuple) else self.type
+        if self.has_default() and self.default is not None:
             s["default"] = self.default
         return s
 

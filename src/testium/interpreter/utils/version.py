@@ -74,26 +74,77 @@ def get_version(path :str)-> str:
     else:
         return "Warning git not supported in your settings, version of {} unknown".format(path)
 
+def get_testium_release_version():
+    """Return the bare release version (no git rev, no channel suffix).
+
+    Used wherever a stable, machine-friendly version is needed — e.g.
+    the JSON Schema ``$id``. Resolves in order:
+
+    1. ``TESTIUM_VERSION`` env (Flatpak / AppImage launchers).
+    2. ``sys._MEIPASS/VERSION`` (PyInstaller frozen).
+    3. ``VERSION`` at the source tree root (matches pyproject's dynamic
+       version).
+    4. ``importlib.metadata.version("testium")`` (pip-installed wheel).
+
+    Safe to call before ``prefs.settings`` is initialised.
+    """
+    if os.path.isfile('/.flatpak-info') or 'APPIMAGE' in os.environ:
+        ver = os.environ.get('TESTIUM_VERSION', '').strip()
+        if ver:
+            return ver
+
+    if getattr(sys, 'frozen', False):
+        try:
+            with open(os.path.join(sys._MEIPASS, "VERSION")) as f:
+                ver = f.read().strip()
+                if ver:
+                    return ver
+        except OSError:
+            pass
+
+    # Source checkout: VERSION file next to the package, used by
+    # ``pyproject.toml`` for the dynamic ``version`` field.
+    pkg_root = os.path.dirname(  # src/
+        os.path.dirname(         # src/testium/
+            os.path.dirname(     # src/testium/interpreter/
+                os.path.dirname(os.path.abspath(__file__))  # .../utils/
+            )
+        )
+    )
+    try:
+        with open(os.path.join(pkg_root, "VERSION")) as f:
+            ver = f.read().strip()
+            if ver:
+                return ver
+    except OSError:
+        pass
+
+    # Pip-installed wheel: package metadata.
+    try:
+        from importlib.metadata import version as _pkg_version
+        from importlib.metadata import PackageNotFoundError
+        try:
+            return _pkg_version("testium")
+        except PackageNotFoundError:
+            pass
+    except ImportError:
+        pass
+
+    return "unknown"
+
+
 def get_testium_version():
     # Flatpak bundle
     if os.path.isfile('/.flatpak-info'):
-        ver = os.environ.get('TESTIUM_VERSION', '').strip()
-        return (ver if ver else 'unknown') + " (flatpak release)"
+        return get_testium_release_version() + " (flatpak release)"
 
     # AppImage
     if 'APPIMAGE' in os.environ:
-        ver = os.environ.get('TESTIUM_VERSION', '').strip()
-        return (ver if ver else 'unknown') + " (binary release)"
+        return get_testium_release_version() + " (binary release)"
 
     # PyInstaller frozen exe
     if getattr(sys, 'frozen', False):
-        file_path = os.path.join(sys._MEIPASS, "VERSION")
-        try:
-            with open(file_path, 'r') as f:
-                ver = f.read().strip()
-            return ver + " (binary release)"
-        except OSError:
-            return "unknown (binary release)"
+        return get_testium_release_version() + " (binary release)"
 
     # Source checkout: prefer git revision when available
     if prefs.settings.git_supported:
@@ -104,17 +155,10 @@ def get_testium_version():
             # Not a git repo (typical pip install): fall through.
             pass
 
-    # Pip-installed wheel: use the package metadata baked from VERSION
-    try:
-        from importlib.metadata import version as _pkg_version
-        from importlib.metadata import PackageNotFoundError
-        try:
-            return _pkg_version("testium") + " (wheel release)"
-        except PackageNotFoundError:
-            pass
-    except ImportError:
-        pass
-
+    # Pip-installed wheel
+    ver = get_testium_release_version()
+    if ver != "unknown":
+        return ver + " (wheel release)"
     return "unknown"
 
 def get_modifications(path : str)-> str:

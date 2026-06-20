@@ -29,8 +29,8 @@ def main():
     if len(sys.argv) >= 2 and sys.argv[1] in ("schema", "lsp"):
         sub = sys.argv[1]
         if sub == "schema":
-            from lsp.schema import dump_all_schemas_json
-            print(dump_all_schemas_json())
+            from lsp.schema import dump_jsonschema_json
+            print(dump_jsonschema_json())
             return
         # lsp
         try:

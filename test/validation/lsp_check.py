@@ -5,10 +5,10 @@ Given the channel's testium invocation as argv (e.g. ``flatpak run
 --command=testium org.testium.Testium``, a PyInstaller binary path, or
 ``python -m testium``), verify two things end-to-end against that exact build:
 
-  1. ``<cmd> schema`` produces valid JSON whose item registry still includes the
-     nested action sets (console/plot/json_rpc). This catches a frozen build
-     that lost the actions — the failure mode the declarative ``ACTIONS``
-     refactor fixed (no more ``inspect.getsource`` at runtime).
+  1. ``<cmd> schema`` produces a valid JSON Schema (draft 2020-12) whose
+     ``$defs`` still include the nested action sets
+     (``console_open``, ``plot_add``, ``json_rpc_query``…). This catches
+     a frozen build that lost the declarative ``ACTIONS`` registry.
   2. ``<cmd> lsp`` starts a real language server: it must answer an LSP
      ``initialize`` request with a capabilities result and must NOT report the
      pygls dependency as missing. This catches a channel that forgot to bundle
@@ -21,7 +21,11 @@ import json
 import subprocess
 import sys
 
-EXPECTED_ACTION_PARENTS = ("console", "plot", "json_rpc")
+EXPECTED_ACTIONS = {
+    "console": ("open", "close", "write", "writeln", "read_until"),
+    "plot": ("open", "close", "add", "export"),
+    "json_rpc": ("open", "close", "query", "receive"),
+}
 
 
 def fail(msg):
@@ -55,14 +59,23 @@ def check_schema(cmd):
         data = _extract_json(out.stdout)
     except json.JSONDecodeError as e:
         fail(f"`schema` output is not valid JSON: {e}")
-    items = data.get("items", {})
-    for parent in EXPECTED_ACTION_PARENTS:
-        actions = (items.get(parent) or {}).get("actions") or {}
-        if not actions:
-            fail(f"schema item '{parent}' has no actions — a frozen build lost "
-                 f"the declarative ACTIONS (item keys: {sorted(items)[:8]}…)")
-    print(f"LSP CHECK: schema OK ({len(items)} items; actions present for "
-          f"{', '.join(EXPECTED_ACTION_PARENTS)})")
+    defs = data.get("$defs", {})
+    if not defs:
+        fail(f"schema has no $defs — output is not a JSON Schema dump")
+    for parent, actions in EXPECTED_ACTIONS.items():
+        missing = [a for a in actions if f"{parent}_{a}" not in defs]
+        if missing:
+            fail(f"schema $defs missing actions for '{parent}': {missing} — a "
+                 f"frozen build lost the declarative ACTIONS (def keys: "
+                 f"{sorted(defs)[:8]}…)")
+    action_defs = {
+        f"{parent}_{action}"
+        for parent, actions in EXPECTED_ACTIONS.items() for action in actions
+    }
+    item_defs = [k for k in defs
+                 if not k.startswith("_") and k not in action_defs]
+    print(f"LSP CHECK: schema OK ({len(item_defs)} items; actions present for "
+          f"{', '.join(EXPECTED_ACTIONS)})")
 
 
 def check_lsp(cmd):

@@ -5,6 +5,9 @@ version 0.3.3
 - Reload no longer disables the test tree when checkboxes are off.
 - ``let`` / ``config_file``: prefer the bullet-list form (``- key: value``);
   the previous flat-mapping form still works.
+- ``testium schema`` now emits a standard JSON Schema (draft 2020-12)
+  describing valid ``.tum`` files. Usable by yaml-language-server,
+  external linters (ajv, check-jsonschema) and AI assistants.
 
 version 0.3.2
 ==============
