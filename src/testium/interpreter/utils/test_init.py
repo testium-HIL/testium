@@ -25,6 +25,7 @@ from interpreter.utils.version import (
 from interpreter.test_items.test_item import TestItem
 from interpreter.test_items.test_item_sleep import TestItemSleep
 from interpreter.test_items.test_item_unittest import TestItemUnittestFile
+from interpreter.test_items.test_item_pytest import TestItemPytestFile
 from interpreter.test_items.test_item_cycle import TestItemCycle
 from interpreter.test_items.test_item_runtime_plot import TestItemPlot
 from interpreter.test_items.test_item_group import TestItemGroup
@@ -69,6 +70,7 @@ def _constants_init():
     cst.TYPE_RUN.item_class = TestItemRun
     cst.TYPE_SLEEP.item_class = TestItemSleep
     cst.TYPE_UNITTEST.item_class = TestItemUnittestFile
+    cst.TYPE_PYTEST.item_class = TestItemPytestFile
     cst.TYPE_VALUE_DLG.item_class = TestItemValueDialog
     cst.TYPE_PARALLEL.item_class = TestItemParallel
     cst.TYPE_PARALLEL_BRANCH.item_class = TestItemParallelBranch

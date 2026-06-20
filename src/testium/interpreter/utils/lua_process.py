@@ -1,14 +1,13 @@
 import os
 import sys
 import subprocess
-import socket
 
 import api.testium as tm
 from runtime.jrpc import JsonRpcClient
-from interpreter.utils.paths import subproc_path
+from interpreter.utils.paths import subproc_path, no_window_kwargs
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils import bins
-from interpreter.utils.proc_drain import drain_to_log
+from interpreter.utils.proc_drain import drain_and_read_port, wait_for_port
 
 
 class LuaProcessBase:
@@ -79,12 +78,7 @@ class LuaProcessBase:
                 else:
                     env[k] = e + ";" + env.get(k, "")
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("localhost", 0))
-        self._port = sock.getsockname()[1]
-        sock.close()
-
-        # POpen params
+        # POpen params (port 0 -> the Lua server picks a free port and reports it)
         cmd_args = [
             "main.lua",
             "--timeout",
@@ -92,7 +86,7 @@ class LuaProcessBase:
             "--host",
             "127.0.0.1",
             "--port",
-            f"{self._port}",
+            "0",
         ]
 
         if tm.debug_enabled() and tm.gd("debug_rpc", False):
@@ -120,12 +114,19 @@ class LuaProcessBase:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             restore_signals=False,
+            **no_window_kwargs(),
             **popen_kwargs,
         )
-        # Route subprocess stdout/stderr (lua require failures, syntax
-        # errors, anything written to fd 1/2 before the in-script
-        # remote_print is set up) into the parent's log.
-        drain_to_log(self._process, prefix="[lua_func] ")
+        # Forward subprocess output to the log and read the startup port sentinel.
+        holder = drain_and_read_port(self._process, prefix="[lua_func] ")
+        self._port = wait_for_port(
+            self._process, holder, tm.gd("proc_start_timeout", 30)
+        )
+        if self._port is None:
+            # Worker died before announcing its port: reset so a later start() retries clean.
+            self.stop()
+            self.join()
+            return
 
         self._rpc = JsonRpcClient(
             "localhost", self._port, req_handler=self._req_handler

@@ -11,7 +11,11 @@ finish-args:
   - --share=ipc
   - --socket=fallback-x11
   - --socket=wayland
-  - --device=dri
+  # Expose all host devices to the sandbox. testium is a hardware-in-the-loop
+  # test tool: the console item must reach serial adapters (/dev/ttyUSB*,
+  # /dev/ttyACM*, …) which are otherwise invisible in the sandbox. --device=all
+  # also covers the GPU (supersedes --device=dri).
+  - --device=all
   - --share=network
   - --filesystem=home
   - --filesystem=/tmp

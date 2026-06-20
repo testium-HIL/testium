@@ -1,0 +1,11 @@
+main:
+  name: root
+  steps:
+    # Two items wrongly packed under a single '-' marker (a frequent indent
+    # mistake): the second key belongs one '-' lower.
+    - sleep:
+        name: s
+        timeout: 0
+      group:
+        name: g
+        steps: []

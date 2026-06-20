@@ -56,16 +56,15 @@ function handle.func_call(params)
     if err == nil then
         print(string.format("Function executed from '%s'", pfile))
         utils.log("func_call function found '%s', '%s'", file, fname)
+        -- manage tuple output of a lua function
         err_res = {pcall(func, unpack(prms))}
-        utils.log("func_call returned '%s', '%s'", tostring(succ), tostring(ret))
-
-        -- manage tuple ouput of a lua function
-        succ =  table.remove(err_res, 1)
+        succ = table.remove(err_res, 1)
         if #err_res > 1 then
             ret = err_res
         else
             ret = unpack(err_res)
         end
+        utils.log("func_call returned '%s', '%s'", tostring(succ), tostring(ret))
 
         if succ then
             res = ret

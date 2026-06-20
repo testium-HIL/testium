@@ -21,7 +21,8 @@ class TestItemGit(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_GIT
         self.is_container = False
-        self.repo = self._prms.getParamAll('repo',  processed=True, required=True)
+        # Kept raw: each repo entry is expanded at run time in execute().
+        self.repo = self._prms.getParamAll('repo', required=True)
 
     @test_run
     def execute(self):

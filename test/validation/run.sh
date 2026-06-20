@@ -3,10 +3,14 @@
 # testium (source, wheel, pyinstaller, flatpak, appimage).
 #
 # Usage:
-#   ./test/validation/run.sh [clean] [--mode MODE] [extra testium args]
+#   ./test/validation/run.sh [clean] [--mode MODE] [--gui] [extra testium args]
 #
 #   clean           remove the validation venv before recreating it
 #                   (must be the first argument; useful after a Python upgrade)
+#
+#   --gui           open the GUI with the suite loaded instead of running in
+#                   batch; run it manually from the window, which stays open
+#                   (handy to inspect the tree, try the Ctrl+F search, ...)
 #
 #   --mode MODE     which testium build to validate. One of:
 #                       source       (default) src/testium via project run.sh
@@ -21,7 +25,7 @@
 # even Flatpak reaches it via flatpak-spawn --host. The validation venv
 # is created with --system-site-packages so existing system packages
 # (PySide6, lxml, ...) stay visible, then junit-xml is pip-installed
-# for post_execution.py.
+# for post_execution.py and pytest for the `pytest` item.
 #
 # The report file is suffixed with the mode (e.g. validation-flatpak.sqlite)
 # so consecutive runs in different modes don't overwrite each other.
@@ -45,6 +49,8 @@ else
 fi
 
 EXTRA=()
+RUN_FLAGS=(-b)            # batch by default; --gui opens the GUI and stays open
+GUI=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --mode)
@@ -54,6 +60,11 @@ while [ $# -gt 0 ]; do
         --mode=*)
             MODE="${1#--mode=}"
             shift
+            ;;
+        --gui)
+            GUI=1
+            RUN_FLAGS=()     # no -b: launch the GUI with the suite loaded,
+            shift            # run it manually; the window does not auto-close
             ;;
         *)
             EXTRA+=("$1")
@@ -73,7 +84,7 @@ if [ ! -d "$VENV_DIR" ]; then
     echo "Creating validation venv at $VENV_DIR"
     python3 -m venv --system-site-packages "$VENV_DIR"
     "$VENV_DIR/bin/pip" install --quiet --upgrade pip
-    "$VENV_DIR/bin/pip" install --quiet junit-xml
+    "$VENV_DIR/bin/pip" install --quiet junit-xml pytest
 fi
 VENV_PYTHON="$VENV_DIR/bin/python3"
 
@@ -147,7 +158,17 @@ echo "-- launch: ${CMD[*]}"
 echo "-- LSP check ($MODE)"
 "$VENV_PYTHON" "$SCRIPT_DIR/lsp_check.py" "${CMD[@]}"
 
-exec "${CMD[@]}" -b \
+# ---------- load-error check (this exact channel) -----------------------------
+# Deliberately broken .tum files must fail to load with a specific, located
+# message (not a raw traceback): guards the load-time error handling.
+echo "-- load-error check ($MODE)"
+"$VENV_PYTHON" "$SCRIPT_DIR/load_errors_check.py" "${CMD[@]}"
+
+if [ "$GUI" -eq 1 ]; then
+    echo "-- GUI mode: the suite is loaded; press Start to run. Window stays open."
+fi
+
+exec "${CMD[@]}" "${RUN_FLAGS[@]}" \
     -d "python_bin=$VENV_PYTHON" \
     -d "validation_report_file=validation-$MODE" \
     -- "$SCRIPT_DIR/main.tum" "${EXTRA[@]}"

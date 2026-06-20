@@ -1,3 +1,64 @@
+version 0.3.3
+==============
+- console ``read_until``: ``timeout`` accepts fractional seconds.
+- Lua functions returning several values: extra returns kept as a list.
+- Reload no longer disables the test tree when checkboxes are off.
+- ``let`` / ``config_file``: list-of-mappings syntax in doc and tests.
+
+version 0.3.2
+==============
+- The variables window (F1) now has a filter box: type to show only the
+  variables whose name matches. Tick "values" to also match on the value.
+- The ``run`` item now captures the output of the test it launches into your
+  log and report (it used to go only to the terminal and was lost from the
+  report). New ``batch: true`` option runs that test headless (and captured)
+  even when testium is in the GUI.
+- The captured output of a ``run`` step can be saved with ``store_result`` and
+  inspected afterwards (for example with ``expected_result`` or a ``py_func``).
+- "Show Results" now opens the log on Flatpak (it used to do nothing) and can
+  be used while a test is running, not only after it finishes.
+- Other places that open a file now work on Flatpak too: clicking a file path
+  in the log output, and the "open location" button in the variables (F1) window.
+- Double-clicking a test item to open the log now uses an editor of your choice:
+  a new preference holds the command (default ``code -g {file}:{line}``); set it
+  to your editor (for example ``kate -l {line} {file}``). Works on Flatpak too.
+
+version 0.3.1
+==============
+- Clearer errors when a test file fails to load. The message now names the
+  exact file and item and explains the problem (unknown item or action, a
+  step holding two items, a missing ``steps:`` list, a misplaced value, ...)
+  and lists the valid names, instead of a cryptic failure. A problem inside
+  an ``!include``-d file points to that file.
+
+version 0.3
+==============
+- New ``pytest`` test item: run your pytest files as a test step; each
+  test shows up with its own PASS / FAIL / SKIP. Requires pytest to be
+  installed (``pip install pytest``).
+- Search the test tree in the GUI (Ctrl+F): find items by name, type or
+  doc; matches are highlighted and you can step through them.
+- console ``read_until`` can now wait for several possible texts at once
+  (it matches the first one seen), and a ``regex: true`` option lets you
+  match with a regular expression.
+- Serial console: a clear message when the device is missing, and serial
+  ports now work in the Flatpak version.
+- If a test file cannot be loaded (for example pytest is not installed),
+  only that step fails — the rest of the tests still run.
+- Fix: a variable (``$(...)``) used in a console ``telnet_port`` is now
+  correctly substituted.
+
+version 0.2.3
+=============
+- Windows version now working reliably. Fix of a problem of jrpc ports
+  handshakes between the py and lua processes and testium.
+  Beneficial to linux version too.
+- Windows: UTF-8 console output and a self-sufficient validation
+  wrapper (run.bat).
+- Resolved python_bin / lua_bin are now published into the global dict,
+  so test scripts can read them via $(python_bin) / $(lua_bin).
+- Windows: new per-user installer (no admin).
+
 version 0.2.2
 ==============
 - Flatpak sandbox issue fixed for term console. Now a term console is

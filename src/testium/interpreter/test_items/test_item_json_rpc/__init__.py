@@ -196,11 +196,11 @@ class TestItemJSON_RPC(TestItemActions):
 
     PARAMS = ParamSet(
         Param("console", kind=BLOCK,
-              doc="Console-transport block: {console_name, …}. Either 'console' "
-                  "or 'udp' must be set."),
+              doc="Console-transport block: {name, …} (name = console_name of an "
+                  "open console). Either 'console' or 'udp' must be set."),
         Param("udp", kind=BLOCK,
-              doc="UDP-transport block: {host, port, …}. Either 'console' or "
-                  "'udp' must be set."),
+              doc="UDP-transport block: {server, snd_port, rcv_port, …}. Either "
+                  "'console' or 'udp' must be set."),
         Param("version", default="1.0",
               doc="JSON-RPC protocol version ('1.0' or '2.0')."),
         Param("timeout", required=True,

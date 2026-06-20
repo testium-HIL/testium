@@ -97,6 +97,15 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 - For the live stream (terminal in batch / GUI panel), prefixes every line emitted from a branch's thread with `[<branch_name>] ` so concurrent branches stay readable.
 - Exposes `write` / `writeln` / `flush` (Python 3.14's `unittest` calls `stream.writeln()` directly without `_WritelnDecorator`).
 
+### Subprocess RPC startup handshake (py_func / lua_func / eval_proc)
+
+The parent ↔ subprocess JSON-RPC link runs over a localhost TCP socket. The **subprocess** owns the port: it binds `port 0` (OS-assigned), `listen()`s, then prints `__TESTIUM_RPC_PORT__=<port>` on stdout (constant `RPC_PORT_SENTINEL` in `runtime/jrpc.py`). The parent reads that line (`proc_drain.drain_and_read_port` + `wait_for_port`, deadline `gd("proc_start_timeout", 30)`) and only *then* connects — the server is guaranteed to be listening, so the connect succeeds on the first attempt.
+
+This replaced the previous fragile scheme (parent reserved a port via `bind(0)`+close, child re-bound the same port, parent connected on a timing guess) which broke intermittently on Windows: cold-start/antivirus variance pushed the worker past the connect deadline, and `connect()` to a not-yet-listening localhost port *times out* (≈1 s) instead of refusing, exhausting the retry budget. Notes:
+- The server no longer sets `SO_REUSEADDR` (a fresh ephemeral port needs no TIME_WAIT override; on Windows it would enable port hijacking).
+- `JsonRpcBase.wait_ready()` always settles (event set on success **and** failure) and returns the actual connection outcome — a connect failure no longer hangs a `wait_ready()` caller.
+- Non-sentinel subprocess stdout/stderr is still forwarded to the parent log (early-startup errors stay visible).
+
 ### Subprocess API contract (py_func / lua_func)
 
 User test scripts running inside a `py_func` or `lua_func` subprocess **must** use the JSON-RPC bridge to interact with testium state:
@@ -115,7 +124,7 @@ To add a new API call usable from subprocesses:
 `src/testium/interpreter/utils/bins.py` — single source of truth for the paths to the external Python and Lua interpreters used by subprocesses.
 
 - `python_bin()` / `lua_bin()` : resolve and cache. The cache is keyed by `(name, override)` so that a later change to `gd[python_bin]` (typically when a `param.yaml` sets the key) triggers a re-resolution on the next lookup instead of returning the stale auto-discovered path. Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
-- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key.
+- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key. Also **publishes** each resolved path into gd (`python_bin` / `lua_bin`) when the key is unset, so test scripts can reference `$(python_bin)` / `$(lua_bin)` regardless of launch mode (e.g. GUI, where no `-d` override is passed). A user-provided value is never overwritten.
 
 Engines (`PyProcessBase`, `LuaProcessBase`, `EvalExecEngine`) call `bins.python_bin()`/`bins.lua_bin()` themselves — call sites never pass an explicit binary path.
 
@@ -185,14 +194,35 @@ pyside6-rcc testium_core_win.qrc -o testium_core_win_rc.py
 
 Icons are assigned once when the test file is loaded (not updated live on theme change — a file reload is required).
 
+## Test-tree search (GUI)
+
+A find bar (Ctrl+F) over the `QTestTree` (`src/testium/main_win/test_tree.py`) highlights matching items and navigates them (Enter / ◂ ▸), with **Name / Type / Doc** checkboxes choosing which fields are searched. Ctrl+F toggles the bar (clearing the highlight); Esc / ✕ close it. The bar (`MainWindow._build_search_bar`, `testium_win.py`) is persistent and reset on each file load (`_reset_search`, called from `test_file_manager`).
+
+- `QTestTree.search(text, fields)` / `clear_search()` run a **single pass wrapped in `blockSignals(True)`**: `setBackground` emits `itemChanged`, wired to `on_testChecked` (a per-item controller round-trip) — without blocking, searching storms the controller (100 % CPU / freeze) and corrupts the check-state. It expands the ancestors of each match and returns matches in **visual (pre-order)** order for navigation.
+- `QTestTreeItem._refresh_highlight()` is the single source of truth for the name-column colours: the **search** highlight (pastel amber bg + forced black text, readable in light *and* dark themes) and the green **run** highlight (`setHighlighted`) are recomputed from state flags with precedence **run > search > default**. No brush is saved/restored, so the two layers never leave a stale/permanent colour when they overlap (e.g. searching while a test runs).
+
 ### `run` item
-`src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance (`-b` in batch mode, `-r` in GUI mode). Result:
+`src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance. Child mode: `-b` in batch, `-r` (own window) in the GUI, or forced `-b` by `batch: true`. A `-b` child is **captured** (launched `-o`, no colour): its stdout/stderr stream through `proc_drain.drain_to_log()` into this test's log/report, and the full text is kept as the result value, so `store_result` pushes it to the gdict and `expected_result`/`process_result`/a py_func can post-process it. Stop kills the child via the poll loop. Result:
 - **PASS** if the sub-instance launched and ran to completion (exit code is ignored)
 - **FAIL** if the file is not found, `wait_for_exec` is set without `start_time`/`end_time`, the time window was not reached, or any other launch error
 
 The sub-test's own pass/fail result is intentionally not propagated.
 
 The interpreter and entry point used to spawn the sub-instance are picked automatically by `_testium_launch_cmd()` based on how the parent was started (AppImage → `$APPIMAGE`; Flatpak → `flatpak run`; PyInstaller → the frozen binary; source/wheel → `[sys.executable, abspath(sys.argv[0])]`). The user cannot override either via the YAML — selecting a different testium binary or Python from a sub-test was removed because it was either ill-defined (bundle modes have no separable Python) or could mismatch the parent's environment in surprising ways.
+
+### `pytest` item
+`src/testium/interpreter/test_items/test_item_pytest.py` — the pytest analogue of the `unittest` item: runs a user pytest file and surfaces every collected test as a child item (one PASS/FAIL/SKIP per test, with duration + failure message in the report).
+
+Unlike `unittest` (which runs in-process), pytest runs in a **subprocess on the host interpreter** (`bins.python_bin()`), like `py_func`/`lua_func` — so the user's pytest install and test dependencies live on the host and the item works across every packaging channel (incl. Flatpak via the same staging used by `py_func`).
+
+- A stdlib-only pytest plugin (`_PLUGIN_SOURCE`, written to a temp dir and loaded with `-p`) streams sentinel-prefixed lines back over the subprocess stdout: `__TESTIUM_PYTEST_COLLECTED__` (node-id list, at collection), `__TESTIUM_PYTEST_START__` / `__TESTIUM_PYTEST_RESULT__` (per test). The parent parses them live; non-sentinel lines are forwarded to the log.
+- `load()` runs `pytest --collect-only` once to build the child tree; `execute()` runs the enabled node-ids once and maps results back by node-id.
+- pytest is invoked with `--capture=no` (so plugin sentinels + test prints reach our pipe), `-o addopts=` (neutralise user addopts — xdist/cov would break the per-test hook parsing), `-p no:cacheprovider`. `stop_on_failure` → `-x`; disabled children → NORUN without running.
+- Params: `test_file` (required), `test_method` (optional list of function names, matched against the node-id function segment with the parametrisation suffix stripped). Registered as `cst.TYPE_PYTEST` / `TYPE_PYTEST_STEP`, loaded via the same self-loading branch as `unittest` in `test_set.load_test_recursively`.
+- `load()` raises on a collection problem (pytest not installed → a dedicated "pip install pytest" message; bad file / unknown `test_method`). That raise is handled by the **Graceful item load** path below — a warning at load and a clean FAIL at run, never a crash.
+
+### Graceful item load
+A self-loading item whose `load()` fails (a `unittest` test file importing a missing module, `pytest` not installed on the host, …) must not abort the **whole** test load. `TestSet._load_item()` wraps the `load()` call: on any exception it emits `tm.print_warn(...)` and stores the reason in `item._load_error` instead of propagating. The `@test_run` wrapper (`test_item.py`) turns a non-None `_load_error` into a clean run-time `FAILURE` (the message is printed once by `write_footer`), so the rest of the campaign still loads and runs. Scoped to the self-loading, module-loading items (`unittest`, `pytest`); structural action loading (`console`/`plot`/`json_rpc`) stays fail-fast at load.
 
 ### Report exporters & plugins
 `src/testium/interpreter/test_report/test_report.py` — `_EXPORTER_REGISTRY` dict maps a format name (cmd key in the YAML `report.export`) to a lazy loader. Built-ins: `text`, `json`, `junit` (needs `junit_xml`), `html` (needs `lxml`). `sqlite` is the storage layer, no-op as an export.
@@ -217,7 +247,8 @@ Four distribution channels coexist, all sharing the single `src/testium/` packag
 | Channel | Where | Build | Notes |
 |---------|-------|-------|-------|
 | Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. |
-| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). |
+| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). Built windowed (`console=False`) with `package/testium.ico` as the exe icon — see "Windows frozen build". |
+| Windows installer | `package/innosetup/` | `build.ps1` (Inno Setup 6) | Wraps the PyInstaller exe. Per-user, **no admin** (`PrivilegesRequired=lowest`, installs under `%LOCALAPPDATA%`). Version-scoped `AppId` + install dir so versions coexist side-by-side; one Start Menu entry per version. |
 | Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |
 | AppImage | `package/appimage/` | `build.sh` (Debian Bookworm container via Podman/Docker) | Bundles Python 3.11 for the main process; `py_func` / `lua_func` MUST run under the **host** interpreter. Build runs in a container so it works on Arch / any non-Debian host. |
 
@@ -247,6 +278,19 @@ The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserv
 - User overrides (`python_bin`/`lua_bin` in globdict): in Flatpak, both bare names and absolute paths go through `_which()` so they are validated on the host side (the sandbox can't see e.g. `/scratch/...`). Outside Flatpak, absolute paths are accepted as-is and bare names go through PATH discovery.
 - If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
 - `py_process.py` additionally pops `PYTHONUSERBASE` (set to `/var/data/python` by the Flatpak runtime, which would hide `~/.local/lib/...`).
+
+### Windows frozen build: no console, hidden subprocess windows
+
+The PyInstaller exe is built **windowed** (`console=False` in `testium.spec`) so a
+double-click doesn't open a console. The catch: a windowed process has **no console
+to inherit**, so every console subprocess it spawns (the `py_func`/`lua_func` host
+Python bridges — the otherwise-permanent window — plus the `where`/`which`/`--version`
+probes) opens its **own** console window. `paths.no_window_kwargs()` returns
+`{"creationflags": CREATE_NO_WINDOW}` on a frozen Windows build (and `{}` everywhere
+else, so the **wheel/source** keeps its console and child output stays visible). It is
+applied at every spawn site: `py_process.py`, `lua_process.py`, `bins._run_probe`,
+`paths.sys_app_path_win`. `termconsole.py` is intentionally exempt (it already hides
+`cmd.exe` via `STARTUPINFO`).
 
 ### Declarative test item parameters
 
@@ -279,6 +323,14 @@ The `testium_assist` editor extension is a thin LSP client that spawns `testium 
 Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: launcher script in `org.testium.Testium.yaml`; AppImage: `runtime.env` in `AppImageBuilder.yml`). `get_testium_version()` checks `/.flatpak-info` / `APPIMAGE` and reads `TESTIUM_VERSION` rather than relying on package metadata or repo introspection.
 
 ## Recent fixes / notable changes
+- Open-log-at-line (GUI): double-click on a tree item opened the log via a hardcoded `code -g {file}:{line}` (broke in Flatpak where `code` is absent). Now driven by a configurable `editor_cmd` preference (placeholders `{file}`/`{line}`, default `code -g {file}:{line}`); the argv is built by `shlex.split` then per-token `.format` (paths with spaces stay one token), wrapped by `bins.host_console_command()` for Flatpak host-spawn, with a `host_open_path`/`openUrl` fallback (no line) when empty or failing. Settings/pref refactor alongside: `SettingsItem` carries its default (single source of truth), trivial getters/setters collapse to `_pref(item)` bindings, the pref window's `elements` dict becomes a `Field(key, type, widget)` table with a per-type `_FIELD` read/write bridge, and the four file-picker slots fold into `_pick_dir`/`_pick_file`. (Also fixed a latent default mismatch: `report_path` defaulted to `$(home)` in the property but `$(test_directory)` in the pref window; unified to `$(test_directory)`.)
+- Show Results (GUI): the toolbar action stays enabled during a run (the log grows live, so it is useful mid-test), not just after. In Flatpak `QDesktopServices.openUrl` routes through the OpenURI portal and often opens no editor for a `.log`; `bins.host_open_path()` now spawns `xdg-open` on the host via `flatpak-spawn --host` (returns False outside Flatpak so the caller falls back to `openUrl`).
+- Test-tree search (GUI): a Ctrl+F find bar highlights + navigates matching items, with Name/Type/Doc field checkboxes. Search modifications run under `blockSignals` (else `setBackground`→`itemChanged`→`on_testChecked` storms the controller), and the search/run highlights share one flag-driven `_refresh_highlight()` (run > search > default) so overlapping layers never leave a stale colour. See "## Test-tree search (GUI)".
+- `pytest` item: pytest analogue of `unittest`, but runs on the **host interpreter in a subprocess** (`bins.python_bin()`, like `py_func`) so it works across every packaging channel. A stdlib-only pytest plugin streams collected node-ids + per-test results back over stdout via sentinels; each test becomes a child item with its own PASS/FAIL/SKIP, duration and failure message. Params: `test_file`, `test_method`. Validation item: `test/validation/items/pytest/` (the validation venv now pip-installs `pytest`). See "### `pytest` item".
+- Graceful item load: a self-loading item that fails to load its module/file (e.g. a `unittest` test file importing a missing module, or `pytest` not installed on the host) no longer aborts the **whole** test load. `TestSet._load_item()` wraps the item's `load()`, emits a `tm.print_warn(...)` at load time and records the reason in `item._load_error`; the `@test_run` wrapper turns a non-None `_load_error` into a clean run-time `FAILURE` (message printed once via `write_footer`). The rest of the campaign loads and runs normally. Applies to module-loading items (`unittest`, `pytest`); structural action loading stays fail-fast.
+- `console` item — serial robustness + richer `read_until`: (1) a failed serial `open()` now raises a clear `ETUMRuntimeError` ("Serial device '…' does not exist." / permission hint) instead of dumping a pyserial traceback, and a console whose open failed is safely "not open" (init `_thd=None` + `isOpened` guards in `readchar`/`read_nowait`/`close`) so later reads no longer crash with `AttributeError: '_thd'`; the action handlers show a one-liner for expected (`ETUMRuntimeError`) errors and keep the full traceback for unexpected ones. (2) `read_until`'s `expected` now accepts a **list of values** (match any) and a new `regex: true` flag treats each pattern as a Python regex (`re.search` over a bounded tail — `Console.REGEX_WINDOW`; limitation: cost/memory bounded, so a match only after a very long stream or beyond the window won't fire). Flatpak manifest now grants `--device=all` so serial adapters (`/dev/ttyUSB*`, `/dev/ttyACM*`) are visible in the sandbox. Validation: new `read_until` list/regex cases in `test/validation/items/console/test.tum`.
+- Parameters are expanded at **run time**, never at load: control-flow flags (`stop_on_failure`/`execute_on_stop`) resolve via properties at run, `cycle` iterator / `git` repo / `tested_references` references and `console` `telnet_port` are no longer (incorrectly) expanded or left unexpanded at load. Justified load-time exceptions: `name`, `doc`, `skipped`, and `unittest`/`pytest` `test_method`.
+- Subprocess RPC startup handshake: the `py_func`/`lua_func`/`eval_proc` worker now picks its own port (`bind 0`), announces it on stdout (`__TESTIUM_RPC_PORT__=`), and the parent connects only after reading it. Fixes intermittent Windows `failed to connect : timeout` and the matching `wait_ready()` hang; removes the reserve/close/rebind race and `SO_REUSEADDR`. See "Subprocess RPC startup handshake".
 - `build_all.sh`: builds the four heavy channels in parallel (serial prep for the shared venv + wheel), results in completion order, Ctrl+C kills the whole job tree; `--ram` puts the build scratch on tmpfs (`/dev/shm`) + skips UPX for fast builds on USB/SD storage (Flatpak excluded — rofiles-fuse can't mount tmpfs). See the "Building all channels" section.
 - LSP across packaging channels: `testium lsp` (and the `testium_assist` editor extension that spawns it) now works from source, wheel, PyInstaller, Flatpak and AppImage. Two enablers — (1) action items declare a class-level `ACTIONS = {key: class}` registry (like `PARAMS`), so `lsp/schema.py` builds the full schema from class attributes with no `inspect.getsource`/AST (which broke under frozen PyInstaller); (2) the `[lsp]` extra (pygls) is wired into every full-app channel. `test/validation/lsp_check.py`, run by `run.sh` before the suite, asserts per-channel that `schema` keeps its actions and `lsp` answers `initialize`. See the matching architecture sections.
 - Declarative test item parameters (v0.2): each `TestItem` subclass exposes a `PARAMS = ParamSet(...)` class attribute consumed by the base `__init__`. Catches unknown YAML keys (typo warnings listing the accepted names) and missing required params (load-time errors with `.tum` context). Lays the schema foundation for a future LSP server and auto-generated manual sections. See the matching architecture section.
@@ -305,6 +357,8 @@ Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: lau
 - `batch.py`: `control("loaded")` deadlock on TestProcess crash — fix uses daemon thread + `threading.Event` + `is_alive()` polling.
 - `termlog.py`: light/dark terminal auto-detection (`COLORFGBG`, OSC 11) + write residue bug.
 - Dialog items: `auto_result`/`auto_value` for non-interactive text mode; dialogs without `auto_result` FAIL immediately in batch.
+- Stop propagation in engaged blocking steps. `console.read_until(..., should_stop=...)` polls in `STOP_POLL_INTERVAL` (0.2 s) chunks: `set_read_timeout(0.2)` posed once at start covers the two protocols (serial non-bufferised, rawtcp) whose `readchar` ignores its arg; other protocols use their `readchar(timeout)`. `JsonRpcClient.stop()` wakes all `pending["event"]` so `call()` raises `ConnectionAbortedError` instead of waiting on its 1 h default timeout. `PyProcessBase.stop()` / `LuaProcessBase.stop()` also `terminate()` the worker so user code stuck in sleep/IO is killed. `TestItemPyFunc`/`TestItemLuaFunc` override `stop()` to call `engine.stop() + join()`. `JrpcConsoleAdapter` and `JrpcUdpAdapter` accept `set_should_stop(cb)`, set by `TestItemJSRPCActionQuery`/`Receive`. Engaged leaf steps report FAILURE (not NORUN) on stop; container summaries keep NORUN. Bug fixed in passing: `test_item_sleep.py` no-dialog branch was silently SUCCESS on stop.
+- `lua_func/json-rpc.lua` `_handle_request`: nil return is no longer reported as an error. Discriminate on the 2nd pcall return (logical error from `handle.func_call`) instead of the 1st (the result value). Nil result encoded as `cjson.null` so `returned_value` stays present in the JSON-RPC response.
 - `run` item: renamed `tum_fime` → `tum`; removed `stdout=PIPE` deadlock; PASS on any completed subprocess.
 - `unittest` item: renamed from `unittest_file`.
 - GUI test tree: check and fold state preserved across same-file reloads.

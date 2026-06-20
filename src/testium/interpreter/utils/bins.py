@@ -25,7 +25,7 @@ import subprocess
 import tempfile
 
 import api.testium as tm
-from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win
+from interpreter.utils.paths import sys_app_path_lin, sys_app_path_win, no_window_kwargs
 from runtime.tum_except import ETUMRuntimeError
 
 
@@ -199,6 +199,23 @@ def host_console_command(shell_cmd, cwd):
     return ["flatpak-spawn", "--host", f"--directory={cwd}", *argv]
 
 
+def host_open_path(path):
+    """Open *path* with the host default application (Flatpak only).
+
+    QDesktopServices/openUrl routes through the OpenURI portal inside Flatpak,
+    which often fails to open a plain editor for a log file. Spawn xdg-open on
+    the host so the user's real default app is used. Returns True on dispatch;
+    False (incl. outside Flatpak) so the caller can fall back to openUrl.
+    """
+    if not _in_flatpak():
+        return False
+    try:
+        subprocess.Popen(["flatpak-spawn", "--host", "xdg-open", path])
+        return True
+    except (FileNotFoundError, PermissionError):
+        return False
+
+
 def _which_host_flatpak(name):
     """Resolve a binary name (or absolute path) on the host via flatpak-spawn.
 
@@ -272,6 +289,7 @@ def _run_probe(cmd):
         r = subprocess.run(
             cmd, capture_output=True, text=True,
             encoding=tm.sys_encoding(), timeout=10, env=_probe_env(),
+            **no_window_kwargs(),
         )
     except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
         return None
@@ -388,12 +406,16 @@ def ensure(*names):
     """
     missing = []
     for n in names:
-        if not _resolve(n):
-            display, gd_key, candidates, _ = _SPECS[n]
+        path = _resolve(n)
+        display, gd_key, candidates, _ = _SPECS[n]
+        if not path:
             missing.append(
                 f"  - {display}: tried {candidates} on PATH, none usable. "
                 f"Set '{gd_key}' in the YAML config to override."
             )
+        elif not tm.gd(gd_key):
+            # Publish resolved path so test scripts can use $(python_bin)/$(lua_bin).
+            tm.setgd(gd_key, path)
     if missing:
         raise ETUMRuntimeError(
             "Required external interpreter(s) not found:\n" + "\n".join(missing)

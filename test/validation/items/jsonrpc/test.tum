@@ -20,7 +20,7 @@
             console_name: jrpces
             key: $(test)_PASS
             steps:
-                - writeln: python3 {{include_directory}}/jrpc_echo_server.py -c {{include_directory}}/jrpces.ini
+                - writeln: '"$(python_bin)" {{include_directory}}/jrpc_echo_server.py -c {{include_directory}}/jrpces.ini'
                 - read_until: {expected: ready, timeout: 5}
 
         - console:

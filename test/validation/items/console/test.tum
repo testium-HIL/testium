@@ -116,6 +116,46 @@
         - read_until: {expected: console_host_check_HOST, timeout: 5}
 {% endif %}
 
+# --- read_until matching a list of values (succeeds on any) ---
+- console:
+    name: Console read_until list match any
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "list_marker_B"
+        - read_until: {expected: [list_marker_A, list_marker_B, list_marker_C], timeout: 5}
+
+- console:
+    name: Console read_until list no match
+    console_name: term
+    key: $(test)_FAIL
+    steps:
+        - read_until: {expected: [never_marker_A, never_marker_B], timeout: 1}
+
+# --- read_until with regular expressions ---
+- console:
+    name: Console read_until regex
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "regex_val_4242_end"
+        - read_until: {expected: 'regex_val_\d+_end', regex: true, timeout: 5}
+
+- console:
+    name: Console read_until regex list any
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - writeln: echo "STATUS=ready"
+        - read_until: {expected: ['ERR:.*', 'STATUS=(ready|busy)'], regex: true, timeout: 5}
+
+- console:
+    name: Console read_until regex no match
+    console_name: term
+    key: $(test)_FAIL
+    steps:
+        - read_until: {expected: 'never_\d{4}', regex: true, timeout: 1}
+
 - console:
     name: Console closure
     execute_on_stop: true

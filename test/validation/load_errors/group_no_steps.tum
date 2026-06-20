@@ -1,0 +1,6 @@
+main:
+  name: root
+  steps:
+    # A container item (group) without its mandatory 'steps:' list.
+    - group:
+        name: g

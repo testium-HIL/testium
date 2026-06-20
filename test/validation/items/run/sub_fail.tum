@@ -1,0 +1,7 @@
+main:
+    name: run sub-test (always fail)
+    steps:
+        - check:
+            name: fail
+            values:
+                - false

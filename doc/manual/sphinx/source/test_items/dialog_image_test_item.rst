@@ -20,6 +20,8 @@ Attributes
 
 * ``question``: Question to be displayed in the dialog box
 * ``filename``: File name of the image to be displayed in the dialog box.
+* ``auto_result``: Optional. Outcome used in batch / non-interactive mode.
+  If not set, the step fails.
 
 Feature
 ----------------------

@@ -51,11 +51,8 @@ class TestItemCycle(TestItem):
         self._niter = None
 
         if "iterator" in dict_cycle:
+            # Kept raw: expanded at run time in execute().
             self._iter = dict_cycle["iterator"]
-
-            if isinstance(self._iter, str):
-                self._iter = self._prms.expanse(self._iter)
-
         else:
             self._iter = None
 

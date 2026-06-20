@@ -11,6 +11,16 @@ sys.path.append(os.path.abspath(ourpath.parent))
 import interpreter.utils.constants as cst
 
 def main():
+    # Force UTF-8 on stdout/stderr so the runner's output survives a legacy
+    # console code page (Windows cp1252 can't encode box-drawing/accented
+    # chars). Only the stream encoders change; the locale default used for
+    # config files is untouched.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass  # no stdout (frozen GUI) or non-reconfigurable stream
+
     # Subcommand dispatch (must run *before* argparse so neither 'schema' nor
     # 'lsp' has to share the GUI/batch flag surface). The subcommands also
     # skip the multiprocessing 'spawn' setup which is only meaningful for the

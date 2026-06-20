@@ -4,7 +4,7 @@ import importlib
 import traceback
 
 import api.testium as tm
-from runtime.tum_except import ETUMSyntaxError
+from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from runtime.stdout_redirect import stdio_redir
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.item_actions import TestItemActions
@@ -88,7 +88,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             telnet_host = self._prms.getParam(
                 "telnet_host", required=True, processed=True
             )
-            telnet_port = self._prms.getParam("telnet_port", default=69)
+            telnet_port = self._prms.getParam("telnet_port", default=69, processed=True)
 
         elif self._protocol == "ssh":
             if tm.OS() == "Windows":
@@ -225,12 +225,16 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             tm.add_console(cons)
             cons.open()
             self.result.set(TestValue.SUCCESS)
+        except ETUMRuntimeError as e:
+            # Expected console error (device missing, no permission…): one line.
+            msg = "Impossible to open the console '{}': {}".format(cname, e._message)
+            self.result.set(result=TestValue.FAILURE, message=msg)
+            print(msg)
         except Exception as e:
+            # Unexpected error: keep the full traceback for diagnosis.
             self.result.set(
                 result=TestValue.FAILURE,
-                message="Impossible to open the console ({}) (exception: {})".format(
-                    cname, e
-                ),
+                message="Impossible to open the console '{}': {}".format(cname, e),
             )
             traceback.print_exception(*sys.exc_info())
 
@@ -319,12 +323,17 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
 
     PARAMS = ParamSet(
         Param("expected", required=True,
-              doc="Regex matched against incoming console output until found "
-                  "or until timeout."),
+              doc="Literal string — or a list of strings — matched against the "
+                  "incoming console output. The read succeeds as soon as one of "
+                  "them is seen, or fails on timeout."),
         Param("timeout", default=-1,
               doc="Seconds before giving up. Negative means infinite."),
         Param("mute", default=False,
               doc="If true, don't echo received bytes to testium's stdout/log."),
+        Param("regex", default=False,
+              doc="If true, each 'expected' entry is treated as a Python "
+                  "regular expression (searched, not anchored) instead of a "
+                  "literal string."),
     )
 
     def __init__(
@@ -343,16 +352,21 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
     @test_run
     def execute(self):
         cons = self.get_console()
-        ru = self._prms.expanse(self._read_until)
+        # 'expected' may be a single value or a list of values (match any).
+        if isinstance(self._read_until, (list, tuple)):
+            ru = [self._prms.expanse(m) for m in self._read_until]
+        else:
+            ru = self._prms.expanse(self._read_until)
         read_timeout = float(self._prms.getParam("timeout", default=-1, processed=True))
         mute = self._prms.getParam("mute", default=False, processed=True)
+        use_regex = self._prms.getParam("regex", default=False, processed=True)
         if read_timeout < 0:
             read_timeout = None
 
         try:
             status, data = cons.read_until(
                 ru, timeout=read_timeout, return_data=True, mute=mute,
-                should_stop=self.isStopped,
+                should_stop=self.isStopped, regex=bool(use_regex),
             )
             if status == 0:
                 self.result.set(TestValue.SUCCESS)
@@ -364,14 +378,21 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
                 )
             else:
                 self.result.set(result=TestValue.FAILURE, message="No matching text")
-            if mute:
-                self.result.reported = {"data": ""}
-            else:
-                self.result.reported = {"data": data}
+            reported = {"data": "" if mute else data}
+            # When several patterns were given, expose which one matched.
+            if status == 0 and isinstance(ru, (list, tuple)):
+                reported["matched"] = getattr(cons, "_matched", None)
+            self.result.reported = reported
             # The result is put in global dir
             tm.setgd("cn_" + self.parent()._name, data)
 
-        except:
+        except ETUMRuntimeError as e:
+            # Expected console error (e.g. console not open): clear one-liner.
+            msg = f"Console '{self.token['console_name']}': impossible to read ({e._message})"
+            self.result.set(result=TestValue.FAILURE, message=msg)
+            print(msg)
+        except Exception:
+            # Unexpected error: keep the full traceback for diagnosis.
             print(traceback.format_exc())
             self.result.set(
                 result=TestValue.FAILURE,

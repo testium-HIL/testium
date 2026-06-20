@@ -39,20 +39,36 @@ class TestItemActions(TestItem):
 
     def load(self):
         ret = {}
+        if self.dict_actions is None:
+            self.dict_actions = []
+        if not isinstance(self.dict_actions, (list, tuple)):
+            raise ETUMSyntaxError(
+                f"The '{self.cmd()}' test item named '{self.name()}' expects a "
+                f"list of actions under 'steps' but got "
+                f"{type(self.dict_actions).__name__} ({self.dict_actions!r}).",
+                self.seqFilename()
+            )
+        known_actions = ", ".join(sorted(self.action_classes.keys())) or "(none)"
         for action in self.dict_actions:
-            # Action should be only dict of length 1
-            if not isinstance(action, dict) or (not len(action) == 1):
+            # Each action must be a single-key mapping ``{action_name: {...}}``.
+            if not isinstance(action, dict) or len(action) != 1:
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' action should be only dict of length = 1.",
+                    f"The '{self.cmd()}' test item named '{self.name()}' has an "
+                    f"invalid action: each action must be a single-key mapping "
+                    f"('<action>: ...'), got {type(action).__name__} ({action!r}).",
                     self.seqFilename()
                 )
             action_name = list(action.keys())[0]
-            if not (action_name in self.action_classes.keys()):
+            if action_name not in self.action_classes:
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' has an unknown action '{action.keys()[0]}'.",
+                    f"The '{self.cmd()}' test item named '{self.name()}' has an "
+                    f"unknown action '{action_name}'.\n"
+                    f"Known actions: {known_actions}.",
                     self.seqFilename()
                 )
-
+            # NB: an action body is not necessarily a mapping — several actions
+            # accept a scalar shorthand (e.g. ``writeln: 'echo hi'``); the action
+            # class validates its own body. Pass it through untouched.
             item = (self.action_classes[action_name])(
                 action_name,
                 action[action_name],
