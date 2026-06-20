@@ -16,6 +16,7 @@ from interpreter.utils.test_init import (
     env_init,
     prepare_global,
     update_global,
+    apply_overrides,
     set_standard_gd_keys,
     test_run_init,
     test_run_header,
@@ -209,6 +210,19 @@ class TestProcess(Process):
                 test_dir = os.path.dirname(os.path.abspath(self.__fname))
 
                 env_init()
+
+                # Apply GUI defaults and CLI defines to the global dict
+                # *before* eval_proc starts: bins.python_bin() reads
+                # ``python_bin`` from gd on its very first call (during
+                # eval_process_init) and caches the result. Without this,
+                # ``-d python_bin=...`` and the GUI ``python_bin`` preference
+                # would only take effect for items spawned *after* the cache
+                # was already populated with the auto-discovered interpreter,
+                # i.e. they would silently be ignored for eval_proc itself.
+                # _load_initial_params re-applies the same overrides after
+                # ``prepare_global()`` clears gd, so the gd value stays in
+                # sync with the cached path.
+                apply_overrides(self.__defs, self.__gui_defaults)
 
                 # Creation of the python evaluation process for loading of the complete test
                 eval_proc = eval_process_init(api_request, 10, test_dir)

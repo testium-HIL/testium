@@ -1,0 +1,9 @@
+main:
+  name: root
+  steps:
+    - sleep:
+        name: ok
+        timeout: 0
+    # The structural error lives in the included file; the message must point
+    # the user at that file, not at this one.
+    - !include bad_include_inc.tum

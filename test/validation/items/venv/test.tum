@@ -1,0 +1,53 @@
+# venv test: assert that the dedicated validation venv is the python
+# being used for every test-execution subprocess (eval_proc / py_func /
+# cycle / ...). The venv path is pinned by ``-d python_bin=...`` in
+# test/validation/run.sh (or run.bat).
+#
+# We use ``abspath``/``normpath`` rather than ``realpath`` on purpose:
+# the venv's ``bin/python3`` is a symlink to the host python, so
+# realpath would map every venv interpreter to the same system path and
+# the comparison would silently pass even *without* a venv.
+# ``sys.prefix != sys.base_prefix`` is the venv-specific marker that
+# catches that case.
+
+- check:
+    name: python_bin is set in the global dict
+    key: $(test)_PASS
+    values:
+        - <| bool(r"$(python_bin)") |>
+
+- check:
+    name: eval_proc subprocess runs in the validation venv
+    key: $(test)_PASS
+    values:
+        - <| os.path.normpath(os.path.abspath(sys.executable)) == os.path.normpath(os.path.abspath(r"$(python_bin)")) |>
+
+- check:
+    name: eval_proc sys.prefix matches python_bin venv root
+    key: $(test)_PASS
+    values:
+        - <| os.path.normpath(os.path.abspath(sys.prefix)) == os.path.dirname(os.path.dirname(os.path.normpath(os.path.abspath(r"$(python_bin)")))) |>
+
+- check:
+    name: eval_proc is actually inside a venv (sys.prefix != sys.base_prefix)
+    key: $(test)_PASS
+    values:
+        - <| os.path.normpath(os.path.abspath(sys.prefix)) != os.path.normpath(os.path.abspath(sys.base_prefix)) |>
+
+- py_func:
+    name: py_func subprocess runs in the validation venv
+    key: $(test)_PASS
+    file: $(test_path)$(psep)verify_venv.py
+    func_name: check_sys_executable
+
+- py_func:
+    name: py_func sys.prefix matches python_bin venv root
+    key: $(test)_PASS
+    file: $(test_path)$(psep)verify_venv.py
+    func_name: check_sys_prefix_in_venv
+
+- py_func:
+    name: py_func is actually inside a venv
+    key: $(test)_PASS
+    file: $(test_path)$(psep)verify_venv.py
+    func_name: check_is_venv

@@ -7,12 +7,22 @@ import api.testium as tm
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 class TestItemSleep(TestItem):
     """sleep item usage.
     sleep timeout: 10
     """
+
+    PARAMS = ParamSet(
+        Param("timeout", required=True,
+              doc="Duration to sleep. Number of seconds, or a string "
+                  "like '1d 2h 30m 15s'."),
+        Param("dialog", default=False,
+              doc="If true, show a cancel dialog (GUI mode) or an interactive "
+                  "Ctrl+C-able countdown (text mode)."),
+    )
 
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_SLEEP.item_name

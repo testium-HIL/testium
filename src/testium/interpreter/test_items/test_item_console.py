@@ -4,12 +4,13 @@ import importlib
 import traceback
 
 import api.testium as tm
-from runtime.tum_except import ETUMSyntaxError
+from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from runtime.stdout_redirect import stdio_redir
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from interpreter.test_items.test_result import TestResult, TestValue
 
 
@@ -21,6 +22,38 @@ class TestItemConsoleAction(TestItemAction):
 
 
 class TestItemConsoleOpen(TestItemConsoleAction):
+
+    PARAMS = ParamSet(
+        Param("protocol", required=True,
+              doc="Transport: 'telnet', 'ssh', 'rawtcp', 'serial' or 'terminal'."),
+        Param("write_delay", default=0,
+              doc="Inter-character write delay in ms (slow devices)."),
+        Param("log", doc="Path to a log file capturing the console traffic."),
+        Param("overwrite_log", default=True,
+              doc="If true, truncate the log file at open; else append."),
+        # telnet
+        Param("telnet_host", doc="Hostname/IP for the telnet target."),
+        Param("telnet_port", default=69, doc="TCP port for telnet."),
+        # ssh
+        Param("ssh_host", doc="Hostname/IP for the SSH target."),
+        Param("ssh_user", doc="SSH login user."),
+        Param("ssh_pwd",  doc="SSH password (if key-based auth is not used)."),
+        # rawtcp
+        Param("tcp_host", doc="Hostname/IP for a raw-TCP connection."),
+        Param("tcp_port", doc="TCP port for a raw-TCP connection."),
+        # serial
+        Param("serial_port",     doc="Serial device path (e.g. /dev/ttyUSB0 or COM3)."),
+        Param("serial_baudrate", doc="Serial baudrate."),
+        Param("buffered", default=True,
+              doc="If true, the serial console buffers received bytes between reads."),
+        # terminal
+        Param("terminal_path",
+              doc="Working directory for the local terminal protocol."),
+        Param("shell",
+              doc="Shell command used for the local terminal protocol "
+                  "(default: 'cmd.exe' on Windows, '/usr/bin/env bash' elsewhere)."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -55,7 +88,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             telnet_host = self._prms.getParam(
                 "telnet_host", required=True, processed=True
             )
-            telnet_port = self._prms.getParam("telnet_port", default=69)
+            telnet_port = self._prms.getParam("telnet_port", default=69, processed=True)
 
         elif self._protocol == "ssh":
             if tm.OS() == "Windows":
@@ -192,12 +225,16 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             tm.add_console(cons)
             cons.open()
             self.result.set(TestValue.SUCCESS)
+        except ETUMRuntimeError as e:
+            # Expected console error (device missing, no permission…): one line.
+            msg = "Impossible to open the console '{}': {}".format(cname, e._message)
+            self.result.set(result=TestValue.FAILURE, message=msg)
+            print(msg)
         except Exception as e:
+            # Unexpected error: keep the full traceback for diagnosis.
             self.result.set(
                 result=TestValue.FAILURE,
-                message="Impossible to open the console ({}) (exception: {})".format(
-                    cname, e
-                ),
+                message="Impossible to open the console '{}': {}".format(cname, e),
             )
             traceback.print_exception(*sys.exc_info())
 
@@ -283,6 +320,22 @@ class TestItemConsoleWriteLn(TestItemConsoleAction):
 
 
 class TestItemConsoleReadUntil(TestItemConsoleAction):
+
+    PARAMS = ParamSet(
+        Param("expected", required=True,
+              doc="Literal string — or a list of strings — matched against the "
+                  "incoming console output. The read succeeds as soon as one of "
+                  "them is seen, or fails on timeout."),
+        Param("timeout", default=-1,
+              doc="Seconds before giving up. Negative means infinite."),
+        Param("mute", default=False,
+              doc="If true, don't echo received bytes to testium's stdout/log."),
+        Param("regex", default=False,
+              doc="If true, each 'expected' entry is treated as a Python "
+                  "regular expression (searched, not anchored) instead of a "
+                  "literal string."),
+    )
+
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
     ):
@@ -299,16 +352,21 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
     @test_run
     def execute(self):
         cons = self.get_console()
-        ru = self._prms.expanse(self._read_until)
+        # 'expected' may be a single value or a list of values (match any).
+        if isinstance(self._read_until, (list, tuple)):
+            ru = [self._prms.expanse(m) for m in self._read_until]
+        else:
+            ru = self._prms.expanse(self._read_until)
         read_timeout = int(self._prms.getParam("timeout", default=-1, processed=True))
         mute = self._prms.getParam("mute", default=False, processed=True)
+        use_regex = self._prms.getParam("regex", default=False, processed=True)
         if read_timeout < 0:
             read_timeout = None
 
         try:
             status, data = cons.read_until(
                 ru, timeout=read_timeout, return_data=True, mute=mute,
-                should_stop=self.isStopped,
+                should_stop=self.isStopped, regex=bool(use_regex),
             )
             if status == 0:
                 self.result.set(TestValue.SUCCESS)
@@ -320,14 +378,21 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
                 )
             else:
                 self.result.set(result=TestValue.FAILURE, message="No matching text")
-            if mute:
-                self.result.reported = {"data": ""}
-            else:
-                self.result.reported = {"data": data}
+            reported = {"data": "" if mute else data}
+            # When several patterns were given, expose which one matched.
+            if status == 0 and isinstance(ru, (list, tuple)):
+                reported["matched"] = getattr(cons, "_matched", None)
+            self.result.reported = reported
             # The result is put in global dir
             tm.setgd("cn_" + self.parent()._name, data)
 
-        except:
+        except ETUMRuntimeError as e:
+            # Expected console error (e.g. console not open): clear one-liner.
+            msg = f"Console '{self.token['console_name']}': impossible to read ({e._message})"
+            self.result.set(result=TestValue.FAILURE, message=msg)
+            print(msg)
+        except Exception:
+            # Unexpected error: keep the full traceback for diagnosis.
             print(traceback.format_exc())
             self.result.set(
                 result=TestValue.FAILURE,
@@ -336,18 +401,27 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
 
 
 class TestItemConsole(TestItemActions):
+
+    PARAMS = ParamSet(
+        Param("console_name", required=True,
+              doc="Identifier of the console — used by every nested action to "
+                  "reach back the same transport. Multiple consoles can coexist "
+                  "as long as their names differ."),
+    )
+
+    ACTIONS = {
+        "open": TestItemConsoleOpen,
+        "close": TestItemConsoleClose,
+        "write": TestItemConsoleWrite,
+        "writeln": TestItemConsoleWriteLn,
+        "read_until": TestItemConsoleReadUntil,
+    }
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(
             cst.TYPE_CONSOLE, dict_item, parent, status_queue, filename=filename
         )
 
-        self.register_actions(
-            open=TestItemConsoleOpen,
-            close=TestItemConsoleClose,
-            write=TestItemConsoleWrite,
-            writeln=TestItemConsoleWriteLn,
-            read_until=TestItemConsoleReadUntil,
-        )
         self.actions_token = {}
 
         global console

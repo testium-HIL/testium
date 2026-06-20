@@ -1,5 +1,7 @@
 import sys
 import os
+import shlex
+import subprocess
 import webbrowser
 from multiprocessing import Queue
 from threading import Thread
@@ -7,7 +9,7 @@ import shutil
 
 # Qt
 from PySide6 import QtGui
-from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QTextCursor
+from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QTextCursor, QKeySequence
 from PySide6.QtCore import Slot, QUrl, Qt, QTimer
 
 from PySide6.QtWidgets import (
@@ -16,6 +18,12 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QSizePolicy,
+    QWidget,
+    QHBoxLayout,
+    QLineEdit,
+    QCheckBox,
+    QLabel,
+    QToolButton,
 )
 
 ourPath = os.path.dirname(__file__)
@@ -34,9 +42,11 @@ from runtime.string_queue import StringQueue
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.icons import icon_prefix
+from interpreter.utils import bins
 
 from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
+from main_win import file_dialog
 import interpreter.utils.settings as prefs
 from runtime.stdout_redirect import stdio_redir
 import api.testium as tm
@@ -168,6 +178,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             activated=self.on_F1Pressed,
         )
 
+        self._search_matches = []
+        self._search_idx = 0
+        self._build_search_bar()
+        self.shortcut_find = QShortcut(
+            QKeySequence.Find, self, activated=self._toggle_search
+        )
+
         self.actionRefresh_test.setDisabled(True)
 
         # Signal connections
@@ -293,6 +310,135 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout.removeWidget(self.treeTests)
         del self.treeTests
         self.treeTests = None
+
+    # ---- test-tree search ---------------------------------------------------
+
+    def _build_search_bar(self):
+        """Find bar (Ctrl+F): highlight + navigate matches; Name/Type/Doc pick fields."""
+        self.searchBar = QWidget(self.widget)
+        lay = QHBoxLayout(self.searchBar)
+        lay.setContentsMargins(2, 2, 2, 2)
+        lay.setSpacing(4)
+
+        self.searchEdit = QLineEdit(self.searchBar)
+        self.searchEdit.setPlaceholderText("Search the test tree…")
+        self.searchEdit.setClearButtonEnabled(True)
+        lay.addWidget(self.searchEdit, 1)
+
+        self.cbSearchName = QCheckBox("Name", self.searchBar)
+        self.cbSearchType = QCheckBox("Type", self.searchBar)
+        self.cbSearchDoc = QCheckBox("Doc", self.searchBar)
+        for cb in (self.cbSearchName, self.cbSearchType, self.cbSearchDoc):
+            cb.setChecked(True)
+            cb.toggled.connect(self._do_search)
+            lay.addWidget(cb)
+
+        self.searchCount = QLabel("", self.searchBar)
+        lay.addWidget(self.searchCount)
+
+        self.searchPrev = QToolButton(self.searchBar)
+        self.searchPrev.setArrowType(Qt.UpArrow)
+        self.searchPrev.setToolTip("Previous match")
+        self.searchPrev.clicked.connect(self._search_prev)
+        lay.addWidget(self.searchPrev)
+
+        self.searchNext = QToolButton(self.searchBar)
+        self.searchNext.setArrowType(Qt.DownArrow)
+        self.searchNext.setToolTip("Next match (Enter)")
+        self.searchNext.clicked.connect(self._search_next)
+        lay.addWidget(self.searchNext)
+
+        self.searchClose = QToolButton(self.searchBar)
+        self.searchClose.setText("✕")
+        self.searchClose.setToolTip("Close (Esc)")
+        self.searchClose.clicked.connect(self._close_search)
+        lay.addWidget(self.searchClose)
+
+        self.searchEdit.textChanged.connect(self._do_search)
+        self.searchEdit.returnPressed.connect(self._search_next)
+        QShortcut(Qt.Key_Escape, self.searchEdit,
+                  context=Qt.WidgetShortcut, activated=self._close_search)
+
+        # Insert above the tree (index 0 is the control row from setupUi).
+        self.verticalLayout.insertWidget(1, self.searchBar)
+        self.searchBar.setVisible(False)
+
+    def _search_fields(self):
+        fields = set()
+        if self.cbSearchName.isChecked():
+            fields.add("name")
+        if self.cbSearchType.isChecked():
+            fields.add("type")
+        if self.cbSearchDoc.isChecked():
+            fields.add("doc")
+        return fields
+
+    def _toggle_search(self):
+        """Ctrl+F: open the find bar, or close it (clearing the highlight)."""
+        if self.searchBar.isVisible():
+            self._close_search()
+        else:
+            self._open_search()
+
+    def _open_search(self):
+        self.searchBar.setVisible(True)
+        self.searchEdit.setFocus()
+        self.searchEdit.selectAll()
+        if self.searchEdit.text():
+            self._do_search()
+
+    def _do_search(self):
+        if self.treeTests is None:
+            return
+        self._search_matches = self.treeTests.search(
+            self.searchEdit.text(), self._search_fields()
+        )
+        self._search_idx = 0
+        if self._search_matches:
+            self._goto_match(0)
+        else:
+            self._update_search_count()
+
+    def _update_search_count(self):
+        n = len(self._search_matches)
+        if n == 0:
+            self.searchCount.setText(
+                "0/0" if self.searchEdit.text().strip() else ""
+            )
+        else:
+            self.searchCount.setText("{}/{}".format(self._search_idx + 1, n))
+
+    def _goto_match(self, idx):
+        if not self._search_matches:
+            return
+        self._search_idx = idx % len(self._search_matches)
+        it = self._search_matches[self._search_idx]
+        self.treeTests.scrollToItem(it)
+        self.treeTests.setCurrentItem(it)
+        self._update_search_count()
+
+    def _search_next(self):
+        if self._search_matches:
+            self._goto_match(self._search_idx + 1)
+
+    def _search_prev(self):
+        if self._search_matches:
+            self._goto_match(self._search_idx - 1)
+
+    def _close_search(self):
+        if self.treeTests is not None:
+            self.treeTests.clear_search()
+            self.treeTests.setFocus()
+        self.searchBar.setVisible(False)
+        self._search_matches = []
+
+    def _reset_search(self):
+        """New test file loaded: drop stale matches and hide the bar."""
+        self._search_matches = []
+        self._search_idx = 0
+        if hasattr(self, "searchBar"):
+            self.searchBar.setVisible(False)
+            self.searchCount.setText("")
 
     def file_loaded_at_startup(self):
         modeSlider_value = prefs.settings.show_checkboxes
@@ -484,7 +630,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             initialPath = None
         fileName, _ = QFileDialog.getSaveFileName(
-            self, "Path to Log file", initialPath, "Log Files (*.log);;All Files (*)"
+            self, "Path to Log file", initialPath, "Log Files (*.log);;All Files (*)",
+            options=file_dialog.options(),
         )
         if fileName:
             shutil.copy(self.logFileName, fileName)
@@ -495,7 +642,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage(
             "Opening the logfile (" + s + "): " + self.logFileName, 100000
         )
-        QDesktopServices.openUrl(QUrl.fromLocalFile(self.logFileName))
+        if not bins.host_open_path(self.logFileName):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.logFileName))
 
     @Slot()
     def on_actionHelp_triggered(self):
@@ -525,7 +673,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             initialPath = None
         fileName, _ = QFileDialog.getSaveFileName(
-            self, "Path to log file", initialPath, "Log Files (*.log);;All Files (*)"
+            self, "Path to log file", initialPath, "Log Files (*.log);;All Files (*)",
+            options=file_dialog.options(),
         )
         if fileName:
             self.editLogFilePath.setText(fileName)
@@ -598,7 +747,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (self.logFileName is not None) and os.access(self.logFileName, os.R_OK):
             ln = tm.line_number("@@{}@@".format(item.timestamp()), self.logFileName)
             if ln > 0:
-                os.system("{} -g {}:{} &".format("code", self.logFileName, ln + 1))
+                self._open_in_editor(self.logFileName, ln + 1)
+
+    def _open_in_editor(self, path, line):
+        """Open path at line via the configured editor template ({file}/{line}).
+        Empty template or failure falls back to opening the file without line."""
+        tmpl = prefs.settings.editor_cmd
+        if tmpl:
+            try:
+                argv = [p.format(file=path, line=line) for p in shlex.split(tmpl)]
+                subprocess.Popen(bins.host_console_command(argv, os.path.dirname(path) or "."))
+                return
+            except (KeyError, ValueError, IndexError, OSError):
+                pass
+        if not bins.host_open_path(path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_spacePressed(self):
         item = self.treeTests.currentItem()
@@ -675,6 +838,24 @@ def MainWin(
     debug=False,
 ):
     app = QApplication(sys.argv)
+    # Application identity so desktop shells (GNOME, ...) show the testium
+    # icon in the task bar / dock instead of a generic one. On Wayland this
+    # sets the surface app_id; on X11/XWayland it sets WM_CLASS, so the window
+    # stops inheriting the launcher's class (e.g. "python3" under the AppImage,
+    # which is what GNOME was keying the wrong icon off) and the window icon
+    # below is used as the fallback. In Flatpak the id must be the Flatpak app
+    # id so it matches the installed desktop file.
+    app.setApplicationName("Testium")
+    app.setApplicationDisplayName("Testium")
+    app.setDesktopFileName(os.environ.get("FLATPAK_ID", "testium"))
+    app.setWindowIcon(QIcon(u":/black/testium_logo.png"))
+    # On native Wayland the task-bar icon comes from an installed desktop file
+    # matched to the app_id, not from setWindowIcon(). Flatpak ships its own;
+    # for the other Linux channels drop an idempotent one under ~/.local/share.
+    # Windows / macOS use the window icon set above, so this is Linux-only.
+    if sys.platform.startswith("linux") and not os.environ.get("FLATPAK_ID"):
+        from main_win.desktop_integration import ensure_desktop_entry
+        ensure_desktop_entry()
     ui = MainWindow(
         test_file,
         config_files,

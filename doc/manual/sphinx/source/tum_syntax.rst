@@ -232,6 +232,15 @@ list of the main test item (and eventually of the loop test item).
 TUM file ``main`` item is itself a variant of test items with a name and an
 step list attributes.
 
+.. note::
+
+   Each test item declares the parameters it accepts. When a ``.tum`` file
+   uses a key the item does not know, *testium* emits a warning listing the
+   accepted parameter names (catching typos such as ``param_filee`` for
+   ``param_file``); a missing **required** parameter aborts loading with an
+   error pointing at the source ``.tum`` file. Valid existing tests are
+   unaffected.
+
 
 
 .. toctree::
@@ -248,7 +257,6 @@ step list attributes.
    test_items/dialog_question_test_item.rst
    test_items/dialog_reference_test_item.rst
    test_items/dialog_value_test_item.rst
-   test_items/py_func_test_item.rst
    test_items/git_test_item.rst
    test_items/group_test_item.rst
    test_items/json-rpc_test_item.rst
@@ -257,6 +265,8 @@ step list attributes.
    test_items/lua_func_test_item.rst
    test_items/parallel_test_item.rst
    test_items/plot_test_item.rst
+   test_items/py_func_test_item.rst
+   test_items/pytest_test_item.rst
    test_items/report_test_item.rst
    test_items/run_test_item.rst
    test_items/sleep_test_item.rst

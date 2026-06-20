@@ -3,7 +3,7 @@
 -- =========================
 local config = {
     host = "0.0.0.0",
-    port = 9000,
+    port = 0,          -- 0 = OS-assigned; actual port is reported on stdout
     timeout = 60,
     verbose = false,
 }
@@ -75,6 +75,10 @@ end
 server_sock:listen(1)
 local ip, port = server_sock:getsockname()
 utils.log("listening on %s:%d for %.1f secs", ip, port, config.timeout)
+
+-- Announce the actual bound port so the parent connects only once we listen.
+io.stdout:write("__TESTIUM_RPC_PORT__=" .. port .. "\n")
+io.stdout:flush()
 
 server_sock:settimeout(config.timeout) -- Prevents hanging on dead connections
 

@@ -6,13 +6,14 @@ import subprocess
 import sys
 
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QHeaderView, QMenu, QMessageBox,
-    QPushButton, QTextEdit, QVBoxLayout,
+    QCheckBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLineEdit,
+    QMenu, QMessageBox, QPushButton, QTextEdit, QVBoxLayout,
 )
 from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QDesktopServices
 from PySide6.QtCore import Qt, QUrl, Slot
 
 from main_win.f1_win.f1_win_core import Ui_F1Dialog
+from interpreter.utils import bins
 
 
 class YamlHighlighter(QSyntaxHighlighter):
@@ -119,6 +120,43 @@ class DialogF1(QDialog):
         self.ui.addVarButton.setEnabled(False)
         self.ui.addVarButton.clicked.connect(self._on_add_var)
 
+        # Filter box above the table: hides rows whose name doesn't match.
+        # The optional "values" checkbox extends the match to the value column.
+        self._filter_text = ""
+        self._filter_edit = QLineEdit(self.ui.tabVariables)
+        self._filter_edit.setPlaceholderText("Filter variables by name")
+        self._filter_edit.setClearButtonEnabled(True)
+        self._filter_edit.textChanged.connect(self._on_filter_changed)
+        self._filter_values_cb = QCheckBox("values", self.ui.tabVariables)
+        self._filter_values_cb.setToolTip("Also match on the variable value")
+        self._filter_values_cb.toggled.connect(lambda _checked: self._apply_filter())
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(self._filter_edit)
+        filter_row.addWidget(self._filter_values_cb)
+        self.ui.verticalLayout_tab1.insertLayout(0, filter_row)
+
+    def _on_filter_changed(self, text):
+        self._filter_text = text.strip().lower()
+        self._apply_filter()
+
+    def _apply_filter(self):
+        for row in range(self.ui.varsTable.rowCount()):
+            self._apply_filter_row(row)
+
+    def _apply_filter_row(self, row):
+        needle = self._filter_text
+        if not needle:
+            self.ui.varsTable.setRowHidden(row, False)
+            return
+        table = self.ui.varsTable
+        key_item = table.item(row, 0)
+        hay = key_item.text().lower() if key_item else ""
+        if self._filter_values_cb.isChecked():
+            val_item = table.item(row, 1)
+            if val_item is not None:
+                hay += "\n" + val_item.text().lower()
+        table.setRowHidden(row, needle not in hay)
+
     def load_initial_vars(self, vars_dict: dict):
         for key, value in vars_dict.items():
             self.gd_var_updated(key, value)
@@ -149,6 +187,7 @@ class DialogF1(QDialog):
                 self._updating = False
             self._key_rows[key] = row
             self._refresh_row(row, key, value)
+        self._apply_filter_row(self._key_rows[key])
 
     @Slot(str)
     def gd_var_deleted(self, key):
@@ -161,6 +200,7 @@ class DialogF1(QDialog):
         finally:
             self._updating = False
         self._key_rows = {k: (r - 1 if r > row else r) for k, r in self._key_rows.items()}
+        self._apply_filter()
 
     def _refresh_row(self, row, key, value):
         from PySide6.QtWidgets import QTableWidgetItem
@@ -265,9 +305,11 @@ class DialogF1(QDialog):
 
     def on_butlocopen_click(self):
         file = self.ui.sequenceFileNameLineEdit.text()
-        if os.path.exists(file):
-            if sys.platform.startswith("win"):
-                subprocess.Popen(f'explorer "{file}"')
-            else:
-                subprocess.Popen(["xdg-open", file])
+        if not os.path.exists(file):
+            return
+        if bins.host_open_path(file):
+            return
+        if sys.platform.startswith("win"):
+            subprocess.Popen(f'explorer "{file}"')
+        else:
             QDesktopServices.openUrl(QUrl.fromLocalFile(file))

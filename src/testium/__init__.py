@@ -11,6 +11,40 @@ sys.path.append(os.path.abspath(ourpath.parent))
 import interpreter.utils.constants as cst
 
 def main():
+    # Force UTF-8 on stdout/stderr so the runner's output survives a legacy
+    # console code page (Windows cp1252 can't encode box-drawing/accented
+    # chars). Only the stream encoders change; the locale default used for
+    # config files is untouched.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass  # no stdout (frozen GUI) or non-reconfigurable stream
+
+    # Subcommand dispatch (must run *before* argparse so neither 'schema' nor
+    # 'lsp' has to share the GUI/batch flag surface). The subcommands also
+    # skip the multiprocessing 'spawn' setup which is only meaningful for the
+    # main runtime — schema is a pure stdout dump and lsp speaks JSON-RPC
+    # over stdio without ever forking a test process.
+    if len(sys.argv) >= 2 and sys.argv[1] in ("schema", "lsp"):
+        sub = sys.argv[1]
+        if sub == "schema":
+            from lsp.schema import dump_all_schemas_json
+            print(dump_all_schemas_json())
+            return
+        # lsp
+        try:
+            from lsp.server import serve
+        except ImportError as e:
+            print(
+                f"testium lsp: language server dependencies missing ({e.name}). "
+                "Install with: pip install 'testium[lsp]'",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        serve()
+        return
+
     # This line sets the method for the "Process" function. It is required for Linux
     # support of the test dialogs.
     multiprocessing.set_start_method('spawn')

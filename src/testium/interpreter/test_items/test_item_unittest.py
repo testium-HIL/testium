@@ -11,6 +11,7 @@ from interpreter.test_items.test_item import (TestItem, test_run, LOG_TEST_STOP,
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.test_items.test_item import test_data
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 from runtime.stdout_redirect import stdio_redir
 
 class UnittestResult(TextTestResult):
@@ -95,6 +96,15 @@ class TestItemUnittestElement(TestItem):
 
 
 class TestItemUnittestFile(TestItem):
+
+    PARAMS = ParamSet(
+        Param("test_file", required=True,
+              doc="Path to the Python unittest file (TestCase subclass)."),
+        Param("test_method", kind=LIST,
+              doc="Optional list of method names to restrict the run to. "
+                  "When empty, every test_* method in the file is run."),
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_UNITTEST.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

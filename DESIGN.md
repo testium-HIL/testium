@@ -97,6 +97,15 @@ All dialog items (`dialog_image`, `dialog_question`, `dialog_references`, `dialo
 - For the live stream (terminal in batch / GUI panel), prefixes every line emitted from a branch's thread with `[<branch_name>] ` so concurrent branches stay readable.
 - Exposes `write` / `writeln` / `flush` (Python 3.14's `unittest` calls `stream.writeln()` directly without `_WritelnDecorator`).
 
+### Subprocess RPC startup handshake (py_func / lua_func / eval_proc)
+
+The parent ↔ subprocess JSON-RPC link runs over a localhost TCP socket. The **subprocess** owns the port: it binds `port 0` (OS-assigned), `listen()`s, then prints `__TESTIUM_RPC_PORT__=<port>` on stdout (constant `RPC_PORT_SENTINEL` in `runtime/jrpc.py`). The parent reads that line (`proc_drain.drain_and_read_port` + `wait_for_port`, deadline `gd("proc_start_timeout", 30)`) and only *then* connects — the server is guaranteed to be listening, so the connect succeeds on the first attempt.
+
+This replaced the previous fragile scheme (parent reserved a port via `bind(0)`+close, child re-bound the same port, parent connected on a timing guess) which broke intermittently on Windows: cold-start/antivirus variance pushed the worker past the connect deadline, and `connect()` to a not-yet-listening localhost port *times out* (≈1 s) instead of refusing, exhausting the retry budget. Notes:
+- The server no longer sets `SO_REUSEADDR` (a fresh ephemeral port needs no TIME_WAIT override; on Windows it would enable port hijacking).
+- `JsonRpcBase.wait_ready()` always settles (event set on success **and** failure) and returns the actual connection outcome — a connect failure no longer hangs a `wait_ready()` caller.
+- Non-sentinel subprocess stdout/stderr is still forwarded to the parent log (early-startup errors stay visible).
+
 ### Subprocess API contract (py_func / lua_func)
 
 User test scripts running inside a `py_func` or `lua_func` subprocess **must** use the JSON-RPC bridge to interact with testium state:
@@ -114,10 +123,19 @@ To add a new API call usable from subprocesses:
 ### External interpreter resolution (`bins.py`)
 `src/testium/interpreter/utils/bins.py` — single source of truth for the paths to the external Python and Lua interpreters used by subprocesses.
 
-- `python_bin()` / `lua_bin()` : resolve once, cache in memory. User can override via the `python_bin` / `lua_bin` global dict keys (typically populated from the YAML config). Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
-- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key.
+- `python_bin()` / `lua_bin()` : resolve and cache. The cache is keyed by `(name, override)` so that a later change to `gd[python_bin]` (typically when a `param.yaml` sets the key) triggers a re-resolution on the next lookup instead of returning the stale auto-discovered path. Falls back to discovery on PATH (candidates: `python3`/`python` and `lua`/`lua5.5`/`lua5.4`/`lua5.3`/`lua5.2`/`lua5.1`).
+- `ensure(*names)` : called by `TestSet._validate_runtime_deps()` at test load. Always requires `python` (the eval engine always runs); requires `lua` only if a `lua_func` item is in the tree. Fails fast with a clear error citing tried candidates and override key. Also **publishes** each resolved path into gd (`python_bin` / `lua_bin`) when the key is unset, so test scripts can reference `$(python_bin)` / `$(lua_bin)` regardless of launch mode (e.g. GUI, where no `-d` override is passed). A user-provided value is never overwritten.
 
 Engines (`PyProcessBase`, `LuaProcessBase`, `EvalExecEngine`) call `bins.python_bin()`/`bins.lua_bin()` themselves — call sites never pass an explicit binary path.
+
+#### Override-timing contract (`apply_overrides`)
+`bins.python_bin()` is called for the **first** time inside `eval_process_init()` (the long-lived inline-`<| … |>` subprocess), which happens **before** the YAML param files are loaded. To make `-d python_bin=…` and the GUI `python_bin` preference take effect for `eval_proc` itself, `process.py:run()` applies them to gd **before** `eval_process_init()` via the `apply_overrides()` helper extracted from `update_global()`. The post-load `update_global()` call then re-applies the same overrides (after `prepare_global()` clears gd), keeping the gd value in sync with the cached resolution.
+
+| Override source | `eval_proc` | `py_func` / `cycle` / `post_exec` |
+|---|---|---|
+| `-d python_bin=…` (CLI) | ✅ | ✅ |
+| GUI `python_bin` preference | ✅ | ✅ |
+| `python_bin: …` in `param.yaml` | ❌ (eval_proc already started) | ✅ (cache re-resolves on key change) |
 
 ## Key files
 
@@ -176,14 +194,35 @@ pyside6-rcc testium_core_win.qrc -o testium_core_win_rc.py
 
 Icons are assigned once when the test file is loaded (not updated live on theme change — a file reload is required).
 
+## Test-tree search (GUI)
+
+A find bar (Ctrl+F) over the `QTestTree` (`src/testium/main_win/test_tree.py`) highlights matching items and navigates them (Enter / ◂ ▸), with **Name / Type / Doc** checkboxes choosing which fields are searched. Ctrl+F toggles the bar (clearing the highlight); Esc / ✕ close it. The bar (`MainWindow._build_search_bar`, `testium_win.py`) is persistent and reset on each file load (`_reset_search`, called from `test_file_manager`).
+
+- `QTestTree.search(text, fields)` / `clear_search()` run a **single pass wrapped in `blockSignals(True)`**: `setBackground` emits `itemChanged`, wired to `on_testChecked` (a per-item controller round-trip) — without blocking, searching storms the controller (100 % CPU / freeze) and corrupts the check-state. It expands the ancestors of each match and returns matches in **visual (pre-order)** order for navigation.
+- `QTestTreeItem._refresh_highlight()` is the single source of truth for the name-column colours: the **search** highlight (pastel amber bg + forced black text, readable in light *and* dark themes) and the green **run** highlight (`setHighlighted`) are recomputed from state flags with precedence **run > search > default**. No brush is saved/restored, so the two layers never leave a stale/permanent colour when they overlap (e.g. searching while a test runs).
+
 ### `run` item
-`src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance (`-b` in batch mode, `-r` in GUI mode). Result:
+`src/testium/interpreter/test_items/test_item_run.py` — launches a `.tum` file in a new testium instance. Child mode: `-b` in batch, `-r` (own window) in the GUI, or forced `-b` by `batch: true`. A `-b` child is **captured** (launched `-o`, no colour): its stdout/stderr stream through `proc_drain.drain_to_log()` into this test's log/report, and the full text is kept as the result value, so `store_result` pushes it to the gdict and `expected_result`/`process_result`/a py_func can post-process it. Stop kills the child via the poll loop. Result:
 - **PASS** if the sub-instance launched and ran to completion (exit code is ignored)
 - **FAIL** if the file is not found, `wait_for_exec` is set without `start_time`/`end_time`, the time window was not reached, or any other launch error
 
 The sub-test's own pass/fail result is intentionally not propagated.
 
 The interpreter and entry point used to spawn the sub-instance are picked automatically by `_testium_launch_cmd()` based on how the parent was started (AppImage → `$APPIMAGE`; Flatpak → `flatpak run`; PyInstaller → the frozen binary; source/wheel → `[sys.executable, abspath(sys.argv[0])]`). The user cannot override either via the YAML — selecting a different testium binary or Python from a sub-test was removed because it was either ill-defined (bundle modes have no separable Python) or could mismatch the parent's environment in surprising ways.
+
+### `pytest` item
+`src/testium/interpreter/test_items/test_item_pytest.py` — the pytest analogue of the `unittest` item: runs a user pytest file and surfaces every collected test as a child item (one PASS/FAIL/SKIP per test, with duration + failure message in the report).
+
+Unlike `unittest` (which runs in-process), pytest runs in a **subprocess on the host interpreter** (`bins.python_bin()`), like `py_func`/`lua_func` — so the user's pytest install and test dependencies live on the host and the item works across every packaging channel (incl. Flatpak via the same staging used by `py_func`).
+
+- A stdlib-only pytest plugin (`_PLUGIN_SOURCE`, written to a temp dir and loaded with `-p`) streams sentinel-prefixed lines back over the subprocess stdout: `__TESTIUM_PYTEST_COLLECTED__` (node-id list, at collection), `__TESTIUM_PYTEST_START__` / `__TESTIUM_PYTEST_RESULT__` (per test). The parent parses them live; non-sentinel lines are forwarded to the log.
+- `load()` runs `pytest --collect-only` once to build the child tree; `execute()` runs the enabled node-ids once and maps results back by node-id.
+- pytest is invoked with `--capture=no` (so plugin sentinels + test prints reach our pipe), `-o addopts=` (neutralise user addopts — xdist/cov would break the per-test hook parsing), `-p no:cacheprovider`. `stop_on_failure` → `-x`; disabled children → NORUN without running.
+- Params: `test_file` (required), `test_method` (optional list of function names, matched against the node-id function segment with the parametrisation suffix stripped). Registered as `cst.TYPE_PYTEST` / `TYPE_PYTEST_STEP`, loaded via the same self-loading branch as `unittest` in `test_set.load_test_recursively`.
+- `load()` raises on a collection problem (pytest not installed → a dedicated "pip install pytest" message; bad file / unknown `test_method`). That raise is handled by the **Graceful item load** path below — a warning at load and a clean FAIL at run, never a crash.
+
+### Graceful item load
+A self-loading item whose `load()` fails (a `unittest` test file importing a missing module, `pytest` not installed on the host, …) must not abort the **whole** test load. `TestSet._load_item()` wraps the `load()` call: on any exception it emits `tm.print_warn(...)` and stores the reason in `item._load_error` instead of propagating. The `@test_run` wrapper (`test_item.py`) turns a non-None `_load_error` into a clean run-time `FAILURE` (the message is printed once by `write_footer`), so the rest of the campaign still loads and runs. Scoped to the self-loading, module-loading items (`unittest`, `pytest`); structural action loading (`console`/`plot`/`json_rpc`) stays fail-fast at load.
 
 ### Report exporters & plugins
 `src/testium/interpreter/test_report/test_report.py` — `_EXPORTER_REGISTRY` dict maps a format name (cmd key in the YAML `report.export`) to a lazy loader. Built-ins: `text`, `json`, `junit` (needs `junit_xml`), `html` (needs `lxml`). `sqlite` is the storage layer, no-op as an export.
@@ -208,34 +247,95 @@ Four distribution channels coexist, all sharing the single `src/testium/` packag
 | Channel | Where | Build | Notes |
 |---------|-------|-------|-------|
 | Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. |
-| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). |
+| PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). Built windowed (`console=False`) with `package/testium.ico` as the exe icon — see "Windows frozen build". |
+| Windows installer | `package/innosetup/` | `build.ps1` (Inno Setup 6) | Wraps the PyInstaller exe. Per-user, **no admin** (`PrivilegesRequired=lowest`, installs under `%LOCALAPPDATA%`). Version-scoped `AppId` + install dir so versions coexist side-by-side; one Start Menu entry per version. |
 | Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |
 | AppImage | `package/appimage/` | `build.sh` (Debian Bookworm container via Podman/Docker) | Bundles Python 3.11 for the main process; `py_func` / `lua_func` MUST run under the **host** interpreter. Build runs in a container so it works on Arch / any non-Debian host. |
 
 The `.deb` work-in-progress lives in `package/deb/`:
 - `test_distro.sh debian:bookworm | debian:trixie | ubuntu:24.04` spins up a Docker/Podman container, reports system package availability, falls back to pip for what's missing (`pyside6` on bookworm/ubuntu, `telnetlib3`, `junit_xml`), runs the validation suite. Currently green on the three targets.
 
+### Building all channels (`build_all.sh`)
+
+`build_all.sh` builds every artifact into `dist/` (manual PDF, wheel, PyInstaller binary, Flatpak bundle, AppImage). It reuses `scripts/build_env.sh` + `set_env.sh` so the venv at `test/tmp/.venv` stays the single source of Python deps; `build`/`pyinstaller`/`sphinx`/`linuxdoc` (and `pygls`, via the `[lsp]` extra) are installed there on demand. A step is skipped if its artifact already exists; `--clean` forces a rebuild.
+
+- **Parallelism (default).** A serial *prep* phase does everything that writes the shared venv (the `pip install`s) plus the Flatpak runtime install and the wheel (the AppImage installs it). Then manual + PyInstaller + Flatpak + AppImage build concurrently — they only *read* the venv, so there is no concurrent-pip race. Per-step output goes to `dist/.build-logs/<step>.log`; results print in completion order (`wait -n`), and a failing step's log is dumped at the end. `--serial` builds one at a time. Ctrl+C is trapped to kill each job's whole process tree (subshell + grandchildren: podman container, flatpak-builder, pyinstaller), so no orphans survive.
+- **`--ram` (slow/flash storage).** Redirects the build scratch to `/dev/shm` and skips UPX, a large win when building from a USB stick / SD card (I/O-bound on flash): `TMPDIR` + `PIP_CACHE_DIR`, the PyInstaller `--workpath` (`PYI_WORKPATH`), and a tmpfs bind-mount at the in-container AppImage AppDir (`APPIMAGE_APPDIR_TMPFS`); UPX is disabled via `TESTIUM_NO_UPX` (read by the `.spec`). **Flatpak is excluded** — `flatpak-builder` mounts its state dir with `rofiles-fuse` and FUSE cannot mount on `/dev/shm` (`fusermount: Permission denied`), so it builds on disk. Each `package/*/build.sh` honours these env vars with on-disk defaults, so behaviour is unchanged without `--ram`; the tmpfs scratch is freed on exit. On a RAM-limited machine combine with `--serial`.
+
 ### Host-only py_func / lua_func in sandboxed bundles (Flatpak, AppImage)
 
-The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
+The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`, the `run` item's sub-instance) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
 
 - `_in_flatpak()` (checks `/.flatpak-info`) and `_in_appimage()` (checks `APPIMAGE` env var) detect the sandbox.
-- `_which(name)` probes only host bin dirs in those modes:
-  - Flatpak: `/run/host/usr/{local/,}bin`, `/run/host/bin` (host mounted via `--filesystem=host-os`).
-  - AppImage: `/usr/local/bin`, `/usr/bin`, `/bin` (we are directly on the host filesystem).
-  - If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
-- User overrides (`python_bin`/`lua_bin` in globdict): bare names are resolved through `_which()` (host-only), absolute paths are accepted as-is.
-- `apply_host_libs(env)` is called by `py_process.py` / `lua_process.py` on the env passed to Popen:
-  - Flatpak: prepends host lib dirs to `LD_LIBRARY_PATH` so the dynamic linker finds host `.so`'s.
-  - AppImage: strips `$APPDIR`-prefixed entries from `LD_LIBRARY_PATH` / `PYTHONPATH` / `PATH` and drops `PYTHONHOME`, so the host Python doesn't try to load the bundled stdlib/site-packages.
-- `apply_host_lua_paths(env)` (Flatpak only) prepends `/run/host/usr/{lib,share}/lua/X.Y` to `LUA_PATH` / `LUA_CPATH` so `cjson`, `socket`, etc. resolve. Must be called **after** user `lua_env` overrides so host paths win. AppImage relies on host Lua's compiled-in defaults.
+- **Flatpak**: the sandbox glibc/ABI is incompatible with arbitrary host shared libraries, so we **cannot** run host binaries inside the Flatpak runtime — `LD_LIBRARY_PATH` injection trips a `_dl_call_libc_early_init` assertion. The supported way out is `flatpak-spawn --host`, a stub on `$PATH` inside every Flatpak that proxies an `exec` over D-Bus to the host's `org.freedesktop.Flatpak` service. The manifest grants `--talk-name=org.freedesktop.Flatpak` so the call is allowed. Helpers:
+  - `flatpak_host_spawn(interp, args, host_cwd, extra_env=…)` builds the spawn command vector with a curated set of forwarded env vars (`HOME`, `USER`, `DISPLAY`, `DBUS_SESSION_BUS_ADDRESS`, …) plus any explicit overrides.
+  - `_get_host_testium_path()` returns a path to the testium package the host can read. In Flatpak the package lives under `/app/lib/testium` which the host cannot see, so the package is staged once per process under `/tmp/testium_host_*` (`/tmp` is shared) and reused. In source / wheel / PyInstaller installs under `$HOME` the original path is returned untouched.
+  - `_which_host_flatpak(name)` resolves a binary by spawning `command -v` on the host (or `test -x` for absolute paths) — sandbox-visible probing under `/run/host/...` is unreliable (only `host-os` is mounted; user paths like `/scratch` aren't there).
+  - `_python_version()` and `_lua_version()` go through `_run_probe()` which dispatches to `flatpak-spawn` in Flatpak so validation happens against the actual host interpreter.
+  - `py_process.py` / `lua_process.py` `start()` use `flatpak_host_spawn` with `host_cwd = _get_host_testium_path()[+/lua_func]` and forward `PYTHONPATH` / `LUA_PATH` / `LUA_CPATH` / `PATH` as `--env=` arguments.
+  - The `run` item's `_testium_launch_cmd()` prefixes `flatpak run org.testium.Testium` with `flatpak-spawn --host` so the sub-instance is launched by the host's `flatpak` CLI, not by an unworkable in-sandbox `flatpak` binary.
+- **AppImage**: we are directly on the host filesystem, so the regular discovery on `/usr/local/bin`, `/usr/bin`, `/bin` suffices. `apply_host_libs(env)` strips `$APPDIR`-prefixed entries from `LD_LIBRARY_PATH` / `PYTHONPATH` / `PATH` and drops `PYTHONHOME` so the host Python doesn't try to load the bundled stdlib/site-packages.
+- User overrides (`python_bin`/`lua_bin` in globdict): in Flatpak, both bare names and absolute paths go through `_which()` so they are validated on the host side (the sandbox can't see e.g. `/scratch/...`). Outside Flatpak, absolute paths are accepted as-is and bare names go through PATH discovery.
+- If the host has no python3/lua, `ensure()` raises `ETUMRuntimeError` at test load with the candidate list — no silent fallback to a bundled interpreter.
 - `py_process.py` additionally pops `PYTHONUSERBASE` (set to `/var/data/python` by the Flatpak runtime, which would hide `~/.local/lib/...`).
+
+### Windows frozen build: no console, hidden subprocess windows
+
+The PyInstaller exe is built **windowed** (`console=False` in `testium.spec`) so a
+double-click doesn't open a console. The catch: a windowed process has **no console
+to inherit**, so every console subprocess it spawns (the `py_func`/`lua_func` host
+Python bridges — the otherwise-permanent window — plus the `where`/`which`/`--version`
+probes) opens its **own** console window. `paths.no_window_kwargs()` returns
+`{"creationflags": CREATE_NO_WINDOW}` on a frozen Windows build (and `{}` everywhere
+else, so the **wheel/source** keeps its console and child output stays visible). It is
+applied at every spawn site: `py_process.py`, `lua_process.py`, `bins._run_probe`,
+`paths.sys_app_path_win`. `termconsole.py` is intentionally exempt (it already hides
+`cmd.exe` via `STARTUPINFO`).
+
+### Declarative test item parameters
+
+Each `TestItem` subclass declares its accepted parameters as a class attribute `PARAMS = ParamSet(Param(...), ...)` (`interpreter/utils/param_decl.py`). The descriptor carries the parameter name, *kind* (`SCALAR` — the default and may be omitted; `LIST`; `BLOCK`; `Enum("a", "b", ...)`), `required` flag, `default`, and free-form `doc`. There is **no Python type** in the descriptor on purpose: most parameter values are expressions (`$(...)` / `<| ... |>`) whose effective type is only known after expansion, so a static type would be misleading. Post-expansion `validate=lambda v: ...` callbacks are available as an opt-in for the rare cases where a runtime check is warranted (e.g. a specific format).
+
+`TestItem.COMMON_PARAMS` (in `test_item.py`) declares the 14 parameters accepted by every item: `name`, `doc`, `skipped`, `key`, `stop_on_failure`, `execute_on_stop`, `process_result`, `store_result`, `expected_result`, `no_fail`, `report`, `condition`, `steps`, and the internal `seq_filename` injected by the loader. The base class concatenates `COMMON_PARAMS + subclass.PARAMS` in `_validate_declared_params()` and:
+
+- emits a `tm.print_warn(...)` listing the accepted names when an unknown key appears in the user YAML (catches typos like `param_filee`);
+- raises `ETUMSyntaxError` (with the `.tum` source as context) when a `required=True` param is missing.
+
+Validation is **opt-in per subclass**: while a subclass keeps `PARAMS = None` (the base-class default), the check is skipped entirely. This kept the migration incremental — items can be visited one by one without forcing a big-bang change. All structured items have been migrated; only the "unstructured-body" classes (`TestItemConsoleWrite`/`WriteLn` which carry the message as the raw value, `TestItemPlotActionAdd`/`Export` which take arbitrary plot-data keys, `TestItemUnittestElement` which is internally instantiated with `dict_item=None`) intentionally remain unvalidated.
+
+Diagnostics are currently **warnings** for unknown params so an out-of-tree `.tum` with a pre-existing typo doesn't suddenly fail. The flip to a hard error is a one-line change in `_validate_declared_params()` once the user is comfortable.
+
+Action items follow the same declarative principle. A `TestItemActions` parent (`console`, `plot`, `json_rpc`) declares its nested actions as a class attribute `ACTIONS = {yaml_key: action_class}` (e.g. `{"open": TestItemConsoleOpen, "write": …}`), mirroring `PARAMS`. The base `TestItemActions.__init__` seeds `self.action_classes` from `type(self).ACTIONS`; the imperative `register_actions(**…)` method is retained only as an escape hatch for actions that can't be known at class-definition time (none today). Because the action classes are always defined above their parent in the module, the class-level dict resolves without forward-reference gymnastics.
+
+The schema is the realized source of truth for the LSP server (`testium lsp`), the `testium schema` CLI dump, and future auto-generated manual sections: `ParamSet.to_schema()` returns the JSON-Schema-shaped representation, and `lsp/schema.py` reads both `PARAMS` and `ACTIONS` **purely from class attributes** — no `inspect.getsource`/AST parsing. This is what lets the full schema (including nested actions) survive a frozen PyInstaller build where the `.py` source isn't on disk.
+
+### Language server (`testium lsp`) across channels
+
+The `testium_assist` editor extension is a thin LSP client that spawns `testium lsp` and talks JSON-RPC over stdio, so the language server must work from *every* distribution channel. Two requirements:
+
+1. **`pygls` (+ `lsprotocol`, `cattrs`, `attrs`, `typing_extensions`) must be bundled.** It is the pyproject `[lsp]` extra (kept optional so a plain `pip install testium` stays lean), wired into each full-app channel: `build_env.sh` installs it into the shared `test/tmp/.venv` (covers **source run** and the **PyInstaller** build env); the **AppImage** installs the wheel as `…whl[lsp]`; the **Flatpak** adds a `python3-lsp` pip module (network-at-build, consistent with the manifest's global `--share=network`); the **PyInstaller** `.spec` force-collects the submodules via `collect_submodules` + explicit `hiddenimports` (including the lazily-imported `lsp`, `lsp.server`, `lsp.schema`).
+2. **The schema must build without source** — handled by the declarative `PARAMS`/`ACTIONS` above; PyInstaller is the only channel that strips `.py` source, and it no longer matters.
+
+`test/validation/lsp_check.py` enforces both per channel: `run.sh` calls it before launching the suite, asserting that `<channel> schema` returns JSON whose `console`/`plot`/`json_rpc` items still carry their actions, and that `<channel> lsp` answers an `initialize` request with capabilities (and never reports the pygls dependency missing). So `./test/validation/run.sh --mode flatpak|pyinstaller|appimage` now fails loudly if a channel ships a broken or pygls-less language server.
 
 ### Version reporting (`interpreter/utils/version.py`)
 
 Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: launcher script in `org.testium.Testium.yaml`; AppImage: `runtime.env` in `AppImageBuilder.yml`). `get_testium_version()` checks `/.flatpak-info` / `APPIMAGE` and reads `TESTIUM_VERSION` rather than relying on package metadata or repo introspection.
 
 ## Recent fixes / notable changes
+- Open-log-at-line (GUI): double-click on a tree item opened the log via a hardcoded `code -g {file}:{line}` (broke in Flatpak where `code` is absent). Now driven by a configurable `editor_cmd` preference (placeholders `{file}`/`{line}`, default `code -g {file}:{line}`); the argv is built by `shlex.split` then per-token `.format` (paths with spaces stay one token), wrapped by `bins.host_console_command()` for Flatpak host-spawn, with a `host_open_path`/`openUrl` fallback (no line) when empty or failing. Settings/pref refactor alongside: `SettingsItem` carries its default (single source of truth), trivial getters/setters collapse to `_pref(item)` bindings, the pref window's `elements` dict becomes a `Field(key, type, widget)` table with a per-type `_FIELD` read/write bridge, and the four file-picker slots fold into `_pick_dir`/`_pick_file`. (Also fixed a latent default mismatch: `report_path` defaulted to `$(home)` in the property but `$(test_directory)` in the pref window; unified to `$(test_directory)`.)
+- Show Results (GUI): the toolbar action stays enabled during a run (the log grows live, so it is useful mid-test), not just after. In Flatpak `QDesktopServices.openUrl` routes through the OpenURI portal and often opens no editor for a `.log`; `bins.host_open_path()` now spawns `xdg-open` on the host via `flatpak-spawn --host` (returns False outside Flatpak so the caller falls back to `openUrl`).
+- Test-tree search (GUI): a Ctrl+F find bar highlights + navigates matching items, with Name/Type/Doc field checkboxes. Search modifications run under `blockSignals` (else `setBackground`→`itemChanged`→`on_testChecked` storms the controller), and the search/run highlights share one flag-driven `_refresh_highlight()` (run > search > default) so overlapping layers never leave a stale colour. See "## Test-tree search (GUI)".
+- `pytest` item: pytest analogue of `unittest`, but runs on the **host interpreter in a subprocess** (`bins.python_bin()`, like `py_func`) so it works across every packaging channel. A stdlib-only pytest plugin streams collected node-ids + per-test results back over stdout via sentinels; each test becomes a child item with its own PASS/FAIL/SKIP, duration and failure message. Params: `test_file`, `test_method`. Validation item: `test/validation/items/pytest/` (the validation venv now pip-installs `pytest`). See "### `pytest` item".
+- Graceful item load: a self-loading item that fails to load its module/file (e.g. a `unittest` test file importing a missing module, or `pytest` not installed on the host) no longer aborts the **whole** test load. `TestSet._load_item()` wraps the item's `load()`, emits a `tm.print_warn(...)` at load time and records the reason in `item._load_error`; the `@test_run` wrapper turns a non-None `_load_error` into a clean run-time `FAILURE` (message printed once via `write_footer`). The rest of the campaign loads and runs normally. Applies to module-loading items (`unittest`, `pytest`); structural action loading stays fail-fast.
+- `console` item — serial robustness + richer `read_until`: (1) a failed serial `open()` now raises a clear `ETUMRuntimeError` ("Serial device '…' does not exist." / permission hint) instead of dumping a pyserial traceback, and a console whose open failed is safely "not open" (init `_thd=None` + `isOpened` guards in `readchar`/`read_nowait`/`close`) so later reads no longer crash with `AttributeError: '_thd'`; the action handlers show a one-liner for expected (`ETUMRuntimeError`) errors and keep the full traceback for unexpected ones. (2) `read_until`'s `expected` now accepts a **list of values** (match any) and a new `regex: true` flag treats each pattern as a Python regex (`re.search` over a bounded tail — `Console.REGEX_WINDOW`; limitation: cost/memory bounded, so a match only after a very long stream or beyond the window won't fire). Flatpak manifest now grants `--device=all` so serial adapters (`/dev/ttyUSB*`, `/dev/ttyACM*`) are visible in the sandbox. Validation: new `read_until` list/regex cases in `test/validation/items/console/test.tum`.
+- Parameters are expanded at **run time**, never at load: control-flow flags (`stop_on_failure`/`execute_on_stop`) resolve via properties at run, `cycle` iterator / `git` repo / `tested_references` references and `console` `telnet_port` are no longer (incorrectly) expanded or left unexpanded at load. Justified load-time exceptions: `name`, `doc`, `skipped`, and `unittest`/`pytest` `test_method`.
+- Subprocess RPC startup handshake: the `py_func`/`lua_func`/`eval_proc` worker now picks its own port (`bind 0`), announces it on stdout (`__TESTIUM_RPC_PORT__=`), and the parent connects only after reading it. Fixes intermittent Windows `failed to connect : timeout` and the matching `wait_ready()` hang; removes the reserve/close/rebind race and `SO_REUSEADDR`. See "Subprocess RPC startup handshake".
+- `build_all.sh`: builds the four heavy channels in parallel (serial prep for the shared venv + wheel), results in completion order, Ctrl+C kills the whole job tree; `--ram` puts the build scratch on tmpfs (`/dev/shm`) + skips UPX for fast builds on USB/SD storage (Flatpak excluded — rofiles-fuse can't mount tmpfs). See the "Building all channels" section.
+- LSP across packaging channels: `testium lsp` (and the `testium_assist` editor extension that spawns it) now works from source, wheel, PyInstaller, Flatpak and AppImage. Two enablers — (1) action items declare a class-level `ACTIONS = {key: class}` registry (like `PARAMS`), so `lsp/schema.py` builds the full schema from class attributes with no `inspect.getsource`/AST (which broke under frozen PyInstaller); (2) the `[lsp]` extra (pygls) is wired into every full-app channel. `test/validation/lsp_check.py`, run by `run.sh` before the suite, asserts per-channel that `schema` keeps its actions and `lsp` answers `initialize`. See the matching architecture sections.
+- Declarative test item parameters (v0.2): each `TestItem` subclass exposes a `PARAMS = ParamSet(...)` class attribute consumed by the base `__init__`. Catches unknown YAML keys (typo warnings listing the accepted names) and missing required params (load-time errors with `.tum` context). Lays the schema foundation for a future LSP server and auto-generated manual sections. See the matching architecture section.
+- Flatpak: `py_func` / `lua_func` / `run` sub-instance now execute on the host via `flatpak-spawn --host`. The previous attempt to inject host lib dirs into the sandbox's `LD_LIBRARY_PATH` was abandoned — host shared libs are ABI-incompatible with the Flatpak runtime's glibc and would trip `_dl_call_libc_early_init`. The manifest gained `--talk-name=org.freedesktop.Flatpak` so the spawn proxy call is allowed. The testium package is staged once per process under `/tmp` (shared with the host) so the host interpreter can locate `py_func` / `lua_func`.
+- Validation suite: single entry point with `--mode source|wheel|pyinstaller|flatpak|appimage` to validate every packaging channel against the same items. Per-mode report filenames prevent clobbering.
 - Restructure: single `src/testium/` Python package (was 4 sibling top-levels: `testium`, `lib`, `py_func`, `lua_func`). `lib/` → `runtime/`, `libs/` → `api/`. `pip install` now produces a clean `site-packages/testium/` with no top-level pollution; `.lua` files travel via `package_data`.
 - `bins.py`: centralised resolution + cache of external `python3` / `lua` binaries. Replaces the scattered `tm.gd("python_bin")`/`tm.gd("lua_bin")` dance and the duplicated discovery logic in `py_process.py`/`lua_process.py`. Validates at test load via `TestSet._validate_runtime_deps()` so missing interpreters fail fast.
 - Subprocess API contract: user scripts in `py_func`/`lua_func` use the JSON-RPC bridge (`py_func.tm` / Lua `tm`) — never `api.testium` / `interpreter.*` directly. `SUPPORTED_API` extended with `OS`, `get_main_dir`, `init_timestamp`, `timestamp`, `timestamp_as_sec` so subprocess scripts have the same surface as main-process code.
@@ -263,12 +363,20 @@ Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: lau
 - `unittest` item: renamed from `unittest_file`.
 - GUI test tree: check and fold state preserved across same-file reloads.
 - Licence: EUPL-1.2.
+- Interpreter override timing: `apply_overrides()` extracted from `update_global()` and called by `process.py:run()` before `eval_process_init()`, so `-d python_bin=…` / GUI prefs reach `bins.python_bin()` on its first lookup. `bins._resolve()` cache is now keyed by `(name, override)` so later `param.yaml` changes are picked up by subsequently constructed engines.
 
 ## Validation tests
-Located in `test/validation/`. Run with `-b` flag:
+Located in `test/validation/`. Two entry points:
 ```
-./run.sh -b -- test/validation/main.tum
+./test/validation/run.sh [clean] [--mode MODE] [extra args]   # wrapper — uses a dedicated venv (see below)
+./run.sh -b -- test/validation/main.tum                       # direct — testium's own python is used for test execution
 ```
+The same item set is reused across every packaging channel — `--mode source|wheel|pyinstaller|flatpak|appimage` selects which testium binary launches the suite (`source` is the default, invoking the project's `run.sh`). Each mode stamps its results into a distinct report file (`validation-<mode>.sqlite`, `validation-<mode>-<item>.xml`) so successive runs in different modes don't clobber each other. Prerequisites (PyInstaller binary built, Flatpak bundle installed, …) are checked before launch with a hint pointing at `build_all.sh`. On Windows only `source`, `wheel`, `pyinstaller` are supported.
+
+The `run.sh` / `run.bat` wrappers create a dedicated **host** Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside that venv. testium itself keeps running in its own environment for the chosen mode. The venv is shared across modes because every test-execution subprocess ends up on the host either directly (source/wheel/pyinstaller/appimage) or via `flatpak-spawn --host` (flatpak). `clean` as the first argument recreates the venv. `wheel` mode also creates a separate `testium-wheel-venv-<v>` to hold the installed package.
+
+The `venv` item (`test/validation/items/venv/`) asserts that the override actually took effect: `python_bin` is set, `sys.executable` matches it, `sys.prefix == dirname(dirname(python_bin))`, and `sys.prefix != sys.base_prefix` (the last marker catches the case where `python_bin` happens to be a system interpreter, which path-equality alone would miss because the venv's `bin/python3` is a symlink to the host). Both `eval_proc` (inline `<| … |>`) and `py_func` paths are exercised.
+
 Parallel item tests: `test/validation/items/parallel/test.tum`
 
 ## Dependencies

@@ -11,6 +11,7 @@ import api.testium as tm
 from interpreter.utils.lua_func_exec import LuaFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 _LUA_FUNC_CONTEXTS_KEY = "_lua_func_contexts"
 
@@ -20,6 +21,21 @@ class TestItemLuaFunc(TestItem):
     func file: func_file.lua, func_name: func, param: [$(variable1), [1, 2, 3], true]
     Optional: context_id: <id>  — share a persistent process with other lua_func items using the same id.
     """
+
+    PARAMS = ParamSet(
+        Param("file", required=True,
+              doc="Path to the .lua file containing the function."),
+        Param("func_name", required=True,
+              doc="Name of the function to call in the file."),
+        Param("param", kind=LIST,
+              doc="Arguments passed to the function. Each entry is expanded "
+                  "before the call. Special tokens $(loop_param) / $(loop_index) "
+                  "resolve from the surrounding cycle."),
+        Param("context_id", default=None,
+              doc="If set, the lua_func subprocess is kept alive and reused by "
+                  "every other lua_func item with the same context_id — enables "
+                  "shared in-memory state between successive calls."),
+    )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_LUA_FUNCTION.item_name

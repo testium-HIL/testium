@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QProgressDialog
 from interpreter.process import TestProcess
 from interpreter.utils.test_ctrl import TestSetController
 from main_win.test_controller_service import TestControllerService
+from main_win import file_dialog
 import interpreter.utils.settings as prefs
 from runtime.tum_except import ETUMFileError, ETUMRuntimeError
 
@@ -126,13 +127,15 @@ class TestFileManager:
                 del w.ts_controller
                 w.ts_controller = None
                 raise ETUMRuntimeError(
-                    "Test could not be loaded (test process crashed for any reason)"
+                    "Test could not be loaded. See the log above for the cause "
+                    "(syntax error, missing file, missing module, ...)."
                 )
 
             progress.setLabelText("Building test tree…")
             QApplication.processEvents()
             test_data = w.test_service.tree()
             w.treeTests.clear()
+            w._reset_search()
             QApplication.processEvents()
             w.treeTests.loadTestRecursively(w.treeTests.invisibleRootItem(), test_data)
             self._close_progress(progress)
@@ -212,17 +215,9 @@ class TestFileManager:
         d = ""
         if w.testFile is not None:
             d = os.path.dirname(w.testFile)
-        # In Flatpak the native dialog goes through the XDG document portal,
-        # which returns /run/user/UID/doc/.../test.tum and only exposes the
-        # selected file — sibling files (param.yaml, .py, etc.) are unreachable.
-        # Force Qt's own dialog, which walks the real filesystem mounted via
-        # --filesystem=home and returns a regular path with sibling access.
-        options = QFileDialog.Options()
-        if os.path.isfile("/.flatpak-info"):
-            options |= QFileDialog.Option.DontUseNativeDialog
         file_name, _ = QFileDialog.getOpenFileName(
             w, "Open the test file", d,
-            "testium file (*.tum);;All Files (*)", options=options
+            "testium file (*.tum);;All Files (*)", options=file_dialog.options()
         )
         if file_name:
             self.reload(file_name)

@@ -89,7 +89,7 @@ def exec():
         junit_report = report.replace(".sqlite", f"-{test}.xml")
         print(junit_report)
         _prepare_file_to_save(junit_report)
-        with open(junit_report, "w") as f:
+        with open(junit_report, "w", encoding="utf-8") as f:
             f.write(TestSuite.to_xml_string([ts]))
 
     # cleanup

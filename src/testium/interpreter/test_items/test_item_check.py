@@ -5,11 +5,22 @@ from runtime.tum_except import ETUMSyntaxError, item_load_context
 import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import evaluate
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 class TestItemCheckValue(TestItem):
     """check item usage.
     check usage:{check: {name: check my func output, steps: ['$(pfn_echo) < 5']}}
     """
+
+    PARAMS = ParamSet(
+        Param("values", kind=LIST, required=True,
+              doc="List of expressions to evaluate. Each is expanded then "
+                  "evaluated; non-truthy results fail the check."),
+        # 'steps' is intentionally not redeclared here — it's the deprecated
+        # alias of 'values' and is already accepted by COMMON_PARAMS for
+        # container items. A runtime warning is emitted when 'steps' is used.
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_CHECK.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

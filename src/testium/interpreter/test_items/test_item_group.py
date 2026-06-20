@@ -1,10 +1,17 @@
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestResult, TestValue)
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import ParamSet
 from runtime.tum_except import ETUMSyntaxError
 import api.testium as tm
 
 class TestItemGroup(TestItem):
+
+    # 'group' has no item-specific parameters; 'steps' is handled by COMMON_PARAMS.
+    # Declaring an empty ParamSet still opts in to unknown-param validation
+    # (e.g. typo 'stop_on_failures').
+    PARAMS = ParamSet()
+
     def __init__(self, dict_cycle, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_GROUP.item_name
         super().__init__(dict_cycle, parent, status_queue, filename=filename)

@@ -6,6 +6,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import eval_to_boolean
+from interpreter.utils.param_decl import Param, ParamSet, LIST, BLOCK, Enum
 from runtime.tum_except import ETUMSyntaxError
 from runtime.string_queue import StringQueue
 from runtime.stdout_redirect import stdio_redir
@@ -14,6 +15,12 @@ from runtime.stdout_redirect import stdio_redir
 class TestItemParallelBranch(TestItemContainer):
     """One branch of a parallel item. Runs its children sequentially,
     optionally waiting for a condition before starting."""
+
+    PARAMS = ParamSet(
+        Param("wait_for", kind=BLOCK,
+              doc="Optional block {condition, timeout} that defers the branch "
+                  "start until the condition is truthy (or the timeout elapses)."),
+    )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         super().__init__(cst.TYPE_PARALLEL_BRANCH, dict_item, parent, status_queue, filename=filename)
@@ -86,6 +93,15 @@ class TestItemParallel(TestItemContainer):
                 steps:
                   - ...
     """
+
+    PARAMS = ParamSet(
+        Param("branches", kind=LIST, required=True,
+              doc="List of branch blocks (each branch holds its own 'steps' "
+                  "and optional 'wait_for')."),
+        Param("sync", kind=Enum("all", "any"), default="all",
+              doc="'all' (default) waits for every branch; 'any' returns as "
+                  "soon as the first branch completes."),
+    )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         branches = dict_item.get("branches", [])

@@ -27,6 +27,27 @@ Pre-built artifacts are published at
   runnable directly, no Python installation required on the host. Lua
   support still needs a system `lua` interpreter and the `lua-socket` /
   `lua-cjson` modules.
+* **AppImage** (`Testium-<version>-x86_64.AppImage`) — single-file
+  Linux binary, runnable directly:
+
+  ```sh
+  chmod +x Testium-*-x86_64.AppImage
+  ./Testium-*-x86_64.AppImage
+  ```
+
+  Requires `libfuse2` on the host (FUSE 2 — distinct from `fuse3`, which
+  most distros now ship by default):
+
+  | Distro | Package |
+  |--------|---------|
+  | Arch / CachyOS / Manjaro | `fuse2` |
+  | Debian trixie / Ubuntu 24.04+ | `libfuse2t64` |
+  | Debian bookworm / Ubuntu 22.04 | `libfuse2` |
+  | Fedora | `fuse-libs` |
+
+  If you can't install libfuse2 (e.g. minimal container), prefix the
+  invocation with `APPIMAGE_EXTRACT_AND_RUN=1` — the AppImage will
+  self-extract to `/tmp` on each run instead of FUSE-mounting.
 * **Flatpak bundle** (`testium.flatpak`) — install with:
 
   ```sh
@@ -40,6 +61,9 @@ Pre-built artifacts are published at
   After installation testium appears in the desktop application menu and the
   `testium` command is available in the terminal (requires `~/.local/bin` in
   `PATH`, which most modern distributions provide by default).
+
+Every channel ships the language server, so `testium lsp` (see
+[Editor support](#editor-support)) works out of the box from any of them.
 
 ## Quick start
 
@@ -81,6 +105,45 @@ Run testium:
 python3 src/testium               # GUI
 python3 src/testium -b mytest.tum # batch
 ```
+
+## Editor support
+
+testium ships a Language Server Protocol (LSP) server that gives `.tum` files
+completion of item types, hover documentation, and an outline view in any
+LSP-capable editor:
+
+```sh
+testium lsp        # speaks LSP over stdio; an editor's LSP client drives it
+testium schema     # dumps the item/parameter schema as JSON (what the LSP serves)
+```
+
+The server is bundled in every pre-built release (wheel, binary, Flatpak,
+AppImage). For a source / wheel install, pull the language-server extra:
+
+```sh
+pip install 'testium[lsp]'                 # from PyPI / a wheel
+pip install -e /path/to/testium/src[lsp]   # from a source checkout
+```
+
+A VSCode / VSCodium client extension (`testium_assist`) wraps `testium lsp`;
+the schema is built from testium itself, so new item types and parameters
+appear in the editor on the next testium upgrade with no client change.
+
+It is published on [Open VSX](https://open-vsx.org/extension/testium/testium-assist),
+so in **VSCodium, Cursor, Windsurf, Theia and code-server** it installs from the
+Extensions view (search `testium-assist`) or with
+`codium --install-extension testium.testium-assist`.
+
+**Microsoft VSCode** does not list Open VSX extensions, so install the `.vsix`
+by hand — download it from the Open VSX page above, then *Extensions → ⋯ →
+Install from VSIX…* or:
+
+```sh
+code --install-extension testium-assist-0.1.0.vsix
+```
+
+The extension runs `testium lsp`, so `testium` must be on the `PATH` (otherwise
+point the `testium.serverPath` setting at the binary/AppImage).
 
 ## Troubleshooting
 

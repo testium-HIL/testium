@@ -14,7 +14,7 @@ class ReportExportHTML(rpe.ReportExport):
         self.prepareFile()
         self.create_base()
         self.process_tests()
-        with open(self._file_name, 'w') as f:
+        with open(self._file_name, 'w', encoding="utf-8") as f:
             f.write(lxml.html.tostring(self.root, pretty_print=True).decode())
 
     def testsIterate(self, row):

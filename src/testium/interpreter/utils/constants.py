@@ -10,6 +10,8 @@ class TestItemEnum():
 class TestItemType(Enum):
     TYPE_UNITTEST           = TestItemEnum("unittest", "unittest")
     TYPE_UNITTEST_STEP      = TestItemEnum("unittest_step", "unittest step")
+    TYPE_PYTEST             = TestItemEnum("pytest", "pytest")
+    TYPE_PYTEST_STEP        = TestItemEnum("pytest_step", "pytest step")
     TYPE_CONSOLE            = TestItemEnum("console", "Console")
     TYPE_CONSOLE_ACTION     = TestItemEnum("console_action", "Console action")
     TYPE_CYCLE              = TestItemEnum("loop", "Cycle")

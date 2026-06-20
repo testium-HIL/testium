@@ -1,6 +1,7 @@
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 from runtime.tum_except import ETUMParamError, ETUMSyntaxError
 import interpreter.utils.version as git
 
@@ -8,12 +9,20 @@ class TestItemGit(TestItem):
     """
     This item expect only one parameter which is a string or list of string being the path to the git folder
     """
+
+    PARAMS = ParamSet(
+        Param("repo", kind=LIST, required=True,
+              doc="Path to a git checkout, or list of such paths. Each is "
+                  "reported with its current version (tag + dirty state)."),
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_GIT.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = cst.TYPE_GIT
         self.is_container = False
-        self.repo = self._prms.getParamAll('repo',  processed=True, required=True)
+        # Kept raw: each repo entry is expanded at run time in execute().
+        self.repo = self._prms.getParamAll('repo', required=True)
 
     @test_run
     def execute(self):

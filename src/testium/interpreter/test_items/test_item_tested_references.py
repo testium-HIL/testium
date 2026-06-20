@@ -2,11 +2,23 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet, LIST
 from runtime.tum_except import item_load_context
 import api.testium as tm
 
 
 class TestItemTestedRefsDialog(TestItemDialogBase):
+
+    PARAMS = ParamSet(
+        Param("question", required=True,
+              doc="Prompt asking the operator to enter the tested references."),
+        Param("reference", kind=LIST,
+              doc="Pre-filled list of references shown in the dialog."),
+        Param("auto_result", default=None,
+              doc="Batch-mode outcome: None ⇒ FAILURE, truthy ⇒ SUCCESS with "
+                  "the pre-filled references."),
+    )
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_REFERENCE_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
@@ -14,13 +26,14 @@ class TestItemTestedRefsDialog(TestItemDialogBase):
         self.is_container = False
         with item_load_context(self.cmd(), self.name(), self.seqFilename()):
             self._question = self._prms.getParam('question', required=True)
-            self._init_values = self._prms.getParamAll('reference', required=False, processed=True)
+            # Kept raw: expanded at run time in execute().
+            self._init_values = self._prms.getParamAll('reference', required=False)
             self._auto_result = self._prms.getParam('auto_result', required=False, default=None)
 
     @test_run
     def execute(self):
         q = self._prms.expanse(self._question)
-        init_values = ','.join(self._init_values)
+        init_values = ','.join(self._prms.expanse(v) for v in self._init_values)
         if _is_text_mode():
             print(f"References: {q}")
             rows = init_values.split(',') if init_values else ['']

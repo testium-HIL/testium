@@ -20,7 +20,7 @@ class ReportExportJUnit(rpe.ReportExport):
 
         ts = TestSuite(repname, test_cases=self.test_cases,
                        hostname=tm.gd('host_ip'))
-        with open(self._file_name, 'w') as f:
+        with open(self._file_name, 'w', encoding="utf-8") as f:
             TestSuite.to_file(f, [ts])
 
     def testsIterate(self, row):

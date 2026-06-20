@@ -2,6 +2,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestValue
 from interpreter.test_items.test_item_dialog_base import TestItemDialogBase, _is_text_mode, _is_interactive
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import item_load_context
 
 
@@ -9,6 +10,14 @@ class TestItemQuestionDialog(TestItemDialogBase):
     """dialog_question item usage.
     dialog_question name: Nice question, question: "If OK, press OK, If not, press cancel"
     """
+
+    PARAMS = ParamSet(
+        Param("question", required=True,
+              doc="Yes/No prompt presented to the user."),
+        Param("auto_result", default=None,
+              doc="Batch-mode answer ('yes'/'no' or truthy/falsy). None ⇒ FAILURE."),
+    )
+
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
         self._name = cst.TYPE_QUESTION_DLG.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)

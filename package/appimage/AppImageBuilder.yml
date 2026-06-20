@@ -77,7 +77,10 @@ AppDir:
         python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr -r ../../src/requirements.txt
 
         export PIP_CONFIG_FILE=$HOME/.pip/pip.conf
-        python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr ../../src/dist/testium-{{APP_VERSION}}-py3-none-any.whl
+        # Install the wheel with the [lsp] extra so `testium lsp` (pygls) works
+        # from the AppImage. The extra pulls pygls/lsprotocol/cattrs/attrs from
+        # the index (network is available at build time, see get-pip above).
+        python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr "../../src/dist/testium-{{APP_VERSION}}-py3-none-any.whl[lsp]"
 
 
 AppImage:

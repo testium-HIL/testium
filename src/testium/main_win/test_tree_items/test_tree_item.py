@@ -12,6 +12,8 @@ from api.testium import print_warn
 _ITEM_CONFIG = {
     "unittest":             {"icon": "folder.png",        "icon_on": "folder-open.png", "expanded": True,  "no_breakpoint": True},
     "unittest step":        {"icon": "document.png",                                                        "no_breakpoint": True},
+    "pytest":               {"icon": "pytest.png",                                       "expanded": True,  "no_breakpoint": True},
+    "pytest step":          {"icon": "pytest.png",                                                          "no_breakpoint": True},
     "Console":              {"icon": "terminal.png",       "unfoldable": False},
     "Console action":       {"icon": "terminal.png"},
     "Cycle":                {"icon": "cycle.png",          "expanded": True},
@@ -101,7 +103,7 @@ class QTestTreeItem(QTreeWidgetItem):
         self.setFlags(self.flags() | Qt.ItemIsUserCheckable)
         self.setCheckState(self._cols["name"]["index"], Qt.Checked)
         self._is_highlighted = False
-        self._initial_brush = None
+        self._is_search_match = False
         self._failure_list = None
         self._no_breakpoint = False
         parent.addChild(self)
@@ -178,17 +180,44 @@ class QTestTreeItem(QTreeWidgetItem):
     def isBreakpoint(self):
         return self._display_pause
 
+    def _refresh_highlight(self):
+        """Recompute name-column colours from flags: run (green) > search (amber) > none."""
+        col = self._cols["name"]["index"]
+        if self._is_highlighted:
+            self.setBackground(col, QBrush(QColor(153, 255, 153)))
+            self.setForeground(col, QBrush())
+        elif self._is_search_match:
+            self.setBackground(col, QBrush(QColor(255, 224, 130)))
+            self.setForeground(col, QBrush(QColor(0, 0, 0)))
+        else:
+            self.setBackground(col, QBrush())
+            self.setForeground(col, QBrush())
+
     def setHighlighted(self):
         if not self._is_highlighted:
-            self._initial_brush = self.background(self._cols["name"]["index"])
-            color = QBrush(QColor(153, 255, 153))
-            self.setBackground(self._cols["name"]["index"], color)
             self._is_highlighted = True
+            self._refresh_highlight()
 
     def resetHighlighted(self):
         if self._is_highlighted:
-            self.setBackground(self._cols["name"]["index"], self._initial_brush)
             self._is_highlighted = False
+            self._refresh_highlight()
+
+    def matches_search(self, needle, fields):
+        """True if *needle* (lowercase) is in any enabled field (name/type/doc)."""
+        if "name" in fields and needle in (self.name or "").lower():
+            return True
+        if "type" in fields and needle in (self.test_type or "").lower():
+            return True
+        if "doc" in fields and needle in str(self.doc or "").lower():
+            return True
+        return False
+
+    def setSearchMatch(self, on):
+        """Search highlight (amber bg + black text), readable in any theme."""
+        if on != self._is_search_match:
+            self._is_search_match = on
+            self._refresh_highlight()
 
     def setRowIcon(self, resource_off, resource_on=""):
 

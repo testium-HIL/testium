@@ -7,11 +7,19 @@
 
 set -e
 
-# Build + install local
-flatpak-builder --user --verbose --force-clean --install --repo=repo build org.testium.Testium.yaml
+# Build + install local. FLATPAK_BUILDDIR / FLATPAK_STATEDIR / FLATPAK_REPODIR
+# (set by build_all --ram) redirect the build dir, the state dir
+# (.flatpak-builder) and the ostree repo to tmpfs. flatpak-builder hardlinks
+# between the state dir and the build dir, so they MUST be on the same
+# filesystem — hence the state dir moves to tmpfs too (its download cache then
+# doesn't persist across --ram runs).
+BUILDDIR="${FLATPAK_BUILDDIR:-build}"
+STATEDIR="${FLATPAK_STATEDIR:-.flatpak-builder}"
+REPODIR="${FLATPAK_REPODIR:-repo}"
+flatpak-builder --user --verbose --force-clean --install --state-dir="$STATEDIR" --repo="$REPODIR" "$BUILDDIR" org.testium.Testium.yaml
 
 # Génère le bundle distribuable
-flatpak build-bundle repo testium.flatpak org.testium.Testium
+flatpak build-bundle "$REPODIR" testium.flatpak org.testium.Testium
 echo "Bundle généré : $(pwd)/testium.flatpak"
 
 # Crée ~/.local/bin/testium pour pouvoir taper "testium" en console

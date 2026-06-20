@@ -1,9 +1,53 @@
+import atexit
 import os
+import stat
 import sys
+import tempfile
 from importlib import import_module
 
 import interpreter.utils.settings as prefs
 import api.testium as tm
+
+
+# When running inside a Flatpak, the host /usr/bin/git is reachable at
+# /run/host/usr/bin/git but linked against host glibc/zlib, which the
+# sandbox can't load (``libz-ng.so.2`` not found). gitpython resolves git
+# eagerly on import and would crash the whole test run. We install a
+# tiny shell wrapper under /tmp that forwards to ``flatpak-spawn --host
+# git``, and point gitpython at it via ``GIT_PYTHON_GIT_EXECUTABLE``.
+_HOST_GIT_WRAPPER = None
+
+
+def _setup_flatpak_git():
+    global _HOST_GIT_WRAPPER
+    if not os.path.isfile("/.flatpak-info"):
+        return
+    if _HOST_GIT_WRAPPER is not None:
+        return
+    fd, path = tempfile.mkstemp(prefix="testium-git-host-", suffix=".sh", dir="/tmp")
+    with os.fdopen(fd, "w") as f:
+        f.write('#!/bin/sh\nexec flatpak-spawn --host git "$@"\n')
+    os.chmod(path, stat.S_IRWXU)
+    _HOST_GIT_WRAPPER = path
+    atexit.register(_cleanup_flatpak_git)
+    os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = path
+    # Silence gitpython's warning if its refresh probe ever still fails;
+    # the wrapper itself should make the probe succeed.
+    os.environ.setdefault("GIT_PYTHON_REFRESH", "quiet")
+
+
+def _cleanup_flatpak_git():
+    global _HOST_GIT_WRAPPER
+    if _HOST_GIT_WRAPPER and os.path.isfile(_HOST_GIT_WRAPPER):
+        try:
+            os.unlink(_HOST_GIT_WRAPPER)
+        except OSError:
+            pass
+        _HOST_GIT_WRAPPER = None
+
+
+_setup_flatpak_git()
+
 
 _cached_versions = {}
 

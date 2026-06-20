@@ -17,11 +17,20 @@ else
 fi
 echo "Using $RUNTIME — building testium $APP_VERSION AppImage..."
 
+# APPIMAGE_APPDIR_TMPFS (set by build_all --ram) bind-mounts a host tmpfs dir at
+# the AppDir build path, keeping the ~1 GB AppDir churn off slow storage.
+APPDIR_MOUNT=""
+if [ -n "$APPIMAGE_APPDIR_TMPFS" ]; then
+    mkdir -p "$APPIMAGE_APPDIR_TMPFS"
+    APPDIR_MOUNT="-v $APPIMAGE_APPDIR_TMPFS:/work/package/appimage/AppDir"
+fi
+
 # APPIMAGE_EXTRACT_AND_RUN=1 lets appimagetool run without FUSE in the container.
 $RUNTIME run --rm \
     --privileged \
     -e APPIMAGE_EXTRACT_AND_RUN=1 \
     -v "$REPO_ROOT:/work" \
+    $APPDIR_MOUNT \
     -w /work/package/appimage \
     debian:bookworm bash -c "
         set -e

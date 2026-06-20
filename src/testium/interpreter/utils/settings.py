@@ -13,30 +13,59 @@ def init():
     settings = TestiumSettings()
 
 
+_UNSET = object()
+
+
 class SettingsItem():
-    def __init__(self, name: str, item_type: type) -> None:
+    def __init__(self, name: str, item_type: type, default=None) -> None:
         self.name = name
         self.t = item_type
+        self.default = default
+
+
+def _pref(item):
+    """Build a get/set property reading/writing *item* (default carried by the item)."""
+    return property(lambda self: self.value(item),
+                    lambda self, value: self.set_value(item, value))
 
 
 class TestiumSettings():
-    SettingsRecentFiles = SettingsItem('recentFileList', list)
-    SettingsLastLogFile = SettingsItem('lastLogFile', str)
-    SettingsLogFileSaved = SettingsItem('logFileSaved', bool)
-    SettingsHideDocPane = SettingsItem('docPaneHidden', bool)
-    SettingsHideLogPane = SettingsItem('logPaneHidden', bool)
-    SettingsShowCheckboxes = SettingsItem('checkBoxesShow', bool)
-    SettingsLogPath = SettingsItem('defaultLogPath', str)
-    SettingsReportPath = SettingsItem('defaultReportPath', str)
-    SettingsShowTimeColumn = SettingsItem('showTimeColumn', bool)
-    SettingsColumnsSize = SettingsItem('columnsSize', dict)
-    SettingsDblClickEnabled = SettingsItem('dblClickEnabled', bool)
-    SettingsIconsTheme = SettingsItem('iconsTheme', int)
-    SettingsLogFont = SettingsItem('logFont', str)
-    SettingsLogFontSize = SettingsItem('logFontSize', int)
-    SettingsGitSupported = SettingsItem('logGitSupported', bool)
-    SettingsPythonPath = SettingsItem('pythonPath', str)
-    SettingsLuaPath = SettingsItem('luaPath', str)
+    SettingsRecentFiles = SettingsItem('recentFileList', list, [])
+    SettingsLastLogFile = SettingsItem('lastLogFile', str, '')
+    SettingsLogFileSaved = SettingsItem('logFileSaved', bool, False)
+    SettingsHideDocPane = SettingsItem('docPaneHidden', bool, False)
+    SettingsHideLogPane = SettingsItem('logPaneHidden', bool, False)
+    SettingsShowCheckboxes = SettingsItem('checkBoxesShow', bool, False)
+    SettingsLogPath = SettingsItem('defaultLogPath', str, '$(test_directory)')
+    SettingsReportPath = SettingsItem('defaultReportPath', str, '$(test_directory)')
+    SettingsShowTimeColumn = SettingsItem('showTimeColumn', bool, False)
+    SettingsColumnsSize = SettingsItem('columnsSize', dict, {})
+    SettingsDblClickEnabled = SettingsItem('dblClickEnabled', bool, False)
+    SettingsEditorCmd = SettingsItem('editorCmd', str, 'code -g {file}:{line}')
+    SettingsIconsTheme = SettingsItem('iconsTheme', int, 0)
+    SettingsLogFont = SettingsItem('logFont', str, 'Monospace')
+    SettingsLogFontSize = SettingsItem('logFontSize', int, 8)
+    SettingsGitSupported = SettingsItem('logGitSupported', bool, True)
+    SettingsPythonPath = SettingsItem('pythonPath', str, '')
+    SettingsLuaPath = SettingsItem('luaPath', str, '')
+
+    recent_files = _pref(SettingsRecentFiles)
+    log_file = _pref(SettingsLastLogFile)
+    log_file_saved = _pref(SettingsLogFileSaved)
+    hide_doc_pane = _pref(SettingsHideDocPane)
+    hide_log_pane = _pref(SettingsHideLogPane)
+    show_checkboxes = _pref(SettingsShowCheckboxes)
+    log_path = _pref(SettingsLogPath)
+    report_path = _pref(SettingsReportPath)
+    show_time_column = _pref(SettingsShowTimeColumn)
+    columns_size = _pref(SettingsColumnsSize)
+    dbl_click_enabled = _pref(SettingsDblClickEnabled)
+    editor_cmd = _pref(SettingsEditorCmd)
+    icons_theme = _pref(SettingsIconsTheme)
+    log_font = _pref(SettingsLogFont)
+    git_supported = _pref(SettingsGitSupported)
+    python_bin = _pref(SettingsPythonPath)
+    lua_bin = _pref(SettingsLuaPath)
 
     def __init__(self):
         if 'windows' in platform.system().lower():
@@ -71,9 +100,11 @@ class TestiumSettings():
         self.conf['Default'] = {}
         self.sync()
 
-    def value(self, key: SettingsItem, default=''):
+    def value(self, key: SettingsItem, default=_UNSET):
         if not isinstance(key, SettingsItem):
             raise ETUMRuntimeError('Not a proper Settings item.')
+        if default is _UNSET:
+            default = key.default
         if type(default) != key.t:
             raise ETUMRuntimeError(
                 'Types mismatch in config file. You could try to erase "{}" to solve the issue'.format(self.settings_fname))
@@ -120,127 +151,10 @@ class TestiumSettings():
                 if configfile.writable():
                     self.conf.write(configfile)
 
-# SettingsRecentFiles = 'recentFileList'
-    @property
-    def recent_files(self):
-        return self.value(self.SettingsRecentFiles, [])
-
-    @recent_files.setter
-    def recent_files(self, value):
-        self.set_value(self.SettingsRecentFiles, value)
-
-# SettingsLastLogFile = 'lastLogFile'
-    @property
-    def log_file(self):
-        return self.value(self.SettingsLastLogFile)
-
-    @log_file.setter
-    def log_file(self, value):
-        self.set_value(self.SettingsLastLogFile, value)
-
-# SettingsLogFileSaved = 'logFileSaved'
-    @property
-    def log_file_saved(self):
-        return self.value(self.SettingsLogFileSaved, False)
-
-    @log_file_saved.setter
-    def log_file_saved(self, value):
-        self.set_value(self.SettingsLogFileSaved, value)
-
-# SettingsHideDocPane = 'docPaneHidden'
-    @property
-    def hide_doc_pane(self):
-        return self.value(self.SettingsHideDocPane, False)
-
-    @hide_doc_pane.setter
-    def hide_doc_pane(self, value):
-        self.set_value(self.SettingsHideDocPane, value)
-
-# SettingsHideLogPane = 'logPaneHidden'
-    @property
-    def hide_log_pane(self):
-        return self.value(self.SettingsHideLogPane, False)
-
-    @hide_log_pane.setter
-    def hide_log_pane(self, value):
-        self.set_value(self.SettingsHideLogPane, value)
-
-# SettingsShowCheckboxes = 'checkBoxesShow'
-    @property
-    def show_checkboxes(self):
-        return self.value(self.SettingsShowCheckboxes, False)
-
-    @show_checkboxes.setter
-    def show_checkboxes(self, value):
-        self.set_value(self.SettingsShowCheckboxes, value)
-
-# SettingsLogPath = 'defaultLogPath'
-    @property
-    def log_path(self):
-        return self.value(self.SettingsLogPath, '$(test_directory)')
-
-    @log_path.setter
-    def log_path(self, value):
-        self.set_value(self.SettingsLogPath, value)
-
-# SettingsReportPath = 'defaultReportPath'
-    @property
-    def report_path(self):
-        return self.value(self.SettingsReportPath, '$(home)')
-
-    @report_path.setter
-    def report_path(self, value):
-        self.set_value(self.SettingsReportPath, value)
-
-# SettingsShowTimeColumn = 'showTimeColumn'
-    @property
-    def show_time_column(self):
-        return self.value(self.SettingsShowTimeColumn, False)
-
-    @show_time_column.setter
-    def show_time_column(self, value):
-        self.set_value(self.SettingsShowTimeColumn, value)
-
-# SettingsColumnsSize = 'columnsSize'
-    @property
-    def columns_size(self):
-        return self.value(self.SettingsColumnsSize, {})
-
-    @columns_size.setter
-    def columns_size(self, value):
-        self.set_value(self.SettingsColumnsSize, value)
-
-# SettingsDblClickEnabled = 'dblClickEnabled'
-    @property
-    def dbl_click_enabled(self):
-        return self.value(self.SettingsDblClickEnabled, False)
-
-    @dbl_click_enabled.setter
-    def dbl_click_enabled(self, value):
-        self.set_value(self.SettingsDblClickEnabled, value)
-
-# SettingsIconsTheme = 'iconsTheme'
-    @property
-    def icons_theme(self):
-        return self.value(self.SettingsIconsTheme, 0)
-
-    @icons_theme.setter
-    def icons_theme(self, value):
-        self.set_value(self.SettingsIconsTheme, value)
-
-# SettingsLogFont = 'logFont'
-    @property
-    def log_font(self):
-        return self.value(self.SettingsLogFont, 'Monospace')
-
-    @log_font.setter
-    def log_font(self, value):
-        self.set_value(self.SettingsLogFont, value)
-
-# SettingsLogFontSize = 'logFontSize'
+    # log_font_size keeps a custom getter: clamp non-positive sizes to 8.
     @property
     def log_font_size(self):
-        v = self.value(self.SettingsLogFontSize, 8)
+        v = self.value(self.SettingsLogFontSize)
         if v <= 0:
             v = 8
         return v
@@ -248,33 +162,3 @@ class TestiumSettings():
     @log_font_size.setter
     def log_font_size(self, value):
         self.set_value(self.SettingsLogFontSize, value)
-
-# SettingsGitSupported = 'gitSupported'
-    @property
-    def git_supported(self):
-        r = self.value(self.SettingsGitSupported, True)
-        return r
-
-    @git_supported.setter
-    def git_supported(self, value):
-        self.set_value(self.SettingsGitSupported, value)
-
-# SettingsPythonPath = 'python_bin'
-    @property
-    def python_bin(self):
-        r = self.value(self.SettingsPythonPath, "")
-        return r
-
-    @python_bin.setter
-    def python_bin(self, value):
-        self.set_value(self.SettingsPythonPath, value)
-
-# SettingsLuaPath = 'luaPath'
-    @property
-    def lua_bin(self):
-        r = self.value(self.SettingsLuaPath, "")
-        return r
-
-    @lua_bin.setter
-    def lua_bin(self, value):
-        self.set_value(self.SettingsLuaPath, value)

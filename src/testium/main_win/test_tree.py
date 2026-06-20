@@ -163,6 +163,46 @@ class QTestTree(QTreeWidget):
     def clearGlobalSuccess(self):
         self._global_success = True
 
+    def _all_items(self):
+        """Pre-order (visual, top-to-bottom) iteration over every tree item."""
+        def walk(parent):
+            for i in range(parent.childCount()):
+                child = parent.child(i)
+                yield child
+                yield from walk(child)
+        yield from walk(self.invisibleRootItem())
+
+    def clear_search(self):
+        # Block signals: setBackground -> itemChanged -> on_testChecked storm.
+        self.blockSignals(True)
+        try:
+            for it in self._all_items():
+                it.setSearchMatch(False)
+        finally:
+            self.blockSignals(False)
+
+    def search(self, text, fields):
+        """Highlight items matching *text* in *fields*, expand ancestors, return matches."""
+        matches = []
+        text = (text or "").strip()
+        needle = text.lower()
+        active = bool(text and fields)
+        # One blocked pass: clear stale + set new matches without firing signals.
+        self.blockSignals(True)
+        try:
+            for it in self._all_items():
+                matched = active and it.matches_search(needle, fields)
+                it.setSearchMatch(matched)
+                if matched:
+                    matches.append(it)
+                    p = it.parent()
+                    while p is not None:
+                        self.expandItem(p)
+                        p = p.parent()
+        finally:
+            self.blockSignals(False)
+        return matches
+
     def __findItemByIdRecursively(self, item_id, parent):
         res = None
         i = 0

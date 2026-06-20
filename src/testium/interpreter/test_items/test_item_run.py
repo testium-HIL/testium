@@ -10,6 +10,8 @@ from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
+from interpreter.utils.param_decl import Param, ParamSet
+from interpreter.utils.proc_drain import drain_to_log
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 
@@ -24,9 +26,15 @@ def _testium_launch_cmd():
     appimage = os.environ.get("APPIMAGE")
     if appimage:
         return [appimage]
-    # Flatpak: re-launch via the Flatpak app id.
+    # Flatpak: re-launch via the Flatpak app id, but on the host side —
+    # the `flatpak` CLI cannot run inside our sandbox (no D-Bus access to the
+    # host Flatpak service, and the host binary would need host libs that are
+    # ABI-incompatible with the sandbox runtime). flatpak-spawn proxies the
+    # call to the host via org.freedesktop.Flatpak (allowed by --talk-name in
+    # the manifest).
     if os.path.isfile("/.flatpak-info"):
-        return ["flatpak", "run", "org.testium.Testium"]
+        return ["flatpak-spawn", "--host",
+                "flatpak", "run", "org.testium.Testium"]
     # PyInstaller frozen exe: sys.executable is the binary itself.
     if getattr(sys, "frozen", False):
         return [sys.executable]
@@ -51,6 +59,28 @@ def nowInBetween(start, end):
 
 
 class TestItemRun(TestItem):
+
+    PARAMS = ParamSet(
+        Param("tum", required=True,
+              doc="Path to the .tum file launched in a fresh testium instance."),
+        Param("param_file", default="",
+              doc="Optional path to a param.yaml passed to the sub-instance."),
+        Param("log_file", default="",
+              doc="Path where the sub-instance writes its log."),
+        Param("report_file", default="",
+              doc="Path where the sub-instance writes its report."),
+        Param("start_time",
+              doc="HH:MM time of day after which the sub-instance may run."),
+        Param("end_time",
+              doc="HH:MM time of day after which the sub-instance no longer runs."),
+        Param("wait_for_exec",
+              doc="If true, block until the time window opens. Requires both "
+                  "start_time and end_time."),
+        Param("batch", default=False,
+              doc="Run the sub-instance headless (-b) with its output captured "
+                  "into this test's log/report and result value, even in the GUI."),
+    )
+
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):
         self._name = cst.TYPE_RUN.item_name
         super().__init__(dict_item, parent, status_queue, filename=filename)
@@ -64,6 +94,38 @@ class TestItemRun(TestItem):
             self.start_time = self._prms.getParam('start_time')
             self.end_time = self._prms.getParam('end_time')
             self.wait_for_exec = self._prms.getParam('wait_for_exec')
+            self.batch = self._prms.getParam('batch', default=False)
+
+    def _launch(self, cmd, capture):
+        """Run the sub-instance once. When *capture*, stream its output to the
+        log/report, keep it as the result value, and let Stop kill the child."""
+        if not capture:
+            subprocess.run(cmd)
+            return
+        sink = []
+        prefix = f"[{os.path.basename(self.tum_file)}] "
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        threads = drain_to_log(proc, prefix=prefix, sink=sink)
+        try:
+            while True:
+                try:
+                    proc.wait(timeout=0.2)
+                    break
+                except subprocess.TimeoutExpired:
+                    if self.isStopped():
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()
+                        break
+        finally:
+            for t in threads:
+                t.join(timeout=2)
+        # Captured log -> result value (store_result / expected_result).
+        self.result.value = "\n".join(sink)
 
     @test_run
     def execute(self):
@@ -78,25 +140,26 @@ class TestItemRun(TestItem):
             pf = self._prms.expanse(self.param_file)
             lp = self._prms.expanse(self.log_path)
             rp = self._prms.expanse(self.report_path)
+
+            # Capture (headless -b) in batch or when `batch: true`; else open
+            # the child's own GUI window (-r).
+            capture = bool(self.batch) or tm.text_mode()
+
             cmd = _testium_launch_cmd()
-            if tm.text_mode():
-                cmd.append("-b")
+            if capture:
+                cmd += ["-b", "-o"]   # -o: no colour codes in the captured log
             else:
                 cmd.append("-r")
                 if lp == '':
                     lp = os.path.splitext(self.tum_file)[0] + "_" + \
                         datetime.utcnow().isoformat(timespec='seconds') + '.log'
-                cmd.append("-l")
-                cmd.append('"' + lp + '"')
+                cmd += ["-l", '"' + lp + '"']
             if pf != '':
-                cmd.append("-c")
-                cmd.append('"' + pf + '"')
+                cmd += ["-c", '"' + pf + '"']
             if rp != '':
-                cmd.append("-p")
-                cmd.append('"' + rp + '"')
+                cmd += ["-p", '"' + rp + '"']
             cmd.append(self.tum_file)
-            for c in cmd:
-                print(c, end = ' ')
+            print(" ".join(cmd))
 
             if self.start_time is not None:
                 self.start_time = datetime.strptime(
@@ -109,20 +172,24 @@ class TestItemRun(TestItem):
                 raise ETUMRuntimeError(
                     '"wait_for_exec" set but not start_time or end_time')
 
-            r = None
+            ran = False
             if self.wait_for_exec:
                 while not nowInBetween(self.start_time, self.end_time):
                     sleep(60)
-                r = subprocess.run(cmd)
+                self._launch(cmd, capture)
+                ran = True
             elif self.start_time is not None and self.end_time is not None:
                 if nowInBetween(self.start_time, self.end_time):
-                    r = subprocess.run(cmd)
+                    self._launch(cmd, capture)
+                    ran = True
             elif self.start_time is not None:
                 if self.start_time < datetime.now().time():
-                    r = subprocess.run(cmd)
+                    self._launch(cmd, capture)
+                    ran = True
             else:
-                r = subprocess.run(cmd)
-            if isinstance(r, subprocess.CompletedProcess):
+                self._launch(cmd, capture)
+                ran = True
+            if ran:
                 self.result.set(TestValue.SUCCESS)
             else:
                 self.result.set(TestValue.FAILURE, 'Sub-test did not execute')

@@ -3,7 +3,7 @@ import datetime
 from queue import Queue
 from interpreter.utils.params import expanse
 import api.testium as tm
-from runtime.tum_except import ETUMSyntaxError
+from runtime.tum_except import ETUMSyntaxError, ETUMError
 import interpreter.utils.settings as prefs
 from interpreter.test_report.test_report import TestReport
 from interpreter.utils.py_func_exec import PyFuncExecEngine
@@ -27,6 +27,64 @@ def _build_item_path(item) -> str:
         parts.append(name if name else f"[{current.type()}]")
         current = current.parent()
     return " > ".join(reversed(parts))
+
+
+def _flatten_actions(actions, out, parent_seq_name):
+    """Expand nested lists and included ``sequence`` entries into ``out`` as a
+    flat list of single test-item dicts, propagating each sequence's source
+    filename onto its items.
+
+    Replaces the previous approach, which spliced each entry into the step
+    list and rebuilt the whole list every time (O(n^2) over the step list, and
+    a rebuild that duplicated entries when a nested list held more than one
+    element). This single forward pass is linear.
+    """
+    for idx, action in enumerate(actions):
+        # a bare list raises its elements to the same level
+        if isinstance(action, (list, tuple)):
+            _flatten_actions(action, out, parent_seq_name)
+            continue
+        # a NoneType (e.g. pointing at an unused alias) contributes nothing
+        if action is None:
+            continue
+        # a 'sequence' (an included file) is spliced in, with its filename
+        # propagated onto each of its items
+        if isinstance(action, dict) and "sequence" in action:
+            sequence = action["sequence"]["data"]
+            f = action["sequence"]["filename"]
+            if isinstance(sequence, dict):
+                sequence = [{k: v} for k, v in sequence.items()]
+            # Case of an empty sequence
+            elif sequence is None:
+                tm.print_info(
+                    f"An empty sequence is loaded in '{parent_seq_name}'."
+                )
+                sequence = []
+            elif not isinstance(sequence, list):
+                raise ETUMSyntaxError(
+                    f"Syntax error in '{parent_seq_name}' step number {idx+1}. Sequence definition: '{str(action)}'",
+                    f
+                )
+            if not isinstance(sequence, list):
+                raise ETUMSyntaxError(
+                    f"Invalid included sequence in '{parent_seq_name}' "
+                    f"(step {idx+1}): expected a list of steps, got "
+                    f"{type(sequence).__name__}.",
+                    f
+                )
+            for s in sequence:
+                # Propagate the source filename onto each included step. Only a
+                # single-key mapping with a mapping body can carry it; malformed
+                # entries are left untouched and reported by the loader below,
+                # with their real location.
+                if isinstance(s, dict) and len(s) == 1:
+                    body = s[next(iter(s))]
+                    if isinstance(body, dict):
+                        body["seq_filename"] = f
+            _flatten_actions(sequence, out, parent_seq_name)
+            continue
+
+        out.append(action)
 
 
 class TestSet:
@@ -345,7 +403,19 @@ class TestSet:
         self._rootItem = (cst_type.TYPE_ROOT.item_class)(
             dict_item=dict_main, status_queue=self.status_queue
         )
-        ret = self.load_test_recursively(self._rootItem, dict_main, filename)
+        try:
+            ret = self.load_test_recursively(self._rootItem, dict_main, filename)
+        except ETUMError:
+            # Already a located, user-readable testium error.
+            raise
+        except Exception as e:
+            # Last-resort net: turn any unforeseen failure into a located error
+            # rather than a bare traceback / 'crashed for any reason'.
+            raise ETUMSyntaxError(
+                f"Unexpected error while building the test tree: "
+                f"{type(e).__name__}: {e}",
+                filename
+            ) from e
         self.set_post_exec()
         return ret
 
@@ -406,87 +476,114 @@ class TestSet:
     def rootItem(self):
         return self._rootItem
 
+    def _load_item(self, item):
+        """Run an item's self-load, deferring a failure (e.g. a missing module)
+        to a run-time FAILURE instead of aborting the whole test load."""
+        try:
+            return item.load()
+        except Exception as e:
+            msg = getattr(e, "_message", None) or str(e)
+            item._load_error = msg
+            tm.print_warn(
+                f"'{item.cmd()}' item '{item.name()}' could not be loaded: "
+                f"{msg} (it will FAIL at run)."
+            )
+            return {}
+
     def load_test_recursively(self, tree_parent, parent_seq, file_name):
         ret = {}
+        path = _build_item_path(tree_parent)
+        if not isinstance(parent_seq, dict):
+            raise ETUMSyntaxError(
+                f"In: {path}\n"
+                f"The body of '{tree_parent.cmd()}' must be a mapping (with a "
+                f"'steps' list) but is {type(parent_seq).__name__} "
+                f"({parent_seq!r}).",
+                file_name
+            )
         try:
             parent_seq_name = parent_seq["name"]
         except KeyError:
             parent_seq["name"] = "sequence"
-        except TypeError:
-            raise ETUMSyntaxError(
-                f"No 'name' attribute in '{tree_parent.type()}' (a child of '{tree_parent.parent().name()}')",
-                file_name
-            )
+            parent_seq_name = "sequence"
         try:
             parent_seq_actions = parent_seq["steps"]
         except KeyError:
             raise ETUMSyntaxError(
-                f"No step list found for '{parent_seq_name}' sequence. \n" +
-                f"Check the syntax of the 'steps' parameter of the '{tree_parent.cmd()}' test item definition.",
+                f"In: {path}\n"
+                f"No 'steps' list found for the '{tree_parent.cmd()}' item "
+                f"'{parent_seq_name}'.\n"
+                f"A container item must declare its children under 'steps:'.",
                 file_name
             )
         # if action is a dictionary , we assume it is a single action
         # that has not been nested in a list, so do it
         if isinstance(parent_seq_actions, (dict)):
             parent_seq_actions = [parent_seq_actions]
+        # an empty 'steps:' (None) is a valid, empty sequence
+        if parent_seq_actions is None:
+            parent_seq_actions = []
         if not isinstance(parent_seq_actions, (list, tuple)):
             raise ETUMSyntaxError(
-                f"No valid list of actions in sequence {parent_seq_name}",
+                f"In: {path}\n"
+                f"The 'steps' of '{parent_seq_name}' must be a list of test "
+                f"items but is {type(parent_seq_actions).__name__} "
+                f"({parent_seq_actions!r}).",
                 file_name
             )
-        # first we merged to the same level 'sequence dict entries and list within the list
-        counter = 0
         test_dir = tm.gd("test_directory")
-        la = len(parent_seq_actions)
-        while counter < la:
-            action = parent_seq_actions[counter]
-            # if action is a list raise up to the the same level,
-            # ie insert action element into the parent_seq_actions
-            if isinstance(action, (list, tuple)):
-                parent_seq_actions[counter : counter + 1] = action
-                parent_seq_actions = (
-                    parent_seq_actions[:counter]
-                    + action
-                    + parent_seq_actions[counter + 1 :]
-                )
-                la = len(parent_seq_actions)
-                continue
-            # if action is a NoneType skip and continue
-            # (when pointing to an unused alias for instance)
-            if action is None:
-                counter += 1
-                continue
-            # if action is a sequence we insert its entry into the action list
-            if "sequence" in action:
-                sequence = action["sequence"]["data"]
-                f = action["sequence"]["filename"]
-                if isinstance(sequence, dict):
-                    sequence = [{k: v} for k, v in sequence.items()]
-                # Case of an empty sequence
-                elif sequence is None:
-                    tm.print_info(
-                        f"An empty sequence is loaded in '{parent_seq_name}'."
-                    )
-                    sequence = []
-                elif not isinstance(sequence, list):
-                    raise ETUMSyntaxError(
-                        f"Syntax error in '{parent_seq_name}' step number {counter+1}. Sequence definition: '{str(action)}'",
-                        f
-                    )
-                for s in sequence:
-                    s[list(s.keys())[0]]["seq_filename"] = f
-                parent_seq_actions = (
-                    parent_seq_actions[:counter]
-                    + sequence
-                    + parent_seq_actions[counter + 1 :]
-                )
-                la = len(parent_seq_actions)
-                continue
 
-            # Action is now for sure a list of dict of length 1
+        # Flatten nested lists and included 'sequence' entries to the same level
+        # in one linear pass (was an in-place splice + full list rebuild per
+        # entry: O(n^2) over the step list).
+        flat_actions = []
+        _flatten_actions(parent_seq_actions, flat_actions, parent_seq_name)
+
+        for action in flat_actions:
+            # After flattening, each step must be a single-key mapping
+            # '{item_cmd: {params...}}'. Anything else is a structural mistake
+            # in the .tum (a stray scalar, a missing '-' marker, an over- or
+            # under-indented block) — report it with its location instead of
+            # crashing on it below.
+            if not isinstance(action, dict):
+                raise ETUMSyntaxError(
+                    f"In: {path}\n"
+                    f"A step is not a valid test item: expected a "
+                    f"'<item>: ...' mapping but got {type(action).__name__} "
+                    f"({action!r}).\n"
+                    f"Check the indentation and the '-' list markers of 'steps'.",
+                    file_name
+                )
+            if len(action) != 1:
+                raise ETUMSyntaxError(
+                    f"In: {path}\n"
+                    f"A step must define exactly one test item but defines "
+                    f"{len(action)}: {sorted(map(str, action.keys()))}.\n"
+                    f"Each '-' step holds a single '<item>:'; the lines below it "
+                    f"are probably its parameters and need one more indent level.",
+                    file_name
+                )
+
             k = list(action.keys())[0]
-            if action[k].get("seq_filename", None) is None:
-                action[k]["seq_filename"] = file_name
+
+            # The body of an item is its parameter mapping. A bare '<item>:'
+            # (None) is tolerated as an empty parameter set; a scalar or list is
+            # a structural mistake and is reported with its location.
+            body = action[k]
+            if body is None:
+                body = {}
+                action[k] = body
+            if not isinstance(body, dict):
+                raise ETUMSyntaxError(
+                    f"In: {path}\n"
+                    f"The body of test item '{k}' must be a mapping of "
+                    f"parameters but is {type(body).__name__} ({body!r}).",
+                    file_name
+                )
+
+            if body.get("seq_filename", None) is None:
+                body["seq_filename"] = file_name
+            seq_filename = body["seq_filename"]
 
             executed = False
             for it in TEST_TYPE_LIST:
@@ -498,55 +595,66 @@ class TestSet:
                     (it.item_class is None)
                 ):
                     continue
-                if (it.item_cmd in action) or (
-                    (cst.FOLDED_CHAR + it.item_cmd) in action
-                ):
-                    executed = True
-                    is_folded = False
-                    action_name = it.item_cmd
-
-                    # Check if a "." is before the cmd_name (meaning folded)
-                    if (cst.FOLDED_CHAR + it.item_cmd) in action:
-                        is_folded = True
-                        action_name = cst.FOLDED_CHAR + it.item_cmd
-
-                    seq_filename = action[action_name]["seq_filename"]
-                    try:
-                        item = (it.item_class)(
-                            action[action_name],
-                            tree_parent,
-                            self.status_queue,
-                            filename=seq_filename
-                        )
-                    except ETUMSyntaxError as e:
-                        path = _build_item_path(tree_parent)
-                        raise ETUMSyntaxError(
-                            f"In: {path}\n{e._message}",
-                            e._file or seq_filename,
-                        ) from e
+                if k not in (it.item_cmd, cst.FOLDED_CHAR + it.item_cmd):
+                    continue
+                executed = True
+                # A "." before the cmd name means the item is folded in the GUI
+                is_folded = k.startswith(cst.FOLDED_CHAR)
+                try:
+                    item = (it.item_class)(
+                        body,
+                        tree_parent,
+                        self.status_queue,
+                        filename=seq_filename
+                    )
                     item.is_folded = is_folded
                     child = {}
                     # case where the test item loads itself its descendants
-                    if it == cst_type.TYPE_UNITTEST:
+                    if it in (cst_type.TYPE_UNITTEST, cst_type.TYPE_PYTEST):
                         item.setTestDir(test_dir)
-                        child = item.load()
+                        child = self._load_item(item)
                     elif issubclass(it.item_class, TestItemActions):
                         child = item.load()
                     # case where the test item is an items container
                     elif item.is_container:
                         child = self.load_test_recursively(
-                            item, action[action_name], seq_filename
+                            item, body, seq_filename
                         )
+                except ETUMSyntaxError as e:
+                    # Already a syntax error: prepend the breadcrumb to its
+                    # location (unless it already carries one from a deeper level).
+                    msg = e._message
+                    if not msg.lstrip().startswith("In:"):
+                        msg = f"In: {path} > {k}\n{msg}"
+                    raise ETUMSyntaxError(msg, e._file or seq_filename) from e
+                except ETUMError:
+                    # Other testium errors (missing parameter, runtime, I/O)
+                    # already carry structured context (item type, name,
+                    # parameter, ...): let them through unchanged.
+                    raise
+                except Exception as e:
+                    # Anything unexpected: never let a raw Python error reach the
+                    # user as 'crashed for any reason' — locate it precisely.
+                    raise ETUMSyntaxError(
+                        f"In: {path} > {k}\n"
+                        f"Unexpected error while loading this item: "
+                        f"{type(e).__name__}: {e}",
+                        seq_filename
+                    ) from e
 
-                    ret.update(test_data(item, child))
+                ret.update(test_data(item, child))
 
             if not executed:
-                raise ETUMSyntaxError(
-                    f"test item '{k}' is not known.",
-                    action[k]["seq_filename"]
+                known = ", ".join(
+                    t.item_cmd for t in TEST_TYPE_LIST
+                    if t is not cst_type.TYPE_ROOT and t.item_class is not None
                 )
-
-            counter += 1
+                raise ETUMSyntaxError(
+                    f"In: {path}\n"
+                    f"'{k}' is not a known test item.\n"
+                    f"Known items: {known}.",
+                    seq_filename
+                )
 
         return ret
 
