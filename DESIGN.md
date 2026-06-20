@@ -322,6 +322,20 @@ The `testium_assist` editor extension is a thin LSP client that spawns `testium 
 
 Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: launcher script in `org.testium.Testium.yaml`; AppImage: `runtime.env` in `AppImageBuilder.yml`). `get_testium_version()` checks `/.flatpak-info` / `APPIMAGE` and reads `TESTIUM_VERSION` rather than relying on package metadata or repo introspection.
 
+## Release notes (`release_note.txt`)
+
+User-facing only. One short bullet per change, in the user's words:
+- describe a behaviour or an option the user sees, not the internal
+  implementation;
+- no module/class/file names, no refactor notes, no "in tests/doc";
+- name items, options and modes as they appear in a `.tum` file or in the
+  GUI (e.g. ``read_until``, ``timeout``, "test tree", "checkboxes");
+- no trendy English jargon.
+
+Internal changes (refactors, validation infra, packaging plumbing) belong in
+commit messages and in `## Recent fixes / notable changes` below, not in
+`release_note.txt`.
+
 ## Recent fixes / notable changes
 - Open-log-at-line (GUI): double-click on a tree item opened the log via a hardcoded `code -g {file}:{line}` (broke in Flatpak where `code` is absent). Now driven by a configurable `editor_cmd` preference (placeholders `{file}`/`{line}`, default `code -g {file}:{line}`); the argv is built by `shlex.split` then per-token `.format` (paths with spaces stay one token), wrapped by `bins.host_console_command()` for Flatpak host-spawn, with a `host_open_path`/`openUrl` fallback (no line) when empty or failing. Settings/pref refactor alongside: `SettingsItem` carries its default (single source of truth), trivial getters/setters collapse to `_pref(item)` bindings, the pref window's `elements` dict becomes a `Field(key, type, widget)` table with a per-type `_FIELD` read/write bridge, and the four file-picker slots fold into `_pick_dir`/`_pick_file`. (Also fixed a latent default mismatch: `report_path` defaulted to `$(home)` in the property but `$(test_directory)` in the pref window; unified to `$(test_directory)`.)
 - Show Results (GUI): the toolbar action stays enabled during a run (the log grows live, so it is useful mid-test), not just after. In Flatpak `QDesktopServices.openUrl` routes through the OpenURI portal and often opens no editor for a `.log`; `bins.host_open_path()` now spawns `xdg-open` on the host via `flatpak-spawn --host` (returns False outside Flatpak so the caller falls back to `openUrl`).
