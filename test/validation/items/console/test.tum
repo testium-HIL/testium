@@ -145,6 +145,59 @@
     steps:
         - read_until: {expected: 'never_\d{4}', regex: true, timeout: 1}
 
+# --- Explicit error reporting for .tum misconfigurations -------------------
+# These exercise the clean-failure paths: a misconfigured console must FAIL
+# with an explicit message, never crash the suite with a Python traceback.
+
+- console:
+    name: Console read on a never-opened console (explicit failure)
+    doc: read_until on a console whose 'open' never ran must FAIL with a clear "not open" message, not crash with 'NoneType' has no attribute 'read_until'.
+    console_name: never_opened
+    key: $(test)_FAIL
+    steps:
+        - read_until: {expected: anything, timeout: 1}
+
+- console:
+    name: Console write on a never-opened console (explicit failure)
+    console_name: never_opened
+    key: $(test)_FAIL
+    steps:
+        - writeln: echo nothing
+
+- console:
+    name: Console open with empty console_name (explicit failure)
+    doc: An empty console_name reaches the Console constructor as None; it must FAIL with an explicit "console_name is missing/empty" message, not a cryptic TypeError.
+    console_name:
+    key: $(test)_FAIL
+    steps:
+        - open: {protocol: terminal, terminal_path: $(test_directory)}
+
+{% if os == "Linux" %}
+# --- SSH transport -----------------------------------------------------------
+# No SSH server is assumed: connecting to an unreachable host must FAIL cleanly
+# (one-line message, no traceback), and a follow-up read on that console must
+# also FAIL explicitly — the exact open-fails-then-read cascade that used to
+# crash the runner.
+- console:
+    name: SSH open to an unreachable host (explicit failure)
+    doc: Uses the reserved .invalid TLD (guaranteed not to resolve) so the login fails fast. Must FAIL with a clear "SSH login failed" message.
+    console_name: ssh_unreachable
+    key: $(test)_FAIL
+    steps:
+        - open:
+            protocol: ssh
+            ssh_host: testium-validation.invalid
+            ssh_user: nobody
+
+- console:
+    name: SSH read after a failed open (explicit failure)
+    doc: The 'open' above failed, so this console is not registered; read_until must FAIL with the explicit "not open" message instead of crashing.
+    console_name: ssh_unreachable
+    key: $(test)_FAIL
+    steps:
+        - read_until: {expected: anything, timeout: 1}
+{% endif %}
+
 - console:
     name: Console closure
     execute_on_stop: true

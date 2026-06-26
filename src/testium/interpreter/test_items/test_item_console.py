@@ -11,14 +11,42 @@ from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.param_decl import Param, ParamSet
-from interpreter.test_items.test_result import TestResult, TestValue
+from interpreter.test_items.test_result import TestValue
 
 
 class TestItemConsoleAction(TestItemAction):
 
-    def get_console(self):
+    def console_name(self):
+        """Resolve and validate the parent ``console_name``.
+
+        ``required=True`` only enforces key presence, so an empty
+        ``console_name:`` (YAML ``None``) or an unresolved ``$(var)`` reaches
+        here as ``None``. Raise an explicit ETUMRuntimeError instead of letting
+        ``None`` flow into the Console constructor (cryptic ``TypeError`` while
+        building the prompt) or into every later action (``NoneType`` cascade).
+        """
         cname = self._prms.expanse(self.token["console_name"])
-        return tm.console(cname)
+        if not isinstance(cname, str) or cname.strip() == "":
+            raise ETUMRuntimeError(
+                "'console_name' is missing, empty or unresolved (resolved to "
+                f"{cname!r}). Set a non-empty 'console_name' on the 'console' item "
+                "'{}' — it is the identifier shared by every nested action "
+                "(open/write/writeln/read_until/close).".format(self.parent()._name),
+                self.seqFilename(),
+            )
+        return cname
+
+    def get_console(self):
+        cname = self.console_name()
+        cons = tm.console(cname)
+        if cons is None or not getattr(cons, "isOpened", False):
+            raise ETUMRuntimeError(
+                f"console '{cname}' is not open: its 'open' action failed, never "
+                f"ran, or the console was already closed. An 'open' action for "
+                f"console '{cname}' must succeed before this action.",
+                self.seqFilename(),
+            )
+        return cons
 
 
 class TestItemConsoleOpen(TestItemConsoleAction):
@@ -127,6 +155,9 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             )
 
         try:
+            # Validate console_name explicitly (empty/unresolved → clean error,
+            # not a cryptic TypeError inside the Console constructor).
+            cname = self.console_name()
             if self._protocol == "telnet":
                 if log:
                     cons = console.TelnetLoggedConsole(
@@ -220,10 +251,11 @@ class TestItemConsoleOpen(TestItemConsoleAction):
                 )
 
             cons.stream = stdio_redir.stream
-            # record the console instance in the global dict as consolename instance
-            # and consolename key entry in the dictionnary if it exists
-            tm.add_console(cons)
             cons.open()
+            # Register only after a successful open: a console whose open failed
+            # must stay unreachable so later actions report a clean "not open"
+            # error instead of operating on a half-built transport.
+            tm.add_console(cons)
             self.result.set(TestValue.SUCCESS)
         except ETUMRuntimeError as e:
             # Expected console error (device missing, no permission…): one line.
@@ -254,12 +286,21 @@ class TestItemConsoleClose(TestItemConsoleAction):
 
     @test_run
     def execute(self):
-        cons = self.get_console()
         try:
-            cons.close()
-            tm.remove_console(self._prms.expanse(self.token["console_name"]))
-        except:
-            pass
+            cname = self.console_name()
+        except ETUMRuntimeError as e:
+            self.result.set(result=TestValue.FAILURE, message=e._message)
+            print(e._message)
+            return
+        # Closing a console that was never opened (open failed earlier) is a
+        # no-op success, not an error — nothing to release.
+        cons = tm.console(cname)
+        if cons is not None:
+            try:
+                cons.close()
+                tm.remove_console(cname)
+            except Exception:
+                pass
         self.result.set(result=TestValue.SUCCESS)
 
 
@@ -284,8 +325,14 @@ class TestItemConsoleWrite(TestItemConsoleAction):
             cons.write(str(msg))
             self.result.set(result=TestValue.SUCCESS)
             self.result.reported = {"data": msg}
-        except:
-            test_res = TestResult(
+        except ETUMRuntimeError as e:
+            # Expected console error (e.g. console not open): clear one-liner.
+            m = f"Console '{self.token['console_name']}': impossible to write ({e._message})"
+            self.result.set(result=TestValue.FAILURE, message=m)
+            print(m)
+        except Exception:
+            print(traceback.format_exc())
+            self.result.set(
                 result=TestValue.FAILURE,
                 message=f"Console '{self.token['console_name']}': impossible to write",
             )
@@ -312,7 +359,13 @@ class TestItemConsoleWriteLn(TestItemConsoleAction):
             cons.write(str(msg) + "\n")
             self.result.set(result=TestValue.SUCCESS)
             self.result.reported = {"data": msg}
-        except:
+        except ETUMRuntimeError as e:
+            # Expected console error (e.g. console not open): clear one-liner.
+            m = f"Console '{self.token['console_name']}': impossible to write ({e._message})"
+            self.result.set(result=TestValue.FAILURE, message=m)
+            print(m)
+        except Exception:
+            print(traceback.format_exc())
             self.result.set(
                 result=TestValue.FAILURE,
                 message=f"Console '{self.token['console_name']}': impossible to write",
@@ -351,7 +404,6 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
 
     @test_run
     def execute(self):
-        cons = self.get_console()
         # 'expected' may be a single value or a list of values (match any).
         if isinstance(self._read_until, (list, tuple)):
             ru = [self._prms.expanse(m) for m in self._read_until]
@@ -364,6 +416,7 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
             read_timeout = None
 
         try:
+            cons = self.get_console()
             status, data = cons.read_until(
                 ru, timeout=read_timeout, return_data=True, mute=mute,
                 should_stop=self.isStopped, regex=bool(use_regex),
