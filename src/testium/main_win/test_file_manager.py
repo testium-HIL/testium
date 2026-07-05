@@ -128,6 +128,8 @@ class TestFileManager:
                 raise ETUMFileError("No file to load")
 
             file_name = os.path.abspath(file_name)
+            # Kept so Refresh can retry even after a failed load.
+            w._attempted_file = file_name
             initial_dir = os.path.dirname(file_name)
 
             if not os.path.isdir(initial_dir):
@@ -218,6 +220,9 @@ class TestFileManager:
                 self._close_progress(progress)
             w.statusBar().showMessage("No test file could be loaded", 10000)
             w.treeTests.clear()
+            # Keep Refresh available to retry after fixing the file.
+            w.actionStart_test.setDisabled(True)
+            w.actionRefresh_test.setEnabled(True)
             print(traceback.format_exc())
             return False
 

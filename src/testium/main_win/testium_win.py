@@ -620,8 +620,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionRefresh_test_triggered(self):
-        if self.testFile:
-            self.file_manager.reload(self.testFile)
+        target = self.testFile or getattr(self, "_attempted_file", None)
+        if target:
+            self.file_manager.reload(target)
 
     @Slot()
     def on_actionSave_report_triggered(self):
