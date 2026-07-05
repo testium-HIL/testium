@@ -23,28 +23,56 @@ class TestFileManager:
     # --- Process lifecycle ---
 
     def clear_process(self):
+        """Tear down the child process and every resource attached to the
+        currently-loaded test so nothing leaks across a GUI reload.
+
+        Runs unconditionally (not only when the child is alive): a crashed or
+        already-dead child still holds a controller with two multiprocessing
+        Queues (feeder thread + pipe fds + semaphores) that must be closed, and
+        the globals table must be reset. A too-strict guard used to skip all of
+        this, orphaning those resources on every subsequent reload.
+        """
         w = self._win
-        if (
-            w.test_proc is not None
-            and w.test_proc.is_alive()
-            and w.test_service is not None
-        ):
-            w.test_service.stop()
-            w.test_service.close()
-            w.test_proc.join(timeout=5)
-            if w.test_proc.is_alive():
-                w.test_proc.terminate()
-                w.test_proc.join(timeout=2)
-            if w.test_proc.is_alive():
-                w.test_proc.kill()
-                w.test_proc.join()
+        # Ask the child to stop/close only while it can still answer, then make
+        # sure it is really gone.
+        if w.test_proc is not None:
+            if w.test_proc.is_alive() and w.test_service is not None:
+                try:
+                    w.test_service.stop()
+                    w.test_service.close()
+                except Exception:
+                    pass
+                w.test_proc.join(timeout=5)
+                if w.test_proc.is_alive():
+                    w.test_proc.terminate()
+                    w.test_proc.join(timeout=2)
+                if w.test_proc.is_alive():
+                    w.test_proc.kill()
+                    w.test_proc.join()
+            # Release the parent-side stdout capture pipe + thread opened in
+            # TestProcess.__init__ (else each reload leaks a thread + 2 fds).
+            try:
+                w.test_proc.close_parent_io()
+            except Exception:
+                pass
             del w.test_proc
             w.test_proc = None
-            del w.test_service
-            w.test_service = None
-            w.d_f1_win.set_service(None)
+        # Close the control queues (feeder threads + pipe fds + semaphores) so
+        # they don't accumulate reload after reload.
+        if w.ts_controller is not None:
+            try:
+                w.ts_controller.close()
+            except Exception:
+                pass
             del w.ts_controller
             w.ts_controller = None
+        if w.test_service is not None:
+            del w.test_service
+            w.test_service = None
+        # Reset the globals table (clears the rows and the key→row map).
+        w.d_f1_win.set_service(None)
+        # Drop the previously-loaded test directory from sys.path.
+        self._remove_test_dir_from_path()
 
     def reload(self, file_name: str):
         w = self._win
@@ -64,6 +92,17 @@ class TestFileManager:
                 w.treeTests.restoreFoldList(previous_fold_list)
 
         w.reconnect_signals()
+
+    def _remove_test_dir_from_path(self):
+        """Undo the sys.path entry added by the previous load (and any stale
+        duplicate of it) so the search path can't grow across reloads — the
+        parent's sys.path is inherited by every spawned child process."""
+        w = self._win
+        test_dir = getattr(w, "_test_dir_on_path", None)
+        if test_dir is not None:
+            while test_dir in sys.path:
+                sys.path.remove(test_dir)
+            w._test_dir_on_path = None
 
     def _make_progress(self, w):
         progress = QProgressDialog("Starting test process…", None, 0, 0, w)
@@ -123,11 +162,22 @@ class TestFileManager:
                 QApplication.processEvents()
 
             if not w.test_proc.is_alive():
+                # Child died during load: release its parent-side capture
+                # pipe/thread and control queues before dropping the refs,
+                # otherwise a failed reload leaks a thread + fds too.
+                try:
+                    w.test_proc.close_parent_io()
+                except Exception:
+                    pass
                 del w.test_proc
                 w.test_proc = None
                 del w.test_service
                 w.test_service = None
                 w.d_f1_win.set_service(None)
+                try:
+                    w.ts_controller.close()
+                except Exception:
+                    pass
                 del w.ts_controller
                 w.ts_controller = None
                 raise ETUMRuntimeError(
@@ -152,7 +202,9 @@ class TestFileManager:
             w.testFile = file_name
             test_dir = os.path.dirname(w.testFile)
 
-            sys.path.append(test_dir)
+            if test_dir not in sys.path:
+                sys.path.append(test_dir)
+            w._test_dir_on_path = test_dir
             w.statusBar().showMessage("Test file loaded", 10000)
             w.textLog.set_test_dir(test_dir)
             self.add_file_to_recent(file_name)

@@ -56,7 +56,19 @@ class TestProcess(Process):
         self.__exec = False
         self.__loaded = False
         self.__closed = False
+        self.__cconn = None
+        self.__capture_th = None
         self.__pconn = self.redirect_stdout()
+
+    def __getstate__(self):
+        # TestProcess is pickled by multiprocessing 'spawn' on start(). The
+        # parent-side stdout-capture thread/connection are parent-only and
+        # unpicklable (a Thread carries a _contextvars.Context on 3.14+), so
+        # drop them from the child's state — the child only needs __pconn.
+        state = self.__dict__.copy()
+        state["_TestProcess__cconn"] = None
+        state["_TestProcess__capture_th"] = None
+        return state
 
 
     def _check_test_dict(self, test_dict):
@@ -426,10 +438,38 @@ Is the python exec path correct ?"""
 
     def redirect_stdout(self):
         pconn, cconn = Pipe()
-        redir = Thread(target=self.capture_stdout, args=(cconn,))
-        redir.daemon = True
-        redir.start()
+        self.__cconn = cconn
+        self.__capture_th = Thread(target=self.capture_stdout, args=(cconn,))
+        self.__capture_th.daemon = True
+        self.__capture_th.start()
         return pconn
+
+    def close_parent_io(self):
+        """Parent-side teardown of the stdout capture pipe/thread.
+
+        ``__init__`` (run in the parent) opens a ``Pipe`` and starts the
+        ``capture_stdout`` daemon thread in the parent. Once the child is gone
+        these must be released, otherwise every reload leaks one thread (stuck
+        on ``cconn.recv()`` because the parent still holds the write end) and
+        the pipe's two fds. Call after the child process has been joined.
+        """
+        # Close the write end first so capture_stdout's recv() sees a clean
+        # EOFError and exits, then join it, then close the read end.
+        try:
+            if self.__pconn is not None:
+                self.__pconn.close()
+        except Exception:
+            pass
+        th = getattr(self, "_TestProcess__capture_th", None)
+        if th is not None:
+            th.join(timeout=2)
+            self.__capture_th = None
+        try:
+            if self.__cconn is not None:
+                self.__cconn.close()
+                self.__cconn = None
+        except Exception:
+            pass
 
     def send_stdout(self, stream):
         while not self.__closed:
