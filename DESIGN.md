@@ -393,6 +393,8 @@ The same item set is reused across every packaging channel — `--mode source|wh
 
 The `run.sh` / `run.bat` wrappers create a dedicated **host** Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside that venv. testium itself keeps running in its own environment for the chosen mode. The venv is shared across modes because every test-execution subprocess ends up on the host either directly (source/wheel/pyinstaller/appimage) or via `flatpak-spawn --host` (flatpak). `clean` as the first argument recreates the venv. `wheel` mode also creates a separate `testium-wheel-venv-<v>` to hold the installed package.
 
+`test/validation/gui_reload_check.py` (source mode only, run by `run.sh` before the suite) drives a headless `MainWindow`, reloads a small `.tum` 15×, and fails if open fds / live threads / `sys.path` grow — guarding the reload cleanup (control queues, stdout-capture pipe/thread, `sys.path`). It skips cleanly when PySide6 is unavailable.
+
 The `venv` item (`test/validation/items/venv/`) asserts that the override actually took effect: `python_bin` is set, `sys.executable` matches it, `sys.prefix == dirname(dirname(python_bin))`, and `sys.prefix != sys.base_prefix` (the last marker catches the case where `python_bin` happens to be a system interpreter, which path-equality alone would miss because the venv's `bin/python3` is a symlink to the host). Both `eval_proc` (inline `<| … |>`) and `py_func` paths are exercised.
 
 Parallel item tests: `test/validation/items/parallel/test.tum`
