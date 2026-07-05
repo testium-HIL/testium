@@ -51,8 +51,8 @@ The parameter file can be specified in the `.tum` file root:
     :caption: configuration files definition in the main `.tum` test file
 
     config_file:
-        config1.yaml
-        config2.yaml
+        - config1.yaml
+        - config2.yaml
 
     main:
         name: Test example

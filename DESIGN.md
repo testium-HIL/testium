@@ -322,6 +322,20 @@ The `testium_assist` editor extension is a thin LSP client that spawns `testium 
 
 Both Flatpak and AppImage export `TESTIUM_VERSION` from a launcher (Flatpak: launcher script in `org.testium.Testium.yaml`; AppImage: `runtime.env` in `AppImageBuilder.yml`). `get_testium_version()` checks `/.flatpak-info` / `APPIMAGE` and reads `TESTIUM_VERSION` rather than relying on package metadata or repo introspection.
 
+## Release notes (`release_note.txt`)
+
+User-facing only. One short bullet per change, in the user's words:
+- describe a behaviour or an option the user sees, not the internal
+  implementation;
+- no module/class/file names, no refactor notes, no "in tests/doc";
+- name items, options and modes as they appear in a `.tum` file or in the
+  GUI (e.g. ``read_until``, ``timeout``, "test tree", "checkboxes");
+- no trendy English jargon.
+
+Internal changes (refactors, validation infra, packaging plumbing) belong in
+commit messages and in `## Recent fixes / notable changes` below, not in
+`release_note.txt`.
+
 ## Recent fixes / notable changes
 - `console` item — explicit errors for `.tum` mistakes + not-open hardening across **every** transport: a misconfigured or failed-to-open console used to crash with a cryptic `TypeError: can only concatenate str (not "NoneType")` (an empty/unresolved `console_name` reaching the `Console` constructor — `required=True` only checks key presence, not a `None` value) or, when a real `open()` failed (e.g. SSH host unreachable), cascade into `'NoneType' object has no attribute 'read_nonblocking'`/`read_until`/`write` on every later action, plus an `Exception ignored in __del__` (`isOpened` unset on the half-built object). Hardening, layered so a not-open console can never reach a raw transport deref:
   - **Action layer** (`test_item_console.py`): `TestItemConsoleAction.console_name()` raises a clear `ETUMRuntimeError` when `console_name` resolves to `None`/empty; `get_console()` raises explicit "console 'X' is not open" when the console is absent **or** `not isOpened` (covers failed-open, never-opened, already-closed) instead of returning `None`; `read_until`/`write`/`writeln` resolve the console **inside** their `try` so the error is reported as a clean one-liner (not the top-level banner that aborts the run); `close` tolerates an absent console; the `open` action registers (`tm.add_console`) **only after** `open()` succeeds. Fixed a swallowed `write` failure (`TestResult` built but never assigned to `self.result`).

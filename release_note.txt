@@ -1,3 +1,13 @@
+version 0.3.3
+==============
+- console ``read_until``: ``timeout`` accepts fractional seconds.
+- Lua functions returning several values: extra returns kept as a list.
+- Reload no longer disables the test tree when checkboxes are off.
+- Reloading a test many times no longer slows down or breaks opening tests
+  and the global variables; each reload starts clean.
+- ``let`` / ``config_file``: prefer the bullet-list form (``- key: value``);
+  the previous flat-mapping form still works.
+
 version 0.3.2
 ==============
 - The variables window (F1) now has a filter box: type to show only the
