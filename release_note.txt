@@ -1,3 +1,11 @@
+version 0.3.4
+==============
+- ``testium schema`` now emits a standard JSON Schema (draft 2020-12)
+  describing valid ``.tum`` files. Usable by yaml-language-server,
+  external linters (ajv, check-jsonschema) and AI assistants.
+- A clear error message when the ``python3-venv`` package is missing on
+  the PC, instead of a failing run.
+
 version 0.3.3
 ==============
 - console ``read_until``: ``timeout`` accepts fractional seconds.
@@ -9,9 +17,6 @@ version 0.3.3
   Refresh to retry, instead of having to Open it again.
 - ``let`` / ``config_file``: prefer the bullet-list form (``- key: value``);
   the previous flat-mapping form still works.
-- ``testium schema`` now emits a standard JSON Schema (draft 2020-12)
-  describing valid ``.tum`` files. Usable by yaml-language-server,
-  external linters (ajv, check-jsonschema) and AI assistants.
 
 version 0.3.2
 ==============
