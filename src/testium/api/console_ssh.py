@@ -9,6 +9,7 @@ import pexpect
 from pexpect import ExceptionPexpect, TIMEOUT, EOF, spawn
 
 from api.console import Console
+from runtime.tum_except import ETUMRuntimeError
 
 # Exception classes used by this module.
 
@@ -480,11 +481,6 @@ class SshConsole(Console):
 
     TYPE = "ssh"
 
-    class LoginException(Exception):
-        """Raised when failed to login"""
-
-        pass
-
     def __init__(
         self,
         name,
@@ -512,9 +508,11 @@ class SshConsole(Console):
     def open(self, logfile=None, login_timeout=5):
         """Start the SSH session"""
 
-        # have to create a new pxssh for each login temptative
-        session = pxssh(logfile=logfile, options=self.options, echo=self.mirror)
+        port = self.port if self.port is not None else 22
+        target = "{}@{}:{}".format(self.user, self.host, port)
         try:
+            # have to create a new pxssh for each login temptative
+            session = pxssh(logfile=logfile, options=self.options, echo=self.mirror)
             session.login(
                 server=self.host,
                 username=self.user,
@@ -525,7 +523,18 @@ class SshConsole(Console):
                 sync_multiplier=self.sync_multiplier,
             )
         except ExceptionPxssh as exc:
-            raise SshConsole.LoginException(exc)
+            # Login failed (host unreachable, auth refused, timeout, …): clear
+            # message instead of a raw traceback.
+            raise ETUMRuntimeError(
+                "SSH login to {} failed: {}".format(target, exc)
+            ) from None
+        except ExceptionPexpect as exc:
+            # Spawn-level failure (the 'ssh' client is not installed / not on
+            # PATH, unexpected EOF, …).
+            raise ETUMRuntimeError(
+                "Could not start an SSH session to {} (is the 'ssh' client "
+                "installed and on PATH?): {}".format(target, exc)
+            ) from None
 
         self.session = session
         self.isOpened = True
@@ -539,6 +548,7 @@ class SshConsole(Console):
 
     def write(self, characters, mute=False):
         """Write a set of characters into the SSH session"""
+        self._ensure_open()
         if self.echo_on and not mute:
             ech = "" if characters.strip(' ').endswith("\n") else "\n"
             print(("[>" + self.name + "] : " + characters), end=ech)
@@ -546,6 +556,7 @@ class SshConsole(Console):
 
     def readchar(self, timeout):
         """Read a single character from the SSH session"""
+        self._ensure_open()
         try:
             return self.session.read_nonblocking(size=1, timeout=timeout)
         except pexpect.exceptions.TIMEOUT:
@@ -553,10 +564,12 @@ class SshConsole(Console):
 
     def readline(self):
         """Read until a \r\n is found."""
+        self._ensure_open()
         return self.session.readline()
 
     def read_nowait(self, mute=False):
         """Read a single character from the SSH session"""
+        self._ensure_open()
         try:
             st = self.session.read_nonblocking(size=self.session.maxread, timeout=0)
         except pexpect.TIMEOUT:

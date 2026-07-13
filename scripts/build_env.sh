@@ -14,17 +14,10 @@ if [ "$1" == "clean" ]; then
     rm -Rf "$PY_VENV_DIR"
 fi
 
-# Check if venv is installed
-python3 -c "import venv"
-if [ "$?" -ne 0 ]; then
-    echo "venv must be installed on the host distribution."
-    exit -1
-fi
-# Check if venv is installed
-python3 -c "import ensurepip"
-if [ "$?" -ne 0 ]; then
-    echo "ensurepip must be installed on the host distribution."
-    exit -1
+# venv support (module + ensurepip, needed to bootstrap pip) must be present.
+if ! python3 -c "import venv, ensurepip" 2>/dev/null; then
+    echo "venv support is missing on this system. On Debian/Ubuntu: sudo apt install python3-venv"
+    exit 1
 fi
 
 # Install the virtual environment if needed

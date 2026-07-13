@@ -3,6 +3,10 @@ version 0.3.3
 - console ``read_until``: ``timeout`` accepts fractional seconds.
 - Lua functions returning several values: extra returns kept as a list.
 - Reload no longer disables the test tree when checkboxes are off.
+- Reloading a test many times no longer slows down or breaks opening tests
+  and the global variables; each reload starts clean.
+- Refresh stays available when a test fails to load: fix the file and press
+  Refresh to retry, instead of having to Open it again.
 - ``let`` / ``config_file``: prefer the bullet-list form (``- key: value``);
   the previous flat-mapping form still works.
 - ``testium schema`` now emits a standard JSON Schema (draft 2020-12)

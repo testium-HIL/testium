@@ -1,0 +1,13 @@
+config_file:
+    - param.yaml
+
+main:
+    name: GUI reload check
+    steps:
+        - let:
+            name: Set a global
+            values:
+                - reload_probe: $(reload_base)
+        - sleep:
+            name: Brief
+            timeout: 0.01

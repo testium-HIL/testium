@@ -58,20 +58,22 @@ class BytesStore(object):
 class Console(object):
 
     def __init__(self, name, echoOn=False, write_delay=0):
+        # Set the attributes __del__ relies on first, so a failure further down
+        # leaves a partially-built object the GC can still finalize cleanly.
+        self.isOpened = False
+        self.port = None
         self.stream = sys.stdout
         self.name = name
         self.encoding = "utf-8"
         self.echo_on = echoOn
         self.write_delay = write_delay
         self.string_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+' '+self.name+']'
-        self.port = None
-        self.isOpened = False
 
     def __del__(self):
         """ This is a safeguard that tries to close the telnet connection, in case it was not done,
         before the Console object is terminated by the garbage collector (GC).
         """
-        if self.isOpened:
+        if getattr(self, "isOpened", False):
             print('Warning: {classname} is about to be deleted but the connection was not closed. \
 A {classname}.close() is missing somewhere in your code !'.format(classname=type(self).__name__))
             self.close()
@@ -101,6 +103,15 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
 
     def is_opened(self):
         return self.isOpened
+
+    def _ensure_open(self):
+        """Raise a clear error when an IO method runs on a console whose open()
+        never ran or failed, instead of a raw AttributeError on the missing
+        underlying transport (telnet/ssh session, serial port, socket, …)."""
+        if not getattr(self, "isOpened", False):
+            raise ETUMRuntimeError(
+                "console '{}' is not open".format(getattr(self, "name", "?"))
+            )
 
     def _is_valid_character(self, data):
         """ return True if data is a valid ascii char [0x20-0x7E] or '\n' or '\r'
@@ -163,6 +174,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
             The returned data may be a list in the form of [status, data] with the "data" string
             being the data read on the device when return_data has been set to true.
         """
+        self._ensure_open()
         read_data = ''
         status = -1
         if not match:
@@ -286,6 +298,7 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         return status
 
     def write(self, characters, mute=False):
+        self._ensure_open()
         if self.echo_on and not mute:
             ech = '' if characters.strip(" ").endswith('\n') else '\n'
             print(('[>' + self.name + '] : ' + characters), end=ech)
@@ -353,6 +366,7 @@ class TelnetConsole(Console):
         return self.read_until('\n', return_data=True)[1]
 
     def read_nowait(self, mute=False):
+        self._ensure_open()
         st = self.port.read_very_eager().decode(self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]

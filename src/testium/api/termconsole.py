@@ -115,6 +115,7 @@ class TermConsole(Console):
             return c
 
     def read_nowait(self, mute=False):
+        self._ensure_open()
         s = ''.encode()
 
         s += self.q.getAll()
@@ -133,6 +134,7 @@ class TermConsole(Console):
         return st
 
     def write(self, s, mute=False):
+        self._ensure_open()
         if self.echo_on and not mute:
             ech = '' if s.strip(' ').endswith('\n') else '\n'
             print(('[>' + self.name + '] : ' + s), end=ech)

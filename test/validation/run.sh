@@ -171,6 +171,16 @@ echo "-- schema check ($MODE)"
 echo "-- load-error check ($MODE)"
 "$VENV_PYTHON" "$SCRIPT_DIR/load_errors_check.py" "${CMD[@]}"
 
+# ---------- GUI reload check (source only) ------------------------------------
+# Repeated GUI reloads must not leak fds/threads/sys.path. Imports main_win, so
+# source mode only; the script skips itself if PySide6 is unavailable.
+if [ "$MODE" = "source" ]; then
+    echo "-- GUI reload check ($MODE)"
+    GUI_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$GUI_PY" ] || GUI_PY="$VENV_PYTHON"
+    "$GUI_PY" "$SCRIPT_DIR/gui_reload_check.py"
+fi
+
 if [ "$GUI" -eq 1 ]; then
     echo "-- GUI mode: the suite is loaded; press Start to run. Window stays open."
 fi
