@@ -317,7 +317,9 @@ class QTestTree(QTreeWidget):
         child_count = root.childCount()
         for i in range(child_count):
             item = root.child(i)
-            if not item.checkState(0):
+            # PySide6 enums are truthy even for Unchecked (value 0): compare
+            # explicitly. PartiallyChecked parents stay enabled.
+            if item.checkState(0) == Qt.Unchecked:
                 item.setDisabled(True)
             item.setData(0, Qt.CheckStateRole, None)
             if root.child(i).childCount() > 0:

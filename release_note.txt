@@ -6,6 +6,8 @@ version 0.3.4
 - Step-by-step execution in the GUI: Step over (F10), Step into (F11),
   Step out (Shift+F11). Buttons shown in the toolbar only while a test
   runs, active when paused; F11 from idle starts paused on the first item.
+- Unchecked test items are greyed again while the test runs (was lost
+  with recent PySide6 versions).
 
 version 0.3.3
 ==============
