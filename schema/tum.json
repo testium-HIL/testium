@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:testium:tum-schema:0.3.3",
+  "$id": "urn:testium:tum-schema:0.3.4",
   "title": "testium TUM file",
   "type": "object",
   "additionalProperties": false,
@@ -1981,7 +1981,7 @@
           "type": "object"
         },
         "udp": {
-          "description": "UDP-transport block: {server, snd_port, rcv_port, \u2026}. Either 'console' or 'udp' must be set.",
+          "description": "UDP-transport block: {server, snd_port, rcv_port, bufsize, multicast_if}. A multicast 'server' (224.0.0.0/4) joins the group; 'multicast_if' selects the local interface IP. Either 'console' or 'udp' must be set.",
           "type": "object"
         },
         "version": {

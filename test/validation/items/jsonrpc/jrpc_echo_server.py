@@ -102,6 +102,35 @@ def _udp_server(host, port):
         srv.sendto(resp.encode(), addr)
 
 
+# ── Multicast UDP ────────────────────────────────────────────────────────────
+
+def _mcast_server(group, port, iface, reply_to_group):
+    """Join `group` on `iface` and answer requests.
+
+    reply_to_group=False: unicast reply to the sender (standard flow).
+    reply_to_group=True: reply sent to (group, sender_port) — only reachable
+    by clients that joined the group themselves.
+    """
+    import struct
+    srv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("", port))
+    srv.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
+                   socket.inet_aton(group) + socket.inet_aton(iface))
+    if reply_to_group:
+        srv.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL,
+                       struct.pack("b", 1))
+        srv.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
+                       socket.inet_aton(iface))
+    mode = "group-reply" if reply_to_group else "unicast-reply"
+    print(f"MCAST listening on {group}:{port} ({mode}, if {iface})", flush=True)
+    while True:
+        data, addr = srv.recvfrom(65535)
+        resp = handle(data.decode())
+        dest = (group, addr[1]) if reply_to_group else addr
+        srv.sendto(resp.encode(), dest)
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -121,6 +150,16 @@ def main():
     udp_thread = threading.Thread(target=_udp_server, args=(udp_host, udp_port), daemon=True)
     tcp_thread.start()
     udp_thread.start()
+
+    if cfg.has_section("jsonrpc_multicast"):
+        group = cfg.get("jsonrpc_multicast", "group")
+        iface = cfg.get("jsonrpc_multicast", "iface", fallback="127.0.0.1")
+        port_ucast = cfg.getint("jsonrpc_multicast", "port_unicast_reply", fallback=4324)
+        port_mcast = cfg.getint("jsonrpc_multicast", "port_group_reply", fallback=4325)
+        threading.Thread(target=_mcast_server,
+                         args=(group, port_ucast, iface, False), daemon=True).start()
+        threading.Thread(target=_mcast_server,
+                         args=(group, port_mcast, iface, True), daemon=True).start()
 
     print("JSON-RPC echo server ready", flush=True)
 

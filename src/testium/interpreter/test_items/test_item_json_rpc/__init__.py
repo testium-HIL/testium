@@ -199,7 +199,9 @@ class TestItemJSON_RPC(TestItemActions):
               doc="Console-transport block: {name, …} (name = console_name of an "
                   "open console). Either 'console' or 'udp' must be set."),
         Param("udp", kind=BLOCK,
-              doc="UDP-transport block: {server, snd_port, rcv_port, …}. Either "
+              doc="UDP-transport block: {server, snd_port, rcv_port, bufsize, "
+                  "multicast_if}. A multicast 'server' (224.0.0.0/4) joins the "
+                  "group; 'multicast_if' selects the local interface IP. Either "
                   "'console' or 'udp' must be set."),
         Param("version", default="1.0",
               doc="JSON-RPC protocol version ('1.0' or '2.0')."),
@@ -273,13 +275,15 @@ class TestItemJSON_RPC(TestItemActions):
             snd_port = udp.get("snd_port")
             rcv_port = udp.get("rcv_port")
             bufsize = udp.get("bufsize", 1450)
+            multicast_if = udp.get("multicast_if")
             if server is None or snd_port is None or rcv_port is None:
                 raise ETUMSyntaxError(
                     f"The '{self.cmd()}' test item named '{self.name()}' UDP configuration needs 'server', 'snd_port' and 'rcv_port' defined",
                     self.seqFilename(),
                 )
             jrpc_adapter = JrpcUdpAdapter(
-                server, snd_port, rcv_port, bufsize, timeout, jrpc_version, mute
+                server, snd_port, rcv_port, bufsize, timeout, jrpc_version, mute,
+                multicast_if=multicast_if,
             )
 
         self.actions_token = jrpc_adapter

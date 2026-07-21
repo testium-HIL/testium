@@ -15,8 +15,12 @@ def is_ip_address(address):
 
 
 def is_ip_multicast(ip):
-    # convert the IP as an integer
-    ip_int = struct.unpack("!I", socket.inet_aton(ip))[0]
+    try:
+        # convert the IP as an integer
+        ip_int = struct.unpack("!I", socket.inet_aton(ip))[0]
+    except OSError:
+        # Not a valid dotted-quad (e.g. out-of-range octet).
+        return False
     # Checks if it is in a multicast range
     return 0xE0000000 <= ip_int <= 0xEFFFFFFF
 
@@ -210,12 +214,16 @@ class JrpcUdpAdapter(JrpcAdapter):
         timeout: float = 1.0,
         version: str = "1.0",
         mute: bool = False,
+        multicast_if: str = None,
     ) -> None:
         """server: hostname or ip of the UDP server to which we'll send requests.
         snd_port: port to which we'll send requests.
         rcv_port: port on which we'll wait for responses.
         bufsize: max size of the data to receive
         version: jsonrpc version
+        multicast_if: local interface IP used to send to / join a multicast
+            group (default: kernel default interface). Only used when 'server'
+            is a multicast address.
         """
         super().__init__(timeout, version, mute)
         self._bufsize = bufsize
@@ -223,6 +231,7 @@ class JrpcUdpAdapter(JrpcAdapter):
         self._multicast = False
         self._rcv_port = rcv_port
         self._snd_port = snd_port
+        self._multicast_if = multicast_if
 
     @property
     def sock(self):
@@ -310,11 +319,33 @@ class JrpcUdpAdapter(JrpcAdapter):
         # Creates the socket and bind to the reception port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         if self._multicast:
+            # Other group members may listen on the same port.
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             ttl = struct.pack("b", 1)
             self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+            if self._multicast_if is not None:
+                self.sock.setsockopt(
+                    socket.IPPROTO_IP,
+                    socket.IP_MULTICAST_IF,
+                    socket.inet_aton(self._multicast_if),
+                )
 
         self.sock.settimeout(self.timeout)
         self.sock.bind(("", self._rcv_port))
+
+        if self._multicast:
+            # Join the group so replies addressed to the group (not only
+            # unicast replies to our source address) are received.
+            iface = (
+                socket.inet_aton(self._multicast_if)
+                if self._multicast_if is not None
+                else struct.pack("!I", socket.INADDR_ANY)
+            )
+            self.sock.setsockopt(
+                socket.IPPROTO_IP,
+                socket.IP_ADD_MEMBERSHIP,
+                socket.inet_aton(self._server) + iface,
+            )
 
     def _close(self):
 

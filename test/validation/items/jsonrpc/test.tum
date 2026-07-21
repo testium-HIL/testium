@@ -321,6 +321,61 @@
                     timeout: 1
                 - close:
 
+{% if os == "Linux" %}
+        # --- Multicast UDP -----------------------------------------------------
+        # The echo server joined group 239.255.42.99 on loopback: port 4324
+        # replies unicast to the sender, port 4325 replies to the group itself
+        # (only receivable because the adapter joins the group too).
+        # multicast_if pins everything to loopback so the tests do not depend
+        # on the host routing.
+        - json_rpc:
+            name: Multicast UDP query, unicast reply
+            doc: Send to the multicast group; the server answers unicast to our source address.
+            key: $(test)_PASS
+            udp: {server: 239.255.42.99, snd_port: 4324, rcv_port: 8767, multicast_if: 127.0.0.1}
+            timeout: 2
+            steps:
+                - open:
+                - query:
+                    method: echo
+                    params:
+                        - Hello Multicast
+                        - {a: 1, b: mcast}
+                    expected_result: [[Hello Multicast, {a: 1, b: mcast}], {}]
+                    timeout: 2
+                - close:
+
+        - json_rpc:
+            name: Multicast UDP query, group-addressed reply
+            doc: The server replies to the group, not to our unicast address. Exercises the group-join done by open (strictly required across hosts; on a single host the server's own membership already subscribes the interface).
+            key: $(test)_PASS
+            udp: {server: 239.255.42.99, snd_port: 4325, rcv_port: 8768, multicast_if: 127.0.0.1}
+            timeout: 2
+            steps:
+                - open:
+                - query:
+                    method: echo
+                    params:
+                        - Group Reply
+                    expected_result: [[Group Reply], {}]
+                    timeout: 2
+                - close:
+
+        - json_rpc:
+            name: Failing multicast UDP query (unknown method)
+            key: $(test)_FAIL
+            udp: {server: 239.255.42.99, snd_port: 4324, rcv_port: 8767, multicast_if: 127.0.0.1}
+            timeout: 2
+            steps:
+                - open:
+                - query:
+                    method: echo2
+                    params:
+                        - Hello Multicast
+                    timeout: 2
+                - close:
+{% endif %}
+
 - console:
     name: Stop json rpc echo server
     doc: check if the jsonrpc echo server is installed

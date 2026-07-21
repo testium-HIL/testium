@@ -115,14 +115,15 @@ The adapters attributes are listed in the table below.
      - *string*
      - the eventual enclosing suffix of the jsonrpc frame.
 
-   * - :rspan:`4` UDP
+   * - :rspan:`5` UDP
      - ``udp``
      - *dictionary*
      - The UDP adapter configuration
 
    * - ``udp.server``
      - *string*
-     - UDP server hostname or IP address.
+     - UDP server hostname or IP address. A multicast address
+       (224.0.0.0/4) enables the multicast mode (see below).
 
    * - ``udp.snd_port``
      - *integer*
@@ -136,6 +137,30 @@ The adapters attributes are listed in the table below.
      - *integer*
      - the maximum expected size of the buffer received while waiting for
        a jsonrpc frame.
+
+   * - ``udp.multicast_if``
+     - *string*
+     - multicast mode only: IP address of the local interface used to send
+       to and join the group (default: the kernel default interface).
+
+Multicast
+^^^^^^^^^^^^^^^^^^^^^^
+
+When ``udp.server`` is a multicast group address (224.0.0.0/4), the ``open``
+action sends the requests to the group and joins it on the reception socket.
+
+The response scheme is decided by the *server*, not by *testium*; no client
+configuration is needed, both are received transparently on ``udp.rcv_port``:
+
+* the server answers in unicast to the source address of the request
+  (the usual case): received because the socket is bound to ``rcv_port``,
+* the server answers to the multicast group itself (discovery-style
+  protocols): received because ``open`` joined the group. The server must
+  then address the group on the client reception port.
+
+Use ``udp.multicast_if`` to pin the exchanges to a given local interface
+(e.g. ``127.0.0.1`` for a same-host test bench); otherwise the kernel routing
+decides which interface carries the multicast traffic.
 
 ``open`` action
 -------------------------

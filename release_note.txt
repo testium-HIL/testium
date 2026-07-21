@@ -8,6 +8,9 @@ version 0.3.4
   runs, active when paused; F11 from idle starts paused on the first item.
 - Unchecked test items are greyed again while the test runs (was lost
   with recent PySide6 versions).
+- ``json_rpc`` over UDP: complete multicast support. The socket now joins
+  the group (group-addressed replies are received) and the new
+  ``multicast_if`` key of ``udp:`` selects the local interface.
 
 version 0.3.3
 ==============
