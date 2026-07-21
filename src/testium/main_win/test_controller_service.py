@@ -32,6 +32,15 @@ class TestControllerService:
     def cont(self) -> None:
         self._ctrl.control("cont")
 
+    def step_into(self) -> None:
+        self._ctrl.control("step_into")
+
+    def step_over(self) -> None:
+        self._ctrl.control("step_over")
+
+    def step_out(self) -> None:
+        self._ctrl.control("step_out")
+
     # --- Breakpoints ---
 
     def add_breakpoint(self, item_id) -> None:

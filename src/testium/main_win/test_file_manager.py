@@ -212,6 +212,8 @@ class TestFileManager:
             self.add_file_to_recent(file_name)
             w.setWindowTitle(w.mainWindowTitle + " - " + w.testFile)
             w.actionStart_test.setEnabled(True)
+            # Step into from idle starts the run paused on its first item.
+            w.actionStep_into.setEnabled(True)
             w.actionRefresh_test.setEnabled(True)
             w.show_checkboxes()
             return True
@@ -222,6 +224,7 @@ class TestFileManager:
             w.treeTests.clear()
             # Keep Refresh available to retry after fixing the file.
             w.actionStart_test.setDisabled(True)
+            w.actionStep_into.setDisabled(True)
             w.actionRefresh_test.setEnabled(True)
             print(traceback.format_exc())
             return False

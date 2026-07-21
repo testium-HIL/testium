@@ -9,6 +9,8 @@ from interpreter.test_report.test_report import TestReport
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.utils import bins
+from interpreter.utils import step_ctrl
+from interpreter.utils.step_ctrl import StepController
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.constants import TestItemType as cst_type
 import interpreter.utils.constants as cst
@@ -104,8 +106,11 @@ class TestSet:
         self.report_type = ""
         self.report_pattern = []
         self._testdict = test_dict
+        self._step_ctrl = StepController()
 
         self._tree = self.__loadTestTree(tum_fime)
+        self.__setStepControllerRecursively(self._rootItem)
+        self._rootItem.step_ctrl = self._step_ctrl
         self.dict_report = self._testdict.get("report", None)
         self.set_post_exec()
         self._validate_runtime_deps()
@@ -157,6 +162,10 @@ class TestSet:
             a_test_is_disabled = self.__aTestIsDisabled(self._rootItem)
             res = self._rootItem.execute()
         finally:
+            # End-of-run cleanup of a still-armed step (e.g. step at the very
+            # last item). Not done at start of run so a step_into sent from
+            # IDLE (armed before 'execute' on the command thread) survives.
+            self._step_ctrl.reset()
             self._end_test_date = datetime.datetime.now()
             self._test_duration = self._end_test_date - tm.gd("start_test_date")
 
@@ -227,6 +236,8 @@ class TestSet:
             self.__stopRunningTestsRecursively(parent.child(i))
 
     def stop(self):
+        # A pending step must not re-pause execute_on_stop cleanup items.
+        self._step_ctrl.disarm()
         self._rootItem.stop()
         self.__stopRunningTestsRecursively(self._rootItem)
 
@@ -237,6 +248,7 @@ class TestSet:
             self.__pauseTestsRecursively(parent.child(i))
 
     def pause(self):
+        self._step_ctrl.disarm()
         self._rootItem.pause()
         self.__pauseTestsRecursively(self._rootItem)
 
@@ -264,8 +276,30 @@ class TestSet:
             self.__continueTestsRecursively(parent.child(i))
 
     def cont(self):
+        self._step_ctrl.reset()
         self._rootItem.cont()
         self.__continueTestsRecursively(self._rootItem)
+
+    def __setStepControllerRecursively(self, parent):
+        for i in range(parent.childCount()):
+            parent.child(i).step_ctrl = self._step_ctrl
+            self.__setStepControllerRecursively(parent.child(i))
+
+    def __step(self, mode):
+        item = self._step_ctrl.step(mode)
+        if item is not None:
+            # Release only the item we step from; other paused items (e.g.
+            # parallel branches) stay paused.
+            item.cont()
+
+    def step_into(self):
+        self.__step(step_ctrl.MODE_INTO)
+
+    def step_over(self):
+        self.__step(step_ctrl.MODE_OVER)
+
+    def step_out(self):
+        self.__step(step_ctrl.MODE_OUT)
 
     def updateParentsState(self, child):
         parent = child.parent()

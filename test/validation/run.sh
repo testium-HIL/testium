@@ -171,6 +171,17 @@ echo "-- schema check ($MODE)"
 echo "-- load-error check ($MODE)"
 "$VENV_PYTHON" "$SCRIPT_DIR/load_errors_check.py" "${CMD[@]}"
 
+# ---------- step check (source only) ------------------------------------------
+# Single-step execution (step_into/step_over/step_out) through the control
+# queue: asserts which item pauses after each step command. Imports the
+# interpreter directly, so source mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- step check ($MODE)"
+    STEP_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$STEP_PY" ] || STEP_PY="$VENV_PYTHON"
+    "$STEP_PY" "$SCRIPT_DIR/step_check.py"
+fi
+
 # ---------- GUI reload check (source only) ------------------------------------
 # Repeated GUI reloads must not leak fds/threads/sys.path. Imports main_win, so
 # source mode only; the script skips itself if PySide6 is unavailable.

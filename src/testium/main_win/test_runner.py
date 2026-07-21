@@ -44,14 +44,20 @@ class TestRunner:
                 w.test_service.pause()
                 self.start_pause_timer()
                 self.state = TestState.PAUSED
+                self._set_step_actions_enabled(True)
             else:
                 w.test_service.cont()
                 w.timerPause.stop()
                 w.timerPause.state = False
                 self.on_timer_pause()
                 self.state = TestState.RUNNING
+                self._set_step_actions_enabled(False)
             return
 
+        self._start_run()
+
+    def _start_run(self):
+        w = self._win
         w.start_time = QDateTime.currentDateTime()
 
         # Log file setup
@@ -103,6 +109,48 @@ class TestRunner:
     def on_stop_test(self):
         self._win.test_service.stop()
 
+    def on_step_over(self):
+        if self.state == TestState.PAUSED:
+            # State stays PAUSED: execution resumes and pauses again on the
+            # next item; the tree highlight follows the 'started' statuses.
+            self._win.test_service.step_over()
+
+    def on_step_out(self):
+        if self.state == TestState.PAUSED:
+            self._win.test_service.step_out()
+
+    def on_step_into(self):
+        if self.state == TestState.PAUSED:
+            self._win.test_service.step_into()
+        elif self.state == TestState.IDLE and self._win.actionStart_test.isEnabled():
+            # Arm the step before 'execute' (ordered on the command queue):
+            # the run starts paused on its first item.
+            self._win.test_service.step_into()
+            self._start_run()
+            if self.state == TestState.RUNNING:  # _start_run may have failed
+                self.state = TestState.PAUSED
+                self.start_pause_timer()
+                self._set_step_actions_enabled(True)
+
+    def _set_step_actions_enabled(self, enabled):
+        w = self._win
+        w.actionStep_over.setEnabled(enabled)
+        w.actionStep_into.setEnabled(enabled)
+        w.actionStep_out.setEnabled(enabled)
+
+    def set_step_buttons_visible(self, visible):
+        """Add/remove the step buttons in the toolbar only (QToolBar overrides
+        per-button setVisible on relayout). The menu entries and shortcuts
+        stay available (F11 from idle starts paused)."""
+        w = self._win
+        actions = (w.actionStep_over, w.actionStep_into, w.actionStep_out)
+        if visible:
+            for action in actions:
+                w.toolBar.insertAction(w.actionStop_test, action)
+        else:
+            for action in actions:
+                w.toolBar.removeAction(action)
+
     def on_run_finished(self):
         w = self._win
         w.timer.setSingleShot(True)
@@ -125,6 +173,7 @@ class TestRunner:
     def on_breakpoint(self):
         self.state = TestState.PAUSED
         self.start_pause_timer()
+        self._set_step_actions_enabled(True)
 
     # --- Timer slots ---
 
@@ -186,6 +235,8 @@ class TestRunner:
             w.actionSave_report.setDisabled(True)
             w.logSettingsBox.setDisabled(True)
             w.actionStop_test.setEnabled(True)
+            self.set_step_buttons_visible(True)
+            self._set_step_actions_enabled(False)
             if prefs.settings.show_checkboxes:
                 w._checklist = w.treeTests.getCheckList()
                 w.treeTests.removeCheckBoxes()
@@ -213,6 +264,9 @@ class TestRunner:
             w.actionPreferences.setEnabled(True)
             w.actionRefresh_test.setEnabled(True)
             w.actionStop_test.setDisabled(True)
+            self.set_step_buttons_visible(False)
+            self._set_step_actions_enabled(False)
+            w.actionStep_into.setEnabled(w.actionStart_test.isEnabled())
             w.actionShow_Results.setEnabled(True)
             w.actionSave_report.setEnabled(True)
             w.logSettingsBox.setEnabled(True)

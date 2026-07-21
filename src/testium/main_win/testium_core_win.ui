@@ -256,6 +256,9 @@
    <addaction name="actionHelp"/>
    <addaction name="separator"/>
    <addaction name="actionStart_test"/>
+   <addaction name="actionStep_over"/>
+   <addaction name="actionStep_into"/>
+   <addaction name="actionStep_out"/>
    <addaction name="actionStop_test"/>
    <addaction name="separator"/>
    <addaction name="actionExit"/>
@@ -284,6 +287,10 @@
     </property>
     <addaction name="actionStart_test"/>
     <addaction name="actionStop_test"/>
+    <addaction name="separator"/>
+    <addaction name="actionStep_over"/>
+    <addaction name="actionStep_into"/>
+    <addaction name="actionStep_out"/>
     <addaction name="separator"/>
     <addaction name="actionTestInformation"/>
     <addaction name="actionSave_report"/>
@@ -735,6 +742,60 @@
    </property>
    <property name="text">
     <string>Stop test</string>
+   </property>
+  </action>
+  <action name="actionStep_over">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources/testium_core_win.qrc">
+     <normaloff>:/black/step-over.png</normaloff>:/black/step-over.png</iconset>
+   </property>
+   <property name="text">
+    <string>Step over</string>
+   </property>
+   <property name="toolTip">
+    <string>Run to the next item at the same level (F10)</string>
+   </property>
+   <property name="shortcut">
+    <string>F10</string>
+   </property>
+  </action>
+  <action name="actionStep_into">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources/testium_core_win.qrc">
+     <normaloff>:/black/step-into.png</normaloff>:/black/step-into.png</iconset>
+   </property>
+   <property name="text">
+    <string>Step into</string>
+   </property>
+   <property name="toolTip">
+    <string>Pause on the next item, entering nested steps (F11). From idle: start the test paused on its first item.</string>
+   </property>
+   <property name="shortcut">
+    <string>F11</string>
+   </property>
+  </action>
+  <action name="actionStep_out">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources/testium_core_win.qrc">
+     <normaloff>:/black/step-out.png</normaloff>:/black/step-out.png</iconset>
+   </property>
+   <property name="text">
+    <string>Step out</string>
+   </property>
+   <property name="toolTip">
+    <string>Run to the end of the current level, pause one level up (Shift+F11)</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+F11</string>
    </property>
   </action>
   <action name="actionAbout_testium">

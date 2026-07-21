@@ -68,13 +68,22 @@ def test_run(f):
             self.run_test_end()
             return self.result
 
+        # Register as the item step commands originate from while paused.
+        # Done here (not in run_test_init) because _is_paused can also be set
+        # externally (user pause, cycle re-iterations).
+        if self._is_paused and self.step_ctrl is not None:
+            self.step_ctrl.notify_paused(self)
         while self._is_paused:
             sleep(0.2)
             if self.isStopped() :
                 self.result.set(TestValue.NORUN, "test stopped")
                 print("Test is Stopped.")
                 self._is_stopped = False    # Restore state for next run
+                if self.step_ctrl is not None:
+                    self.step_ctrl.clear_paused(self)
                 return self.result
+        if self.step_ctrl is not None:
+            self.step_ctrl.clear_paused(self)
 
         # Conditional execution
         raw_condition = self._prms.getParam(
@@ -166,6 +175,8 @@ class TestItem:
         self._doc = ""
         self._name = ""
         self.report = None
+        # Shared StepController, assigned after load by TestSet (like report).
+        self.step_ctrl = None
         self._dict_item = self._filter_dict_item(dict_item)
         self._seq_filename = filename
 
@@ -346,6 +357,11 @@ class TestItem:
         self._is_running = True
         self._sendStatusStarted()
         if self._is_breakpoint:
+            self._is_paused = True
+            if self.step_ctrl is not None:
+                # Breakpoint hit while a step is pending: the breakpoint wins.
+                self.step_ctrl.disarm()
+        elif self.step_ctrl is not None and self.step_ctrl.should_pause(self):
             self._is_paused = True
 
         if self.is_container:

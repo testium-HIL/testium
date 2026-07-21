@@ -1,0 +1,27 @@
+main:
+    name: Step check
+    steps:
+        - group:
+            name: A
+            steps:
+                - sleep:
+                    name: s1
+                    timeout: 0.01
+                - group:
+                    name: B
+                    steps:
+                        - sleep:
+                            name: s2
+                            timeout: 0.01
+                        - sleep:
+                            name: s3
+                            timeout: 0.01
+                - sleep:
+                    name: s4
+                    timeout: 0.01
+        - sleep:
+            name: s5
+            timeout: 0.01
+        - sleep:
+            name: s6
+            timeout: 0.01

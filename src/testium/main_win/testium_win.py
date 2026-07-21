@@ -129,6 +129,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.file_manager = TestFileManager(self)
 
         self.runner.set_blink_green()
+        # Step buttons only appear in the toolbar while a test is running.
+        self.runner.set_step_buttons_visible(False)
 
         env_init()
 
@@ -275,6 +277,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.actionSave_report:     "document-save",
             self.actionStart_test:      "start",
             self.actionStop_test:       "stop",
+            self.actionStep_over:       "step-over",
+            self.actionStep_into:       "step-into",
+            self.actionStep_out:        "step-out",
             self.actionAbout_testium:   "about",
             self.actionExit:            "exit",
             self.actionRefresh_test:    "view-refresh",
@@ -589,6 +594,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @Slot()
     def on_actionStop_test_triggered(self):
         self.runner.on_stop_test()
+
+    @Slot()
+    def on_actionStep_over_triggered(self):
+        self.runner.on_step_over()
+
+    @Slot()
+    def on_actionStep_into_triggered(self):
+        self.runner.on_step_into()
+
+    @Slot()
+    def on_actionStep_out_triggered(self):
+        self.runner.on_step_out()
 
     def on_breakpoint(self):
         self.runner.on_breakpoint()
