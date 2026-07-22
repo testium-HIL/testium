@@ -118,9 +118,11 @@ class TestiumSettings():
             elif key.t == str:
                 ret = self.conf.get('Default', key.name, fallback=default)
             elif key.t == bytearray:
-                ba = json.loads(self.conf.get(
-                    'Default', key.name, fallback=default))
-                ret = bytearray(ba)
+                # fallback=None: the default may be an (empty) bytearray,
+                # which json.loads rejects — and a failed read here used to
+                # clear() the whole in-memory config on first run.
+                raw = self.conf.get('Default', key.name, fallback=None)
+                ret = default if raw is None else bytearray(json.loads(raw))
             else:
                 ret = self.conf.get('Default', key.name, fallback=default)
                 if isinstance(ret, str):

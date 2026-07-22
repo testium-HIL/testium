@@ -179,15 +179,18 @@ class QTestTreeItem(QTreeWidgetItem):
 
         self.setIcon(self._cols["status"]["index"], icon)
 
-    def setBreakpoint(self):
+    def setBreakpointState(self, on):
         if self._no_breakpoint:
-            return
-        self._display_pause = not self._display_pause
+            return False
+        self._display_pause = bool(on)
         if self._display_pause:
             self.setIcon(self._cols["pause"]["index"], self.icon_pause)
         else:
             self.setIcon(self._cols["pause"]["index"], self.icon_fake)
         return self._display_pause
+
+    def setBreakpoint(self):
+        return self.setBreakpointState(not self._display_pause)
 
     def setBreakpointIfCol(self, column):
         ret = False

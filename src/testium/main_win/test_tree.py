@@ -24,7 +24,6 @@ class QTestTree(QTreeWidget):
     breakpoint = Signal()
 
     _KNOWN_TYPES = {e.item_name for e in cst}
-    _GUTTER_WIDTH = 24
 
 
     def __init__(self, parent):
@@ -69,9 +68,15 @@ class QTestTree(QTreeWidget):
         pause_col = self.cols['pause']['index']
         self.setTreePosition(self.cols['name']['index'])
         self.header().moveSection(self.header().visualIndex(pause_col), 0)
-        self.header().setMinimumSectionSize(self._GUTTER_WIDTH)
+        # Narrowest width showing the full dot: the item delegate offsets the
+        # icon by PM_FocusFrameHMargin + 1 from the cell edge (style
+        # dependent), then draws it at iconSize.
+        margin = self.style().pixelMetric(
+            QtWidgets.QStyle.PM_FocusFrameHMargin, None, self) + 1
+        gutter_width = margin + self.iconSize().width()
+        self.header().setMinimumSectionSize(gutter_width)
         self.header().setSectionResizeMode(pause_col, QtWidgets.QHeaderView.Fixed)
-        self.setColumnWidth(pause_col, self._GUTTER_WIDTH)
+        self.setColumnWidth(pause_col, gutter_width)
 
         self.cycleIcon = QIcon()
         self.cycleIcon.addPixmap(QPixmap(icon_prefix() + "/cycle.png"))
@@ -401,6 +406,69 @@ class QTestTree(QTreeWidget):
                             self.cols['name']['index'], Qt.Unchecked)
                     self.updateTestSetItemState(item, tst_ctrl, state, unitary=True)
                     # item.setDisabled(False)
+
+    # --- Path-keyed item states (fold/check/breakpoint) -----------------------
+    # Reload and startup restoration matches items by a path key instead of
+    # the positional lists above (which stay in use for the run-time
+    # checkbox add/remove cycle, where the tree does not change).
+
+    def _walk_with_keys(self, parent=None, prefix=()):
+        """Yield (item, key) for every item. Key = tuple of (type, name, occ)
+        components from root to item; occ counts the preceding siblings with
+        the same (type, name), so unrelated insertions don't shift keys."""
+        if parent is None:
+            parent = self.invisibleRootItem()
+        seen = {}
+        for i in range(parent.childCount()):
+            item = parent.child(i)
+            ident = (item.test_type, item.name or "")
+            occ = seen.get(ident, 0)
+            seen[ident] = occ + 1
+            key = prefix + (ident + (occ,),)
+            yield item, key
+            yield from self._walk_with_keys(item, key)
+
+    def getItemStates(self):
+        """One [key, folded, checked, breakpoint] entry per item.
+        JSON-compatible: feeds both the reload snapshot and the settings."""
+        states = []
+        for item, key in self._walk_with_keys():
+            states.append([
+                [list(c) for c in key],
+                not item.isExpanded(),
+                item.checkState(0) == Qt.Checked,
+                item.isBreakpoint(),
+            ])
+        return states
+
+    def restoreItemStates(self, states, tst_ctrl: TestControllerService,
+                          apply_check: bool):
+        """Restore fold/check/breakpoint by path key. Items whose key is
+        absent keep their defaults; obsolete keys are dropped. Breakpoints
+        and enabled states are re-issued with the new interpreter ids."""
+        wanted = {}
+        for key, folded, checked, breakpoint in states:
+            wanted[tuple(tuple(c) for c in key)] = (folded, checked, breakpoint)
+        for item, key in self._walk_with_keys():
+            state = wanted.get(key)
+            if state is None:
+                continue
+            folded, checked, breakpoint = state
+            item.setExpanded(not folded)
+            if apply_check:
+                if tst_ctrl.get_skipped_state(item.id):
+                    item.setDisabled(True)
+                    for i in range(item.childCount()):
+                        item.child(i).setExpanded(False)
+                else:
+                    item.setCheckState(
+                        self.cols['name']['index'],
+                        Qt.Checked if checked else Qt.Unchecked)
+                    self.updateTestSetItemState(item, tst_ctrl, checked,
+                                                unitary=True)
+            if breakpoint and not item._no_breakpoint:
+                item.setBreakpointState(True)
+                tst_ctrl.add_breakpoint(item.id)
 
     def resized(self, col, old_size, size):
         for k, v in self.cols.items():

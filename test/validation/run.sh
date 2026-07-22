@@ -192,6 +192,16 @@ if [ "$MODE" = "source" ]; then
     "$GUI_PY" "$SCRIPT_DIR/gui_reload_check.py"
 fi
 
+# ---------- GUI state check (source only) -------------------------------------
+# Fold/check/breakpoint states must survive a reload (path-keyed, tolerant to
+# item additions/removals), be dropped for another file, and survive a restart.
+if [ "$MODE" = "source" ]; then
+    echo "-- GUI state check ($MODE)"
+    GUI_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$GUI_PY" ] || GUI_PY="$VENV_PYTHON"
+    "$GUI_PY" "$SCRIPT_DIR/gui_state_check.py"
+fi
+
 if [ "$GUI" -eq 1 ]; then
     echo "-- GUI mode: the suite is loaded; press Start to run. Window stays open."
 fi

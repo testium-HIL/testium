@@ -472,21 +472,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.searchCount.setText("")
 
     def file_loaded_at_startup(self):
-        modeSlider_value = prefs.settings.show_checkboxes
-        if modeSlider_value:
-            checkList = prefs.settings.value(prefs.SettingsItem("checkList", list), [])
-            if checkList is not None:
-                if len(checkList) == self.treeTests.getItemCount():
-                    self.treeTests.restoreCheckList(checkList, self.test_service)
-                else:
-                    tm.print_info(
-                        "The number of tests has changed. Test box states are not restored."
-                    )
-        foldList = prefs.settings.value(prefs.SettingsItem("foldList", list), [])
-        if foldList:
-            if len(foldList) == self.treeTests.getItemCount():
-                self.checkFold.setCheckState(Qt.PartiallyChecked)
-                self.treeTests.restoreFoldList(foldList)
+        # States are keyed by item path and tied to the file they were saved
+        # for: item additions/removals are tolerated, another file is not.
+        states = prefs.settings.value(prefs.SettingsItem("itemStateList", list), [])
+        state_file = prefs.settings.value(prefs.SettingsItem("itemStateFile", str), "")
+        if not states or not state_file or self.testFile is None:
+            return
+        if os.path.normcase(os.path.abspath(state_file)) != os.path.normcase(self.testFile):
+            return
+        self.checkFold.setCheckState(Qt.PartiallyChecked)
+        self.treeTests.restoreItemStates(
+            states, self.test_service,
+            apply_check=prefs.settings.show_checkboxes)
 
     def disconnect_signals(self):
         if self._signals_connected:
@@ -524,10 +521,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             prefs.SettingsItem("state", bytearray), bytearray(self.saveState())
         )
         prefs.settings.set_value(
-            prefs.SettingsItem("checkList", list), self.treeTests.getCheckList()
+            prefs.SettingsItem("itemStateList", list), self.treeTests.getItemStates()
         )
         prefs.settings.set_value(
-            prefs.SettingsItem("foldList", list), self.treeTests.getFoldList()
+            prefs.SettingsItem("itemStateFile", str), self.testFile or ""
         )
         self.treeTests.saveSizes()
         prefs.settings.sync()
