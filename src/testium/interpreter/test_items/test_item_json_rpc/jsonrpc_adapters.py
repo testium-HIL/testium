@@ -362,6 +362,9 @@ class JrpcUdpAdapter(JrpcAdapter):
                 socket.IP_ADD_MEMBERSHIP,
                 socket.inet_aton(self._server) + iface,
             )
+            if not self._mute:
+                via = self._multicast_if or "the default interface (no multicast_if set)"
+                print(f"  | multicast group {self._server} joined via {via}")
 
     def _close(self):
 
