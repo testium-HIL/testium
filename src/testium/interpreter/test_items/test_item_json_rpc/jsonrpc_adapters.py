@@ -261,6 +261,15 @@ class JrpcUdpAdapter(JrpcAdapter):
         tm.delgd(f"jrpc_udp_rcv_port_{self._rcv_port}")
 
     def _send(self, message: str):
+        # The socket is created once by the 'open' action and shared through
+        # the global dict by rcv_port. multicast_if only acts at creation:
+        # warn when this item declares it but did not open the socket.
+        if (self._multicast_if is not None and not self._multicast
+                and self.sock is not None):
+            print(f"  | WARNING: multicast_if '{self._multicast_if}' is "
+                  "ignored here: the socket for rcv_port "
+                  f"{self._rcv_port} was opened by another item. Set "
+                  "multicast_if on the item holding the 'open' action.")
 
         # gets the address from the hostname if necessary
         srv = (self._server, self._snd_port)
