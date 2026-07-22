@@ -376,6 +376,48 @@
                 - close:
 {% endif %}
 
+# --- Explicit error reporting for .tum misconfigurations -------------------
+# A bad udp block must FAIL the item with a plain one-line message (no
+# traceback) and let the campaign continue. No server needed.
+- json_rpc:
+    name: UDP server given as a mapping (explicit failure)
+    doc: "server: { var } with single braces is read by YAML as a mapping; the error message must explain the double-braces fix."
+    key: $(test)_FAIL
+    udp:
+        server: { some_var }
+        snd_port: 4323
+        rcv_port: 8765
+    timeout: 1
+    steps:
+        - query:
+            method: echo
+            params: [x]
+
+- json_rpc:
+    name: UDP block missing rcv_port (explicit failure)
+    key: $(test)_FAIL
+    udp:
+        server: localhost
+        snd_port: 4323
+    timeout: 1
+    steps:
+        - query:
+            method: echo
+            params: [x]
+
+- json_rpc:
+    name: UDP port given as text (explicit failure)
+    key: $(test)_FAIL
+    udp:
+        server: localhost
+        snd_port: not_a_number
+        rcv_port: 8765
+    timeout: 1
+    steps:
+        - query:
+            method: echo
+            params: [x]
+
 - console:
     name: Stop json rpc echo server
     doc: check if the jsonrpc echo server is installed

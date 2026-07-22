@@ -13,9 +13,15 @@ version 0.3.4
 - Unchecked test items are greyed again while the test runs (was lost
   with recent PySide6 versions).
 - The "Open Test" and "Save Results" toolbar icons were swapped; fixed.
+- Folds, checked boxes and breakpoints now survive Refresh — even when
+  test items were added or removed — and restarting testium. They follow
+  the item, and are dropped when a different file is loaded.
 - ``json_rpc`` over UDP: complete multicast support. The socket now joins
   the group (group-addressed replies are received) and the new
   ``multicast_if`` key of ``udp:`` selects the local interface.
+- ``json_rpc``: a wrong ``udp:`` block (missing key, bad type — e.g.
+  ``server: { var }`` with single braces) fails the item with a plain
+  explanation instead of a Python traceback, and the test run continues.
 
 version 0.3.3
 ==============

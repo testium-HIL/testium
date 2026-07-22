@@ -10,7 +10,7 @@ from interpreter.utils.param_decl import (
 )
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
-from runtime.tum_except import ETUMSyntaxError, item_load_context
+from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 
 LOG_TEST_STOP = '<----- step "{}" finished'
 LOG_TEST_START = '-----> step "{}" started'
@@ -110,8 +110,15 @@ def test_run(f):
                 msg = "condition met: " + msg
                 self.result.reported = {"input_condition": msg}
                 print(msg)
-            # Test preparation
-            self.run_before_test()
+            # Test preparation. A configuration error reported there must
+            # FAIL this item with its message, not abort the whole campaign
+            # with a traceback.
+            try:
+                self.run_before_test()
+            except ETUMRuntimeError as e:
+                self.result.set(TestValue.FAILURE, str(e))
+                self.run_test_end()
+                return self.result
             # Test execution
             f(self)
         else:

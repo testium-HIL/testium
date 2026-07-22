@@ -2,7 +2,7 @@ import sys
 import traceback
 from random import randint
 
-from runtime.tum_except import ETUMSyntaxError
+from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 
@@ -247,6 +247,28 @@ class TestItemJSON_RPC(TestItemActions):
         if not self._console is None:
             self._is_console = True
 
+    def _config_error(self, message):
+        """Configuration mistake in the .tum: FAIL this item with a plain
+        message (handled by the test_run wrapper), never a traceback."""
+        return ETUMRuntimeError(
+            f"Bad configuration of the json_rpc item '{self.name()}': {message}",
+            self.seqFilename(),
+        )
+
+    @staticmethod
+    def _describe(value):
+        """Short human description of a wrong .tum value."""
+        if value is None:
+            return "nothing (empty value)"
+        kinds = {dict: "a YAML mapping", list: "a YAML list",
+                 str: "the text", bool: "the boolean", int: "the number",
+                 float: "the number"}
+        kind = kinds.get(type(value), f"a {type(value).__name__}")
+        shown = repr(value)
+        if len(shown) > 60:
+            shown = shown[:57] + "..."
+        return f"{kind} {shown}"
+
     def run_before_test(self):
         jrpc_version = self._prms.expanse(self._jrpc_version)
         mute = self._prms.expanse(self._mute)
@@ -256,9 +278,9 @@ class TestItemJSON_RPC(TestItemActions):
             console_name = console.get("name")
             console_prompt = console.get("prompt", "\n")
             if console_name is None:
-                raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' 'console' configuration needs member 'name' defined",
-                    self.seqFilename(),
+                raise self._config_error(
+                    "the 'console' block needs a 'name' key (the "
+                    "console_name of an already-open console)."
                 )
             jrpc_adapter = JrpcConsoleAdapter(
                 console_name, console_prompt, timeout, jrpc_version, mute
@@ -266,9 +288,9 @@ class TestItemJSON_RPC(TestItemActions):
         else:
             udp = self._prms.expanse(self._udp)
             if udp is None or not isinstance(udp, dict):
-                raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' UDP configuration needs 'udp' parameters define",
-                    self.seqFilename(),
+                raise self._config_error(
+                    "the 'udp' block must contain the keys 'server', "
+                    "'snd_port' and 'rcv_port'."
                 )
 
             server = udp.get("server")
@@ -276,13 +298,41 @@ class TestItemJSON_RPC(TestItemActions):
             rcv_port = udp.get("rcv_port")
             bufsize = udp.get("bufsize", 1450)
             multicast_if = udp.get("multicast_if")
-            if server is None or snd_port is None or rcv_port is None:
-                raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' UDP configuration needs 'server', 'snd_port' and 'rcv_port' defined",
-                    self.seqFilename(),
+            missing = [k for k, v in (("server", server), ("snd_port", snd_port),
+                                      ("rcv_port", rcv_port)) if v is None]
+            if missing:
+                raise self._config_error(
+                    "the 'udp' block is missing " + " and ".join(f"'{m}'" for m in missing) + "."
+                )
+            if not isinstance(server, str) or server.strip() == "":
+                hint = ""
+                if isinstance(server, dict):
+                    hint = (" This usually means single braces were used: "
+                            "'{ ... }' is read by YAML as a mapping, a Jinja "
+                            "expression needs double braces '{{ ... }}'.")
+                raise self._config_error(
+                    "'udp.server' should be a host name or an IP address, "
+                    f"but it is {self._describe(server)}.{hint}"
+                )
+            ports = {"snd_port": snd_port, "rcv_port": rcv_port,
+                     "bufsize": bufsize}
+            for pname, pval in ports.items():
+                try:
+                    ports[pname] = int(pval)
+                except (TypeError, ValueError):
+                    raise self._config_error(
+                        f"'udp.{pname}' should be a number, but it is "
+                        f"{self._describe(pval)}."
+                    ) from None
+            if multicast_if is not None and (
+                    not isinstance(multicast_if, str) or multicast_if.strip() == ""):
+                raise self._config_error(
+                    "'udp.multicast_if' should be the IP address of a local "
+                    f"network interface, but it is {self._describe(multicast_if)}."
                 )
             jrpc_adapter = JrpcUdpAdapter(
-                server, snd_port, rcv_port, bufsize, timeout, jrpc_version, mute,
+                server, ports["snd_port"], ports["rcv_port"], ports["bufsize"],
+                timeout, jrpc_version, mute,
                 multicast_if=multicast_if,
             )
 
