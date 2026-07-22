@@ -133,7 +133,7 @@ The adapters attributes are listed in the table below.
      - *integer*
      - UDP answer reception port (on client side)
 
-   * - ``bufsize``
+   * - ``udp.bufsize``
      - *integer*
      - the maximum expected size of the buffer received while waiting for
        a jsonrpc frame.
