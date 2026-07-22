@@ -4,14 +4,15 @@ version 0.3.4
   describing valid ``.tum`` files. Usable by yaml-language-server,
   external linters (ajv, check-jsonschema) and AI assistants.
 - Step-by-step execution in the GUI: Step over (F10), Step into (F11),
-  Step out (Shift+F11). Small buttons shown above the test tree only
-  while a test runs, active when paused; F11 from idle starts paused on
-  the first item.
+  Step out (Shift+F11). A small toolbar appears while a test runs (it
+  can be moved or detached); F11 from idle starts paused on the first
+  item.
 - Breakpoints are now shown as a red dot in the first column of the
   test tree, left of the checkboxes (double-click there to set or
   remove one).
 - Unchecked test items are greyed again while the test runs (was lost
   with recent PySide6 versions).
+- The "Open Test" and "Save Results" toolbar icons were swapped; fixed.
 - ``json_rpc`` over UDP: complete multicast support. The socket now joins
   the group (group-addressed replies are received) and the new
   ``multicast_if`` key of ``udp:`` selects the local interface.
