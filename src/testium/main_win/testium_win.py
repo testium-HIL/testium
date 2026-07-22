@@ -10,7 +10,7 @@ import shutil
 # Qt
 from PySide6 import QtGui
 from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QTextCursor, QKeySequence
-from PySide6.QtCore import Slot, QUrl, Qt, QTimer
+from PySide6.QtCore import Slot, QUrl, Qt, QTimer, QSize
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QLabel,
     QToolButton,
+    QToolBar,
 )
 
 ourPath = os.path.dirname(__file__)
@@ -129,8 +130,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.file_manager = TestFileManager(self)
 
         self.runner.set_blink_green()
-        # Step buttons only appear in the toolbar while a test is running.
-        self.runner.set_step_buttons_visible(False)
 
         env_init()
 
@@ -183,6 +182,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._search_matches = []
         self._search_idx = 0
         self._build_search_bar()
+        self._build_step_bar()
         self.shortcut_find = QShortcut(
             QKeySequence.Find, self, activated=self._toggle_search
         )
@@ -367,6 +367,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Insert above the tree (index 0 is the control row from setupUi).
         self.verticalLayout.insertWidget(1, self.searchBar)
         self.searchBar.setVisible(False)
+
+    def _build_step_bar(self):
+        """Compact step bar above the tree, shown only while a test runs.
+        The actions are shared with the Test menu (shortcuts stay global)."""
+        self.stepBar = QToolBar(self.widget)
+        self.stepBar.setIconSize(QSize(16, 16))
+        self.stepBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        for action, tip in (
+            (self.actionStep_over, "Step over (F10)"),
+            (self.actionStep_into, "Step into (F11)"),
+            (self.actionStep_out, "Step out (Shift+F11)"),
+        ):
+            action.setToolTip(tip)
+            self.stepBar.addAction(action)
+
+        # Between the search bar and the tree.
+        self.verticalLayout.insertWidget(2, self.stepBar)
+        self.stepBar.setVisible(False)
 
     def _search_fields(self):
         fields = set()

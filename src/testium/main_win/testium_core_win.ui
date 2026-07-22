@@ -256,9 +256,6 @@
    <addaction name="actionHelp"/>
    <addaction name="separator"/>
    <addaction name="actionStart_test"/>
-   <addaction name="actionStep_over"/>
-   <addaction name="actionStep_into"/>
-   <addaction name="actionStep_out"/>
    <addaction name="actionStop_test"/>
    <addaction name="separator"/>
    <addaction name="actionExit"/>

@@ -139,17 +139,9 @@ class TestRunner:
         w.actionStep_out.setEnabled(enabled)
 
     def set_step_buttons_visible(self, visible):
-        """Add/remove the step buttons in the toolbar only (QToolBar overrides
-        per-button setVisible on relayout). The menu entries and shortcuts
-        stay available (F11 from idle starts paused)."""
-        w = self._win
-        actions = (w.actionStep_over, w.actionStep_into, w.actionStep_out)
-        if visible:
-            for action in actions:
-                w.toolBar.insertAction(w.actionStop_test, action)
-        else:
-            for action in actions:
-                w.toolBar.removeAction(action)
+        """Show/hide the step bar above the tree. The menu entries and
+        shortcuts stay available (F11 from idle starts paused)."""
+        self._win.stepBar.setVisible(visible)
 
     def on_run_finished(self):
         w = self._win
