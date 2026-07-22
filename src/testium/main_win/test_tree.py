@@ -24,6 +24,7 @@ class QTestTree(QTreeWidget):
     breakpoint = Signal()
 
     _KNOWN_TYPES = {e.item_name for e in cst}
+    _GUTTER_WIDTH = 24
 
 
     def __init__(self, parent):
@@ -61,6 +62,16 @@ class QTestTree(QTreeWidget):
         for name, data in self.cols.items():
             self.headerItem().setText(data['index'], data['name'])
             self.setColumnWidth(data['index'], data['size'])
+
+        # Breakpoint gutter: the pause column moves to the far left (visual
+        # order only, logical indexes are untouched) while the tree structure
+        # (arrows, indentation, checkboxes) stays on the name column.
+        pause_col = self.cols['pause']['index']
+        self.setTreePosition(self.cols['name']['index'])
+        self.header().moveSection(self.header().visualIndex(pause_col), 0)
+        self.header().setMinimumSectionSize(self._GUTTER_WIDTH)
+        self.header().setSectionResizeMode(pause_col, QtWidgets.QHeaderView.Fixed)
+        self.setColumnWidth(pause_col, self._GUTTER_WIDTH)
 
         self.cycleIcon = QIcon()
         self.cycleIcon.addPixmap(QPixmap(icon_prefix() + "/cycle.png"))

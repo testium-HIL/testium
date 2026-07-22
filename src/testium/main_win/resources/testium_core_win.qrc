@@ -6,7 +6,6 @@
         <file alias="gray.png">gray.png</file>
         <file alias="green.png">green.png</file>
         <file alias="fail.png">fail.png</file>
-        <file alias="break.png">break.png</file>
         <file alias="success_orange.png">success_orange.png</file>
         <file alias="success.png">success.png</file>
         <file alias="checkList.png">black/checkList.png</file>
@@ -59,7 +58,6 @@
         <file alias="gray.png">gray.png</file>
         <file alias="green.png">green.png</file>
         <file alias="fail.png">fail.png</file>
-        <file alias="break.png">break.png</file>
         <file alias="success_orange.png">success_orange.png</file>
         <file alias="success.png">success.png</file>
         <file alias="checkList.png">white/checkList.png</file>
@@ -112,7 +110,6 @@
         <file alias="gray.png">gray.png</file>
         <file alias="green.png">green.png</file>
         <file alias="fail.png">fail.png</file>
-        <file alias="break.png">break.png</file>
         <file alias="success_orange.png">success_orange.png</file>
         <file alias="success.png">success.png</file>
         <file alias="checkList.png">color/checkList.png</file>

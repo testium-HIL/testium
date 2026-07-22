@@ -1,7 +1,7 @@
 from itertools import chain
 import html
 
-from PySide6.QtGui import (QIcon, QPixmap, QBrush, QColor)
+from PySide6.QtGui import (QIcon, QPixmap, QBrush, QColor, QPainter)
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QTreeWidgetItem)
 from interpreter.utils.icons import icon_prefix
@@ -78,6 +78,26 @@ QTreeWidgetItem.__iter__ = __iter__QTreeWidgetItem
 QTreeWidgetItem.children = childrenQTreeWidgetItem
 
 
+_breakpoint_icon_cache = None
+
+
+def _breakpoint_icon():
+    """Big red dot (universal breakpoint marker), drawn once — same in every
+    icon theme, no PNG variants needed."""
+    global _breakpoint_icon_cache
+    if _breakpoint_icon_cache is None:
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(QColor(220, 0, 0))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(20, 20, 24, 24)
+        painter.end()
+        _breakpoint_icon_cache = QIcon(pixmap)
+    return _breakpoint_icon_cache
+
+
 def pretty_print_html(text):
     if text.strip(" \t\n") == "":
         return ""
@@ -109,9 +129,8 @@ class QTestTreeItem(QTreeWidgetItem):
         parent.addChild(self)
         self._has_failed = False
         self._display_pause = False
-        self.icon_pause = QIcon()
+        self.icon_pause = _breakpoint_icon()
         self.icon_fake = QIcon()
-        self.icon_pause.addPixmap(QPixmap(icon_prefix() + "/break.png"))
         self.nfailure = 0
         self._timestamp = -1
         self._is_skipped = False
