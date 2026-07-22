@@ -154,11 +154,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if geo_settings:
             self.restoreGeometry(geo_settings)
 
+        # Built before restoreState so its position (docked/floating) is
+        # part of the saved window state.
+        self._build_step_bar()
+
         state_settings = prefs.settings.value(
             prefs.SettingsItem("state", bytearray), bytearray()
         )
         if state_settings:
             self.restoreState(state_settings)
+        self.stepBar.setVisible(False)
 
         self.actionStart_test.setDisabled(True)
         self.actionShow_Results.setDisabled(True)
@@ -182,7 +187,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._search_matches = []
         self._search_idx = 0
         self._build_search_bar()
-        self._build_step_bar()
         self.shortcut_find = QShortcut(
             QKeySequence.Find, self, activated=self._toggle_search
         )
@@ -369,11 +373,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.searchBar.setVisible(False)
 
     def _build_step_bar(self):
-        """Compact step bar above the tree, shown only while a test runs.
+        """Compact movable step bar, shown only while a test runs. Docked
+        after the main toolbar by default; can be dragged elsewhere or
+        detached (floating) — the position is kept in the window state.
         The actions are shared with the Test menu (shortcuts stay global)."""
-        self.stepBar = QToolBar(self.widget)
+        self.stepBar = QToolBar("Step", self)
+        self.stepBar.setObjectName("stepBar")
         self.stepBar.setIconSize(QSize(16, 16))
         self.stepBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.stepBar.setMovable(True)
+        self.stepBar.setFloatable(True)
         for action, tip in (
             (self.actionStep_over, "Step over (F10)"),
             (self.actionStep_into, "Step into (F11)"),
@@ -382,8 +391,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             action.setToolTip(tip)
             self.stepBar.addAction(action)
 
-        # Between the search bar and the tree.
-        self.verticalLayout.insertWidget(2, self.stepBar)
+        self.addToolBar(Qt.TopToolBarArea, self.stepBar)
         self.stepBar.setVisible(False)
 
     def _search_fields(self):

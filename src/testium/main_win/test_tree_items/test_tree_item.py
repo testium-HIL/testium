@@ -92,7 +92,7 @@ def _breakpoint_icon():
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setBrush(QColor(220, 0, 0))
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(20, 20, 24, 24)
+        painter.drawEllipse(12, 12, 40, 40)
         painter.end()
         _breakpoint_icon_cache = QIcon(pixmap)
     return _breakpoint_icon_cache
