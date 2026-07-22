@@ -4,7 +4,7 @@ from random import randint
 
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.test_items.test_item import TestItem, test_run
-from interpreter.test_items.test_result import TestResult, TestValue
+from interpreter.test_items.test_result import TestValue
 
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
@@ -38,6 +38,10 @@ class TestItemJSRPCActionOpen(TestItemAction):
     def execute(self):
         try:
             self.token.open()
+        except ETUMRuntimeError as e:
+            # Expected failure (timeout, malformed answer, bad id...):
+            # plain message, no traceback.
+            self.result.set(result=TestValue.FAILURE, message=str(e))
         except Exception as e:
             self.result.set(
                 result=TestValue.FAILURE,
@@ -65,8 +69,10 @@ class TestItemJSRPCActionClose(TestItemAction):
     def execute(self):
         try:
             self.token.close()
+        except ETUMRuntimeError as e:
+            self.result.set(result=TestValue.FAILURE, message=str(e))
         except Exception as e:
-            test_res = TestResult(
+            self.result.set(
                 result=TestValue.FAILURE,
                 message=f"Error while performing the JSONRPC '{self._name}' action (exception: {e})",
             )
@@ -125,6 +131,10 @@ class TestItemJSRPCActionQuery(TestItemAction):
             success, result = self.token.query(
                 meth, obj, jrpc_id, send_only, timeout=timeout
             )
+        except ETUMRuntimeError as e:
+            # Expected failure (timeout, malformed answer, bad id...):
+            # plain message, no traceback.
+            self.result.set(result=TestValue.FAILURE, message=str(e))
         except Exception as e:
             self.result.set(
                 result=TestValue.FAILURE,
@@ -173,6 +183,10 @@ class TestItemJSRPCActionReceive(TestItemAction):
 
         try:
             success, result = self.token.receive(jrpc_id, timeout)
+        except ETUMRuntimeError as e:
+            # Expected failure (timeout, malformed answer, bad id...):
+            # plain message, no traceback.
+            self.result.set(result=TestValue.FAILURE, message=str(e))
         except Exception as e:
             self.result.set(
                 result=TestValue.FAILURE,

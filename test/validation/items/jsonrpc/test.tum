@@ -321,6 +321,22 @@
                     timeout: 1
                 - close:
 
+        - json_rpc:
+            name: UDP query with a request frame echoed before the answer
+            doc: The server sends the raw request back before the real response (mimics one's own multicast query looped back to the group when rcv_port == snd_port); the adapter must skip request frames while waiting for the response.
+            key: $(test)_PASS
+            udp: {server: localhost, snd_port: 4327, rcv_port: 8769}
+            timeout: 2
+            steps:
+                - open:
+                - query:
+                    method: echo
+                    params:
+                        - Skip my own frame
+                    expected_result: [[Skip my own frame], {}]
+                    timeout: 2
+                - close:
+
 {% if os == "Linux" %}
         # --- Multicast UDP -----------------------------------------------------
         # The echo server joined group 239.255.42.99 on loopback: port 4324

@@ -91,14 +91,20 @@ def _tcp_server(host, port):
 
 # ── UDP ──────────────────────────────────────────────────────────────────────
 
-def _udp_server(host, port):
+def _udp_server(host, port, echo_request_first=False):
+    """echo_request_first: send the raw request back before the response —
+    mimics a client's own multicast query looped back to the group; the
+    testium adapter must skip such request frames while waiting."""
     srv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind((host, port))
-    print(f"UDP listening on {host}:{port}", flush=True)
+    mode = " (request echoed first)" if echo_request_first else ""
+    print(f"UDP listening on {host}:{port}{mode}", flush=True)
     while True:
         data, addr = srv.recvfrom(65535)
         resp = handle(data.decode())
+        if echo_request_first:
+            srv.sendto(data, addr)
         srv.sendto(resp.encode(), addr)
 
 
@@ -150,6 +156,11 @@ def main():
     udp_thread = threading.Thread(target=_udp_server, args=(udp_host, udp_port), daemon=True)
     tcp_thread.start()
     udp_thread.start()
+
+    if cfg.has_section("jsonrpc_udp_request_echo"):
+        re_port = cfg.getint("jsonrpc_udp_request_echo", "port", fallback=4327)
+        threading.Thread(target=_udp_server, args=("0.0.0.0", re_port, True),
+                         daemon=True).start()
 
     if cfg.has_section("jsonrpc_multicast"):
         group = cfg.get("jsonrpc_multicast", "group")

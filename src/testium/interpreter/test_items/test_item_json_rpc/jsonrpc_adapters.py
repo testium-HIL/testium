@@ -181,7 +181,23 @@ class JrpcAdapter:
 
         """
         tmout = self._timeout if timeout is None else timeout
-        obj = json.loads(self._receive(tmout))
+        deadline = time.monotonic() + max(float(tmout), 0.0)
+        while True:
+            obj = json.loads(self._receive(tmout))
+            if not (isinstance(obj, dict) and "method" in obj
+                    and "result" not in obj and "error" not in obj):
+                break
+            # A request frame, not a response: typically our own multicast
+            # query looped back to the group (rcv_port == snd_port), or
+            # another client's request. Keep waiting for the response.
+            if not self._mute:
+                print("  | ignored a request frame (not a response)")
+            tmout = deadline - time.monotonic()
+            if tmout <= 0:
+                raise ETUMRuntimeError(
+                    "JSONRPC answer took too long (only request frames "
+                    "were received). Try to increase the timeout."
+                )
         self.check_answer(obj, jrpc_id)
 
         if self._jrpc_version == "1.0":

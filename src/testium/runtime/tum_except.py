@@ -12,7 +12,11 @@ class ETUMError(Exception):
         return [self._message, self._file]
 
     def __str__(self):
-        return "\n".join(self.str_lines())
+        # Long messages are wrapped so they stay readable in the log.
+        out = []
+        for line in self.str_lines():
+            out.extend(textwrap.wrap(line, width=100) or [line])
+        return "\n".join(out)
 
 
 class ETUMRuntimeError(ETUMError):

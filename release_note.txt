@@ -22,6 +22,10 @@ version 0.3.4
 - ``json_rpc``: a wrong ``udp:`` block (missing key, bad type — e.g.
   ``server: { var }`` with single braces) fails the item with a plain
   explanation instead of a Python traceback, and the test run continues.
+- ``json_rpc`` over UDP: request frames received while waiting for a
+  response are ignored — typically one's own multicast query looped back
+  to the group when ``rcv_port`` equals ``snd_port``.
+- Error messages longer than 100 characters are wrapped over several lines.
 
 version 0.3.3
 ==============
