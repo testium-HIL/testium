@@ -12,6 +12,8 @@ reports in several formats.
   five minutes.
 * [Tutorial](doc/tutorial.md) — guided walk-through of the most common
   test items with a runnable example.
+* [Exporter tutorial](doc/exporter_tutorial.md) — write and use a custom
+  report export format.
 * [User manual (PDF)](doc/manual/testium_manual.pdf) — full reference.
 * [`doc/examples/`](doc/examples/) — runnable `.tum` snippets.
 
