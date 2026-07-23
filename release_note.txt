@@ -1,3 +1,20 @@
+version 0.4
+==============
+- The Start/Pause and Stop buttons moved from the main toolbar to the
+  step toolbar, which is now always visible (still movable/detachable).
+  New shortcuts: F5 starts, pauses or resumes; Shift+F5 stops.
+- The step toolbar matches the main toolbar look (large icons + text)
+  when docked at the top, and stays compact (small icons) on the sides,
+  at the bottom or detached.
+- The green "current item" line no longer stays in the test tree after
+  stopping a paused test.
+- Custom report exporters (``testium.exporters`` pip plugins) now work in
+  every install channel — install them with the host Python, like py_func
+  dependencies. Previously only source and wheel installs could see them.
+- New ``command`` report export: post-process the report with any external
+  tool — ``cmd: mytool {db} {out}`` receives a SQLite copy of the report
+  and the output path.
+
 version 0.3.4
 ==============
 - ``testium schema`` now emits a standard JSON Schema (draft 2020-12)
