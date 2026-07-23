@@ -188,6 +188,18 @@ class QTestTree(QTreeWidget):
                 yield from walk(child)
         yield from walk(self.invisibleRootItem())
 
+    def clearHighlights(self):
+        """Drop the current-item highlight everywhere. Needed after a stop
+        while paused: the paused item never gets its end-of-run status, so
+        updateStatus() never resets it."""
+        # Block signals: setBackground -> itemChanged -> on_testChecked storm.
+        self.blockSignals(True)
+        try:
+            for it in self._all_items():
+                it.resetHighlighted()
+        finally:
+            self.blockSignals(False)
+
     def clear_search(self):
         # Block signals: setBackground -> itemChanged -> on_testChecked storm.
         self.blockSignals(True)

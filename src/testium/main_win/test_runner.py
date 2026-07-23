@@ -138,17 +138,13 @@ class TestRunner:
         w.actionStep_into.setEnabled(enabled)
         w.actionStep_out.setEnabled(enabled)
 
-    def set_step_buttons_visible(self, visible):
-        """Show/hide the step bar above the tree. The menu entries and
-        shortcuts stay available (F11 from idle starts paused)."""
-        self._win.stepBar.setVisible(visible)
-
     def on_run_finished(self):
         w = self._win
         w.timer.setSingleShot(True)
         w.timer.setInterval(1000)
         txt = w.stream.read()
         w.textLog.appendPlainText(txt)
+        w.treeTests.clearHighlights()
         self.restore_interface_after_test()
 
         if self.logFileHandler is not None:
@@ -227,7 +223,6 @@ class TestRunner:
             w.actionSave_report.setDisabled(True)
             w.logSettingsBox.setDisabled(True)
             w.actionStop_test.setEnabled(True)
-            self.set_step_buttons_visible(True)
             self._set_step_actions_enabled(False)
             if prefs.settings.show_checkboxes:
                 w._checklist = w.treeTests.getCheckList()
@@ -256,7 +251,6 @@ class TestRunner:
             w.actionPreferences.setEnabled(True)
             w.actionRefresh_test.setEnabled(True)
             w.actionStop_test.setDisabled(True)
-            self.set_step_buttons_visible(False)
             self._set_step_actions_enabled(False)
             w.actionStep_into.setEnabled(w.actionStart_test.isEnabled())
             w.actionShow_Results.setEnabled(True)

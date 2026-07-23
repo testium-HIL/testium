@@ -163,7 +163,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         if state_settings:
             self.restoreState(state_settings)
-        self.stepBar.setVisible(False)
+        # Force-show: settings saved by previous versions hold the bar in
+        # its old hidden-at-idle state.
+        self.stepBar.setVisible(True)
+        self._update_step_bar_style()
 
         self.actionStart_test.setDisabled(True)
         self.actionShow_Results.setDisabled(True)
@@ -373,16 +376,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.searchBar.setVisible(False)
 
     def _build_step_bar(self):
-        """Compact movable step bar, shown only while a test runs. Docked
-        after the main toolbar by default; can be dragged elsewhere or
-        detached (floating) — the position is kept in the window state.
-        The actions are shared with the Test menu (shortcuts stay global)."""
-        self.stepBar = QToolBar("Step", self)
+        """Movable run/debug bar, always visible: Start (Pause), Stop,
+        then the step actions. Docked after the main toolbar by default;
+        can be dragged elsewhere or detached (floating) — the position is
+        kept in the window state. Large (main-toolbar style) when docked
+        in the top area, compact icon-only anywhere else. The actions are
+        shared with the Test menu (shortcuts stay global)."""
+        self.stepBar = QToolBar("Run", self)
         self.stepBar.setObjectName("stepBar")
-        self.stepBar.setIconSize(QSize(16, 16))
-        self.stepBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.stepBar.setMovable(True)
         self.stepBar.setFloatable(True)
+        self.stepBar.addAction(self.actionStart_test)
+        self.stepBar.addAction(self.actionStop_test)
+        self.stepBar.addSeparator()
         for action, tip in (
             (self.actionStep_over, "Step over (F10)"),
             (self.actionStep_into, "Step into (F11)"),
@@ -392,7 +398,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.stepBar.addAction(action)
 
         self.addToolBar(Qt.TopToolBarArea, self.stepBar)
-        self.stepBar.setVisible(False)
+        # Fires on undock and on re-dock after a drag, so every move ends
+        # with a style refresh matching the final area.
+        self.stepBar.topLevelChanged.connect(
+            lambda _: self._update_step_bar_style())
+        self._update_step_bar_style()
+
+    def _update_step_bar_style(self):
+        """Top area: main-toolbar look (large icons + text). Left/right/
+        bottom or floating: compact icon-only."""
+        if (not self.stepBar.isFloating()
+                and self.toolBarArea(self.stepBar) == Qt.TopToolBarArea):
+            self.stepBar.setIconSize(self.toolBar.iconSize())
+            self.stepBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        else:
+            self.stepBar.setIconSize(QSize(16, 16))
+            self.stepBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
 
     def _search_fields(self):
         fields = set()
