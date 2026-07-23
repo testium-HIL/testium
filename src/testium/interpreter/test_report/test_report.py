@@ -1,4 +1,8 @@
+import json
 import os
+import shlex
+import subprocess
+import tempfile
 import threading
 from functools import wraps
 import sqlite3
@@ -7,7 +11,9 @@ import traceback
 from runtime.tum_except import (ETUMRuntimeError, ETUMSyntaxError)
 from runtime.stdout_redirect import stdio_redir
 from interpreter.utils.params import (expanse)
-from interpreter.utils.paths import prepare_file_to_save
+from interpreter.utils.paths import prepare_file_to_save, no_window_kwargs
+from interpreter.utils import bins
+import api.testium as tm
 import interpreter.utils.constants as cst
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.test_report.report_interface import (adapt_json, convert_json)
@@ -51,19 +57,62 @@ _EXPORTER_REGISTRY: dict = {
     cst.REP_TYPE_HTML:  _load_html,
 }
 
-def _discover_plugins():
-    try:
-        from importlib.metadata import entry_points
-        for ep in entry_points(group='testium.exporters'):
-            try:
-                cls = ep.load()
-                _EXPORTER_REGISTRY[ep.name] = lambda c=cls: c
-            except Exception as e:
-                print(f'[testium] Failed to load report exporter plugin "{ep.name}": {e}')
-    except Exception:
-        pass
+# Third-party exporter plugins (entry-point group "testium.exporters") are
+# NOT loaded in this process: the bundled interpreter of the Flatpak /
+# AppImage / PyInstaller channels is read-only, so the user could never pip
+# install into it. Non-builtin formats are handed to runtime/export_worker.py
+# running on the host Python (bins.python_bin()), same philosophy as py_func.
 
-_discover_plugins()
+# Must match export_worker.py.
+_WORKER_FORMATS_SENTINEL = "__TESTIUM_EXPORT_FORMATS__="
+_WORKER_EXIT_UNKNOWN_FORMAT = 3
+
+
+def _db_snapshot(con):
+    """Copy the report database to a temp SQLite file and return its path.
+
+    Out-of-process exporters can't use the live connection (which may be
+    ``:memory:`` when no ``sqlite`` export is configured), and in Flatpak the
+    host only sees shared paths — /tmp is shared via the manifest.
+    """
+    tmp_dir = "/tmp" if os.path.isdir("/tmp") else None
+    fd, tmp = tempfile.mkstemp(prefix="testium_report_", suffix=".sqlite",
+                               dir=tmp_dir)
+    os.close(fd)
+    # Mid-run the connection holds an open write transaction (addTest INSERTs
+    # are committed at close); backup() from the same connection then retries
+    # on SQLITE_BUSY forever. Commit first — nothing relies on rollback.
+    try:
+        con.commit()
+    except sqlite3.Error:
+        pass
+    dst = sqlite3.connect(tmp)
+    try:
+        con.backup(dst)
+    finally:
+        dst.close()
+    return tmp
+
+
+def _run_on_host(argv, cwd=None):
+    """Run *argv* on the host: flatpak-spawn --host in Flatpak, plain
+    subprocess elsewhere (with the AppImage bundle-local env scrubbed).
+    Returns a CompletedProcess, or None if the spawn itself failed."""
+    if cwd is None or not os.path.isdir(cwd):
+        cwd = "/tmp" if os.path.isdir("/tmp") else None
+    if bins._in_flatpak():
+        argv = bins.flatpak_host_spawn(argv[0], argv[1:], host_cwd=cwd)
+        kwargs = {}
+    else:
+        env = os.environ.copy()
+        bins.apply_host_libs(env)
+        env.pop("PYTHONUSERBASE", None)
+        kwargs = {"env": env, "cwd": cwd}
+    try:
+        return subprocess.run(argv, capture_output=True, text=True,
+                              **no_window_kwargs(), **kwargs)
+    except (FileNotFoundError, PermissionError, OSError):
+        return None
 
 
 def tr_procedure(f):
@@ -88,6 +137,7 @@ class Export:
         self.tum_key = dict_export[self.type].get('key', [])
         self.path = dict_export[self.type].get('path', '')
         self.filename = dict_export[self.type].get('file_name', '')
+        self.tum_cmd = dict_export[self.type].get('cmd', '')
 
         if len(self.tum_pattern) > 0:
             if not isinstance(self.tum_pattern, (list, str)):
@@ -130,6 +180,8 @@ class Export:
 
         if et == cst.REP_TYPE_SQLITE:
             pass
+        elif et == cst.REP_TYPE_COMMAND:
+            self._exec_command(con, path)
         elif et in _EXPORTER_REGISTRY:
             try:
                 cls = _EXPORTER_REGISTRY[et]()
@@ -137,10 +189,92 @@ class Export:
             except ETUMRuntimeError as e:
                 print(f'[report] Export skipped: {e}')
         else:
-            available = ', '.join(
-                sorted(_EXPORTER_REGISTRY.keys()) + [cst.REP_TYPE_SQLITE])
+            self._exec_plugin(con, et, name, path, pats, keys, no_header)
+
+    @staticmethod
+    def _available(plugins=()):
+        return ', '.join(sorted(
+            list(_EXPORTER_REGISTRY.keys())
+            + [cst.REP_TYPE_SQLITE, cst.REP_TYPE_COMMAND]
+            + list(plugins)))
+
+    def _exec_plugin(self, con, et, name, path, pats, keys, no_header):
+        """Run a non-builtin export format through the host-side worker
+        (entry-point plugins are installed on the host Python)."""
+        pbin = bins.python_bin()
+        if not pbin:
+            print(f'[report] Export skipped: format "{et}" needs a host '
+                  'Python 3 interpreter and none was found.')
+            return
+        worker = os.path.join(bins._get_host_testium_path(),
+                              'runtime', 'export_worker.py')
+        db = _db_snapshot(con)
+        payload = json.dumps({'format': et, 'db': db, 'path': path,
+                              'pats': pats, 'keys': keys,
+                              'no_header': no_header, 'name': name})
+        try:
+            r = _run_on_host([pbin, worker, payload])
+        finally:
+            try:
+                os.unlink(db)
+            except OSError:
+                pass
+
+        if r is None:
+            print(f'[report] Export skipped: format "{et}": could not start '
+                  f'the host Python "{pbin}".')
+            return
+        if r.returncode == _WORKER_EXIT_UNKNOWN_FORMAT:
+            plugins = []
+            for line in r.stdout.splitlines():
+                if line.startswith(_WORKER_FORMATS_SENTINEL):
+                    names = line[len(_WORKER_FORMATS_SENTINEL):]
+                    plugins = [n for n in names.split(',') if n]
             print(f'[report] Export skipped: format "{et}" not found. '
-                  f'Available: {available}')
+                  f'Available: {self._available(plugins)}')
+            return
+        if r.stdout.strip():
+            print(r.stdout.rstrip())
+        if r.returncode != 0:
+            detail = r.stderr.strip() or f'exit code {r.returncode}'
+            print(f'[report] Export skipped: {detail}')
+
+    def _exec_command(self, con, path):
+        """Run an external tool on the host with a temp copy of the report
+        database. Placeholders in cmd: {db} (SQLite copy), {out} (path)."""
+        cmd = expanse(self.tum_cmd)
+        if not isinstance(cmd, str) or not cmd.strip():
+            print('[report] Export skipped: the "command" export needs a '
+                  'non-empty "cmd" string.')
+            return
+        db = _db_snapshot(con)
+        try:
+            try:
+                argv = [tok.format(db=db, out=path)
+                        for tok in shlex.split(cmd)]
+            except (KeyError, IndexError, ValueError) as e:
+                print(f'[report] Export skipped: bad placeholder in command '
+                      f'"{cmd}" ({e}). Supported: {{db}}, {{out}}.')
+                return
+            # Test directory as cwd so relative paths in cmd behave as in
+            # the rest of the .tum.
+            r = _run_on_host(argv, cwd=tm.gd('test_directory', None))
+            if r is None:
+                print(f'[report] Export skipped: could not start command '
+                      f'"{argv[0]}".')
+                return
+            if r.stdout.strip():
+                print(r.stdout.rstrip())
+            if r.returncode != 0:
+                detail = r.stderr.strip()
+                print(f'[report] Export skipped: command "{argv[0]}" exited '
+                      f'with code {r.returncode}'
+                      + (f': {detail}' if detail else '.'))
+        finally:
+            try:
+                os.unlink(db)
+            except OSError:
+                pass
 
 class TestReport:
     TEST_COLS = [[cst.DB_TEST_TIMESTAMP_START, 'INT'],

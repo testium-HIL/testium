@@ -69,7 +69,10 @@ REP_TYPE_JUNIT      = "junit"
 REP_TYPE_JSON       = "json"
 REP_TYPE_HTML       = "html"
 REP_TYPE_TEXT       = "text"
+REP_TYPE_COMMAND    = "command"
 
+# CLI --report-type choices: storage / builtin in-process formats only
+# ("command" needs a cmd string, plugins are host-discovered at run time).
 REP_TYPES = [
         REP_TYPE_SQLITE,
         REP_TYPE_JUNIT,

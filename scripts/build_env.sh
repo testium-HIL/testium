@@ -31,10 +31,7 @@ if [ ! -d "$PY_VENV_DIR" ]; then
     # start / collect the `testium lsp` server. pip-installed wheel users get
     # them via `pip install testium[lsp]` instead.
     pip install --extra-index-url https://pypi.python.org/pypi "pygls>=1.3"
-    # Validation suite plugin used to verify the report-exporter
-    # entry-points discovery end-to-end.
-    FAKE_EXPORTER_DIR="$(dirname "$REQ_PATH")/../test/validation/fake_exporter"
-    if [ -d "$FAKE_EXPORTER_DIR" ]; then
-        pip install -e "$FAKE_EXPORTER_DIR"
-    fi
+    # fake_exporter is no longer installed here: report exporter plugins run
+    # on the host python, so test/validation/run.sh installs it into the
+    # validation venv instead.
 fi

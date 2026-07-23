@@ -63,6 +63,9 @@ Each export entry supports the following sub-attributes:
     |                 |                       | applied on the test ``key``               |
     |                 |                       | (the per-item ``key`` attribute).         |
     +-----------------+-----------------------+-------------------------------------------+
+    | ``cmd``         | /                     | ``command`` export only: the external     |
+    |                 |                       | command line to run (see below).          |
+    +-----------------+-----------------------+-------------------------------------------+
 
 Built-in formats
 ^^^^^^^^^^^^^^^^
@@ -77,15 +80,50 @@ If a format is unknown or its optional dependency is missing, the export is
 skipped with an ``[report] Export skipped: ...`` info line on stdout — the
 test run is **not** interrupted.
 
+.. _sec_reports_command:
+
+``command`` export — external tool
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``command`` export post-processes the report with any external program.
+The report database is copied to a temporary SQLite file and the command runs
+on the host system (even from the Flatpak / AppImage sandboxes):
+
+.. code-block:: yaml
+    :caption: post-processing the report with an external tool
+
+    report:
+        export:
+            - command:
+                cmd: mytool --input {db} --output {out}
+                path: $(home)/reports
+                file_name: $(test_name).pdf
+
+Two placeholders are substituted in ``cmd``:
+
+* ``{db}``  — path of the temporary SQLite copy of the report
+  (tables described below);
+* ``{out}`` — the output path built from ``path`` / ``file_name``.
+
+The command runs with the test directory as working directory, so relative
+paths behave as elsewhere in the ``.tum`` file.
+
+A command that cannot be started or exits with a non-zero code produces an
+``[report] Export skipped: ...`` info line; the test run continues.
+
 .. _sec_reports_plugins:
 
 Custom export formats (plugins)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A third-party Python package can register additional export formats via the
-``testium.exporters`` setuptools entry point group. Once installed in the same
-Python environment as testium, the format is auto-detected at startup and can
-be referenced from the YAML by its declared name.
+``testium.exporters`` setuptools entry point group. The plugin must be
+installed with the **host** Python interpreter (the one resolved as
+``python_bin``, also used by ``py_func``) — a plain ``pip install`` there is
+enough, no testium configuration change. The format can then be referenced
+from the YAML by its declared name, in **every** install channel: source,
+wheel, PyInstaller, Flatpak and AppImage. The plugin runs in a separate host
+process on a temporary SQLite copy of the report.
 
 Plugin contract — a class with this constructor signature:
 

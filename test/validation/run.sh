@@ -88,6 +88,13 @@ if [ ! -d "$VENV_DIR" ]; then
 fi
 VENV_PYTHON="$VENV_DIR/bin/python3"
 
+# Report exporter plugins are discovered on the host python (the venv passed
+# as python_bin below), so the fake_exporter plugin must be installed there
+# for the report_plugin item — in every mode, not only source.
+if ! "$VENV_PYTHON" -c "import fake_exporter" &>/dev/null; then
+    "$VENV_DIR/bin/pip" install --quiet -e "$SCRIPT_DIR/fake_exporter"
+fi
+
 # ---------- per-mode launcher -------------------------------------------------
 
 case "$MODE" in

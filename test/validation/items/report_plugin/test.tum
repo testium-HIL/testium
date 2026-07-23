@@ -21,3 +21,28 @@
         - $(validation_report_path)$(psep)$(test)_fake.csv
         - "Test preparation,Group"
     expected_result: True
+
+- report:
+    name: Command export (external tool on the host)
+    key: $(test)_PASS
+    export:
+        - command:
+            cmd: $(python_bin) $(test_path)$(psep)db_dump.py {db} {out}
+            path: $(validation_report_path)$(psep)$(test)_cmd.txt
+
+- py_func:
+    name: Check command export output
+    file: $(test_path)$(psep)file_check.py
+    func_name: file_contains
+    key: $(test)_PASS
+    param:
+        - $(validation_report_path)$(psep)$(test)_cmd.txt
+        - "Test preparation"
+    expected_result: True
+
+- report:
+    name: Failing command export is skipped (must pass)
+    key: $(test)_PASS
+    export:
+        - command:
+            cmd: $(python_bin) -c "import sys; sys.exit(2)"
