@@ -1,14 +1,17 @@
 """CSV report exporter — used as a real plugin by the testium validation suite.
 
-Demonstrates the contract: take the SQLite connection, output path, optional
-name/key filters, and produce the output. Has no dependency on testium
-internals.
+Built on the ``testium_report`` helper shipped with testium: it is importable
+here because the plugin class is loaded by the export worker, whose directory
+(testium's ``runtime/``) is on sys.path. Exercises Exporter/Report/TestRow
+end to end.
 """
 
 import csv
 
+from testium_report import Exporter
 
-class FakeExporter:
+
+class FakeExporter(Exporter):
     COLUMNS = [
         'timestamp_start',
         'test_id',
@@ -22,21 +25,12 @@ class FakeExporter:
         'duration',
     ]
 
-    def __init__(self, name, con, path, pats, keys, no_header=False):
-        clauses = []
-        for p in pats:
-            clauses.append(f'test_name LIKE "{p}"')
-        for k in keys:
-            clauses.append(f'report_key LIKE "{k}"')
-        where = ('WHERE ' + ' OR '.join(clauses) + ' ') if clauses else ''
-        cols = ', '.join(self.COLUMNS)
-        rows = con.execute(
-            f'SELECT {cols} FROM tests {where}ORDER BY timestamp_start'
-        ).fetchall()
-
-        with open(path, 'w', newline='', encoding='utf-8') as f:
+    def export(self):
+        with open(self.out_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            if not no_header:
+            if not self.no_header:
                 writer.writerow(self.COLUMNS)
-            for row in rows:
-                writer.writerow(row)
+            for row in self.rows:
+                writer.writerow([row.timestamp_start, row.id, row.parent_id,
+                                 row.level, row.name, row.type, row.key,
+                                 row.result, row.message, row.duration])

@@ -30,19 +30,9 @@ def subproc_path():
     # is the testium package root, same as testium_path().
     return testium_path()
 
-def prepare_file_to_save(file_name, file_ext=""):
-    iname = file_name
-    if file_ext != "":
-        iname = os.path.splitext(file_name)[0] + file_ext
-
-    if os.path.isfile(iname):
-        i = 0
-        fname = iname
-        while os.path.isfile(fname):
-            i += 1
-            fname = iname + "-" + str(i) + ".saved"
-        os.rename(iname, fname)
-    return iname
+# Implementation lives in the stdlib-only report helper (shared with
+# exporter plugins); kept here for the existing callers.
+from runtime.testium_report import prepare_file_to_save
 
 
 def abs_path_from_file(file):

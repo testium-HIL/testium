@@ -2,37 +2,40 @@
 import lxml.html
 import lxml.etree
 import html
-import interpreter.test_report.report_export as rpe
-import interpreter.test_report.test_report as tr
+from runtime.testium_report import Exporter
 import interpreter.utils.constants as cst
 
-class ReportExportHTML(rpe.ReportExport):
+class ReportExportHTML(Exporter):
+    HEADER_TEXTS = {
+        'test_file': 'Test file name',
+        'test_name': 'Test name',
+        'testrun_date': 'Date of the test',
+        'testrun_time': 'Time of the test',
+        'test_revision': 'Git revision of the test',
+        'report_version': 'Report tool version',
+    }
+    COLUMN_TITLES = ['Test title', 'Message', 'Duration (s)', 'Test Result']
 
-    def __init__(self, name, report_db, report_file, pattern, key, no_header=False):
-        super().__init__(name, report_db, report_file, pattern, key)
-
-        self.prepareFile()
+    def export(self):
         self.create_base()
-        self.process_tests()
-        with open(self._file_name, 'w', encoding="utf-8") as f:
+        for row in self.rows:
+            self.add_row(row)
+        with open(self.out_path, 'w', encoding="utf-8") as f:
             f.write(lxml.html.tostring(self.root, pretty_print=True).decode())
 
-    def testsIterate(self, row):
-        super().testsIterate(row)
-        rdata = self.extract_info(row)
+    def add_row(self, row):
         trow = lxml.etree.SubElement(self.table, 'tr')
         try:
-            for r in self.ROW_TEXTS:
+            for text in (row.name, row.message,
+                         '{:.4f}'.format(row.duration_s), row.result):
                 rh = lxml.etree.SubElement(trow, 'td')
-                if r[self.KEY_INDEX] == self.KEY_DURATION:
-                    rh.text = '{:.4f}'.format(rdata[r[self.KEY_INDEX]])
-                else:
-                    rh.text = rdata[r[self.KEY_INDEX]]
+                rh.text = text
 
-            if rdata[self.KEY_LOG] != '':
+            log = row.log or ''
+            if log != '':
                 h2 = lxml.etree.SubElement(self.logsection, 'h3')
-                h2.text = rdata[self.KEY_TITLE]
-                for l in rdata[self.KEY_LOG].splitlines():
+                h2.text = row.name
+                for l in log.splitlines():
                     p = lxml.etree.SubElement(self.logsection, 'p')
                     p.text = html.escape(l)
         except ValueError as e:
@@ -40,7 +43,7 @@ class ReportExportHTML(rpe.ReportExport):
 
 
     def create_base(self):
-        repname = self.header[cst.DB_TEST_SET_NAME]
+        repname = self.report.header[cst.DB_TEST_SET_NAME]
         if self.name != '':
             repname = self.name
 
@@ -57,11 +60,11 @@ class ReportExportHTML(rpe.ReportExport):
         h2.text = 'Test conditions'
 
         for k in self.HEADER_TEXTS.keys():
-            if k in self.header.keys():
+            if k in self.report.header.keys():
                 h = lxml.etree.SubElement(div, 'h3')
                 h.text = self.HEADER_TEXTS[k]
                 p = lxml.etree.SubElement(div, 'p')
-                p.text = self.header[k]
+                p.text = self.report.header[k]
 
         div = lxml.etree.SubElement(self.body, 'div')
         h2 = lxml.etree.SubElement(div, 'h2')
@@ -69,9 +72,9 @@ class ReportExportHTML(rpe.ReportExport):
 
         self.table = lxml.etree.SubElement(self.body, 'table')
         row = lxml.etree.SubElement(self.table, 'tr')
-        for r in self.ROW_TEXTS:
+        for title_text in self.COLUMN_TITLES:
             rh = lxml.etree.SubElement(row, 'th')
-            rh.text = r[self.TEXT_INDEX]
+            rh.text = title_text
 
         self.logsection = lxml.etree.SubElement(self.body, 'div')
         h2 = lxml.etree.SubElement(self.logsection, 'h2')

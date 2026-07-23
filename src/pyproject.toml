@@ -41,6 +41,15 @@ testium = "testium:main"
 
 [tool.setuptools.packages.find]
 where=["."]
+# Keep stale in-place `src/build/` trees out of the wheel.
+exclude=["build", "build.*"]
+
+# Top-level alias of testium/runtime/testium_report.py so plugin authors can
+# `from testium_report import Exporter` in their dev venv with a plain
+# `pip install testium`. At run time under testium the copy shipped in
+# runtime/ wins (the export worker's directory precedes site-packages).
+[tool.setuptools]
+py-modules = ["testium_report"]
 
 [tool.setuptools.package-data]
 "testium.lua_func" = ["*.lua"]
