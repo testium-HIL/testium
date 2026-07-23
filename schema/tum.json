@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:testium:tum-schema:0.3.4",
+  "$id": "urn:testium:tum-schema:0.4",
   "title": "testium TUM file",
   "type": "object",
   "additionalProperties": false,
