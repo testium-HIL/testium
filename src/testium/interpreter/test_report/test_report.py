@@ -239,10 +239,19 @@ class Export:
             detail = r.stderr.strip() or f'exit code {r.returncode}'
             print(f'[report] Export skipped: {detail}')
 
+    # Sentinels masking $(db)/$(out) from expanse(): they are export
+    # placeholders resolved here, not global variables, so a global named
+    # db or out must not capture them.
+    _CMD_DB = '\x00db\x00'
+    _CMD_OUT = '\x00out\x00'
+
     def _exec_command(self, con, path):
         """Run an external tool on the host with a temp copy of the report
-        database. Placeholders in cmd: {db} (SQLite copy), {out} (path)."""
-        cmd = expanse(self.tum_cmd)
+        database. Placeholders in cmd: $(db) (SQLite copy), $(out) (path)."""
+        cmd = self.tum_cmd
+        if isinstance(cmd, str):
+            cmd = expanse(cmd.replace('$(db)', self._CMD_DB)
+                             .replace('$(out)', self._CMD_OUT))
         if not isinstance(cmd, str) or not cmd.strip():
             print('[report] Export skipped: the "command" export needs a '
                   'non-empty "cmd" string.')
@@ -250,11 +259,14 @@ class Export:
         db = _db_snapshot(con)
         try:
             try:
-                argv = [tok.format(db=db, out=path)
+                # Placeholders substituted per token so paths with spaces
+                # stay a single argument.
+                argv = [tok.replace(self._CMD_DB, db)
+                           .replace(self._CMD_OUT, path)
                         for tok in shlex.split(cmd)]
-            except (KeyError, IndexError, ValueError) as e:
-                print(f'[report] Export skipped: bad placeholder in command '
-                      f'"{cmd}" ({e}). Supported: {{db}}, {{out}}.')
+            except ValueError as e:
+                print(f'[report] Export skipped: cannot parse command '
+                      f'"{cmd}" ({e}).')
                 return
             # Test directory as cwd so relative paths in cmd behave as in
             # the rest of the .tum.

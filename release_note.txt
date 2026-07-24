@@ -12,7 +12,7 @@ version 0.4
   every install channel — install them with the host Python, like py_func
   dependencies. Previously only source and wheel installs could see them.
 - New ``command`` report export: post-process the report with any external
-  tool — ``cmd: mytool {db} {out}`` receives a SQLite copy of the report
+  tool — ``cmd: mytool $(db) $(out)`` receives a SQLite copy of the report
   and the output path.
 - New tutorial ``doc/exporter_tutorial.md``: write and use a custom report
   exporter. The Reports chapter of the manual details how exports run.

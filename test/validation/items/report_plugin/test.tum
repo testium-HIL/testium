@@ -27,7 +27,7 @@
     key: $(test)_PASS
     export:
         - command:
-            cmd: $(python_bin) $(test_path)$(psep)db_dump.py {db} {out}
+            cmd: $(python_bin) $(test_path)$(psep)db_dump.py $(db) $(out)
             path: $(validation_report_path)$(psep)$(test)_cmd.txt
 
 - py_func:

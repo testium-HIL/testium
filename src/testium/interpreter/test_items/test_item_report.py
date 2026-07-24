@@ -10,8 +10,9 @@ class TestItemReport(TestItem):
 
     PARAMS = ParamSet(
         Param("export", kind=LIST, required=True,
-              doc="List of exporters to run (junit, sqlite, …). Each entry is a "
-                  "mapping describing the exporter type and its parameters."),
+              doc="List of exports to run on the data collected so far (junit, "
+                  "html, …). Each entry is a mapping describing the export type "
+                  "and its parameters; a sqlite entry is ignored here."),
     )
 
     def __init__(self, dict_item, parent = None, status_queue=None, filename=""):

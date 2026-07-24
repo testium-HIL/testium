@@ -644,7 +644,7 @@
           "description": "(internal) source .tum file of this step; injected by the loader."
         },
         "export": {
-          "description": "List of exporters to run (junit, sqlite, \u2026). Each entry is a mapping describing the exporter type and its parameters.",
+          "description": "List of exports to run on the data collected so far (junit, html, \u2026). Each entry is a mapping describing the export type and its parameters; a sqlite entry is ignored here.",
           "type": "array"
         }
       },
