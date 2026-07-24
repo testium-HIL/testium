@@ -1,53 +1,42 @@
 version 0.4
 ==============
-- The Start/Pause and Stop buttons moved from the main toolbar to the
-  step toolbar, which is now always visible (still movable/detachable).
-  New shortcuts: F5 starts, pauses or resumes; Shift+F5 stops.
-- The step toolbar matches the main toolbar look (large icons + text)
-  when docked at the top, and stays compact (small icons) on the sides,
-  at the bottom or detached.
-- The green "current item" line no longer stays in the test tree after
+- Start/Pause and Stop moved to the step toolbar, which is now always
+  visible. F5 starts, pauses or resumes; Shift+F5 stops.
+- The step toolbar shows large icons when docked at the top, small ones
+  elsewhere.
+- Fix: the green "current item" line stayed in the test tree after
   stopping a paused test.
-- Custom report exporters (``testium.exporters`` pip plugins) now work in
-  every install channel — install them with the host Python, like py_func
-  dependencies. Previously only source and wheel installs could see them.
-- New ``command`` report export: post-process the report with any external
-  tool — ``cmd: mytool $(db) $(out)`` receives a SQLite copy of the report
-  and the output path.
-- New tutorial ``doc/exporter_tutorial.md``: write and use a custom report
-  exporter. The Reports chapter of the manual details how exports run.
-- New ``testium_report`` helper for exporter plugins: report header, typed
-  test rows, filters and tree without writing SQL. Available to plugins
-  with no install; ``pip install testium`` provides it for development.
+- Custom report exporters (``testium.exporters`` pip plugins) now work
+  in every install channel. Install them with the host Python — the
+  ``python_bin`` interpreter, as for py_func dependencies.
+- New ``command`` report export: post-process the report with any
+  external tool — ``cmd: mytool $(db) $(out)`` receives a SQLite copy
+  of the report and the output path.
+- New ``testium_report`` helper for writing exporters: header, typed
+  rows, filters and tree without SQL. Nothing to install for plugins;
+  ``pip install testium`` provides it in a development venv.
+- New tutorial: ``doc/exporter_tutorial.md``.
 
 version 0.3.4
 ==============
-- ``testium schema`` now emits a standard JSON Schema (draft 2020-12)
-  describing valid ``.tum`` files. Usable by yaml-language-server,
-  external linters (ajv, check-jsonschema) and AI assistants.
+- ``testium schema`` emits a standard JSON Schema (draft 2020-12) for
+  ``.tum`` files, usable by editors, linters and AI assistants.
 - Step-by-step execution in the GUI: Step over (F10), Step into (F11),
-  Step out (Shift+F11). A small toolbar appears while a test runs (it
-  can be moved or detached); F11 from idle starts paused on the first
-  item.
-- Breakpoints are now shown as a red dot in the first column of the
-  test tree, left of the checkboxes (double-click there to set or
-  remove one).
-- Unchecked test items are greyed again while the test runs (was lost
-  with recent PySide6 versions).
-- The "Open Test" and "Save Results" toolbar icons were swapped; fixed.
-- Folds, checked boxes and breakpoints now survive Refresh — even when
-  test items were added or removed — and restarting testium. They follow
-  the item, and are dropped when a different file is loaded.
-- ``json_rpc`` over UDP: complete multicast support. The socket now joins
-  the group (group-addressed replies are received) and the new
-  ``multicast_if`` key of ``udp:`` selects the local interface.
-- ``json_rpc``: a wrong ``udp:`` block (missing key, bad type — e.g.
-  ``server: { var }`` with single braces) fails the item with a plain
-  explanation instead of a Python traceback, and the test run continues.
-- ``json_rpc`` over UDP: request frames received while waiting for a
-  response are ignored — typically one's own multicast query looped back
-  to the group when ``rcv_port`` equals ``snd_port``.
-- Error messages longer than 100 characters are wrapped over several lines.
+  Step out (Shift+F11). F11 from idle starts paused on the first item.
+- Breakpoints are shown as a red dot left of the checkboxes;
+  double-click there to set or remove one.
+- Folds, checked boxes and breakpoints survive Refresh and restart.
+  They follow the item; loading a different file drops them.
+- ``json_rpc`` over UDP: multicast support — the socket joins the group
+  and the new ``multicast_if`` key of ``udp:`` selects the local
+  interface.
+- Fix: unchecked test items are greyed again while the test runs.
+- Fix: the "Open Test" and "Save Results" toolbar icons were swapped.
+- Fix: a wrong ``udp:`` block fails the item with a plain message
+  instead of a Python traceback; the test run continues.
+- Fix: over UDP, request frames received while waiting for a response
+  (e.g. one's own multicast query looped back) are ignored.
+- Error messages longer than 100 characters are wrapped.
 
 version 0.3.3
 ==============
