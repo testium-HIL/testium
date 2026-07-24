@@ -1,12 +1,13 @@
+.. _sec_report_test_item:
+
 **report** test item
 ============================================================
 
-This test item exports a report file.
+This test item exports report files **during** the test run, from the data
+collected so far — useful to snapshot partial results in a long campaign.
 
-To have this functionality activated, a ``report section`` must be defined at the root of the test file.
-The root report section is described in :ref:`report<sec_reports>` section.
-
-report test item has the following description format
+It requires a ``report`` element at the root of the main test file (see the
+:ref:`Reports chapter<sec_reports>`).
 
 .. code-block:: yaml
     :caption: ``report`` test item usage example
@@ -15,37 +16,34 @@ report test item has the following description format
         name: Intermediate report
         export:
             - junit:
-                path: $(home)/reports/report-key-1.junit
+                path: $(home)/reports
+                file_name: intermediate.xml
                 pattern:
                     - Unittest%
-                key: report-key-1
             - text:
-                file_name: report-key-1.txt
                 path: $(home)/reports
+                file_name: report-key-1.txt
                 key:
-                    - report-key-1Attributes
-
-This item is useful to generate intermediate reports in any format other than ``sqlite``. Nevertheless,
-if ``sqlite`` export is defined, It won't generate anything.
+                    - report-key-1
 
 Attributes
 ---------------------
 
-``report`` test item has the following specific attributes:
+Besides the :ref:`common attributes<sec_item_common>`, the ``report`` test
+item has one specific attribute:
 
-* ``export``: reports to be exported. It is a list of the reports exports to be executed.
-  The supported exports are:
+* ``export``: required. One export entry or a list of them, with exactly the
+  same syntax and attributes (``path``, ``file_name``, ``pattern``, ``key``,
+  ``cmd``) as the root-level ``export`` — see
+  :ref:`export attributes<sec_reports_attributes>`. All formats are
+  available: :ref:`built-ins<sec_reports_builtin>`, the
+  :ref:`command export<sec_reports_command>` and installed
+  :ref:`plugins<sec_reports_plugins>`.
 
-  * ``junit``
-  * ``json``
-  * ``html``
-  * text
+Notes:
 
-The export sub-attributes (see example above) may contain the following attributes.
-
-* ``path``: path of the report files directory,
-* ``filename``: report file name,
-* ``Pattern``: list of the patterns (applied on test names) used to select the
-  tests to exportinto the report,
-* ``Key``: list of selected keys which are used to select the tests to export
-  into the report.
+* a ``sqlite`` entry is ignored here: the database storage is configured
+  once, in the root ``report`` element;
+* exports run with ``no_header`` set — the produced files carry the test
+  rows without the run header (the run is not finished, so the global
+  result and duration do not exist yet).

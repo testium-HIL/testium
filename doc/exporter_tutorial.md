@@ -1,13 +1,13 @@
 # Tutorial — writing a report exporter
 
-This walk-through creates a custom report export format, `csv_summary`,
-and uses it from a `.tum` file like any built-in format (`text`, `json`,
+This tutorial shows how to create a custom report export format,
+`csv_summary`, and use it from a `.tum` file like any built-in format (`text`, `json`,
 `junit`, `html`). An exporter is a small pip package installed beside
 testium — it works with every install channel (source, wheel,
 PyInstaller, Flatpak, AppImage).
 
-For one-shot needs, the `command` export (see the manual, Reports
-chapter) can call any external tool without writing a package; an
+If you only need the conversion once, the `command` export (see the
+manual, Reports chapter) can call any external tool without writing a package; an
 exporter plugin is the right tool for a reusable, named format.
 
 ## How exporters run
@@ -16,13 +16,14 @@ At the end of a run (or at an inline `report` test item), testium copies
 the report database to a temporary SQLite file and calls your exporter
 class **on the host Python** — the interpreter resolved as `python_bin`,
 the same one running your `py_func` steps. Any error skips the export
-with an `[report] Export skipped: ...` log line; the test run never
-breaks.
+with an `[report] Export skipped: ...` log line; the test run is never
+interrupted.
 
 You do not need SQL: testium ships a helper module, `testium_report`,
 importable by your plugin with no installation step (the process that
 loads your class resolves it from the running testium — same version,
-every channel). The built-in formats are written on the same helper.
+every channel). The built-in formats are implemented with the same
+helper.
 
 ## Step 1 — the package
 
@@ -57,7 +58,7 @@ class CsvSummary(Exporter):
                               "{:.3f}".format(row.duration_s), row.message])
 ```
 
-The base class hands you everything prepared:
+The base class provides everything ready to use:
 
 * `self.rows` — the test items, `pattern`/`key` filters of the export
   entry already applied. Each row has `name`, `type`, `key`, `result`
@@ -69,7 +70,7 @@ The base class hands you everything prepared:
   other filters, `report.tree()` for the item hierarchy (rows linked
   through `children`).
 * `self.out_path` — the output file path; a pre-existing file has been
-  renamed away (`-N.saved`), never overwritten.
+  renamed to `-N.saved`, never overwritten.
 * `self.name`, `self.no_header` — the report name, and whether the call
   comes from an inline `report` test item (mid-run partial report).
 
@@ -102,8 +103,8 @@ change is needed:
 pip install ./csv-summary       # or: pip install -e ./csv-summary
 ```
 
-The Flatpak / AppImage / Windows channels change nothing here: this is a
-plain terminal command on the machine — the plugin lives beside testium,
+This step is identical for the Flatpak / AppImage / Windows channels:
+this is a plain terminal command on the machine — the plugin lives beside testium,
 never inside it. If `python_bin` points to a venv, install into that venv.
 
 ## Step 3 — use it
@@ -149,13 +150,14 @@ helper as a regular top-level module.
 
 ```sh
 pip install testium-<version>-py3-none-any.whl
-python -c "from testium_report import Exporter"     # resolves
+python -c "from testium_report import Exporter"     # import succeeds
 ```
 
-At execution the copy shipped inside the *running* testium always wins
-over the pip-installed one, so the helper version can never diverge from
-the testium producing the report. Without installing testium, pointing
-`PYTHONPATH` at `<testium>/runtime` gives the same import.
+At execution the copy shipped inside the *running* testium always takes
+precedence over the pip-installed one, so the helper version can never
+diverge from the testium producing the report. Without installing
+testium, pointing `PYTHONPATH` at `<testium>/runtime` makes the same
+import work.
 
 You can unit-test an exporter against any saved report: `Report` also
 accepts a file path.
@@ -166,11 +168,11 @@ rep = Report("validation-source.sqlite")
 failed = [r.name for r in rep.rows() if r.failed]
 ```
 
-## The raw contract (no helper)
+## Writing an exporter without the helper
 
-`Exporter` only wraps the plugin contract; a class with this constructor
-works without the helper, reading the SQLite tables itself (schema in the
-manual, Reports chapter):
+The helper is optional: testium only instantiates the exporter class with
+the arguments below. Such a class can read the SQLite tables directly
+(schema in the manual, Reports chapter):
 
 ```python
 class MyExporter:
