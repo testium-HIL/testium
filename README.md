@@ -25,7 +25,7 @@ Pre-built artifacts are published at
 * **Python wheel** (`testium-<version>-py3-none-any.whl`) — install with
   `pip install testium-*.whl`. Smaller download than the binary; downloads
   Python dependencies from PyPI during installation.
-* **Self-contained Linux binary** (`testium`, built with PyInstaller) —
+* **Self-contained Linux binary** (`testium-<version>`, built with PyInstaller) —
   runnable directly, no Python installation required on the host. Lua
   support still needs a system `lua` interpreter and the `lua-socket` /
   `lua-cjson` modules.
@@ -92,8 +92,8 @@ pip install -r src/requirements.txt
 ```
 
 Required Python packages (see `src/requirements.txt`):
-`pyside6`, `pyserial`, `pyyaml`, `pexpect`, `gitpython`, `jinja2`, `colorama`,
-`matplotlib`, `junit-xml`, `lxml`.
+`pyside6`, `pyserial`, `telnetlib3`, `pyyaml`, `pexpect`, `gitpython`,
+`jinja2`, `colorama`, `matplotlib`, `junit-xml`, `lxml`.
 
 For tests using `lua_func` items, install Lua (>= 5.1) plus the `socket` and
 `cjson` modules. On Debian/Ubuntu:
@@ -143,7 +143,7 @@ by hand — download it from the Open VSX page above, then *Extensions → ⋯ �
 Install from VSIX…* or:
 
 ```sh
-code --install-extension testium-assist-0.1.0.vsix
+code --install-extension testium-assist-<version>.vsix
 ```
 
 The extension runs `testium lsp`, so `testium` must be on the `PATH` (otherwise
@@ -151,29 +151,39 @@ point the `testium.serverPath` setting at the binary/AppImage).
 
 ## Troubleshooting
 
-### `wl_proxy_marshal_flags` symbol error
+### A `pytest` item fails to load
+
+```
+'pytest' item ... could not be loaded: pytest is not installed on the host interpreter
+```
+
+Install pytest with the host Python — the `python_bin` interpreter, the
+same one running `py_func` steps: `<python_bin> -m pip install pytest`.
+The same rule applies to the dependencies of `py_func` scripts and to
+report exporter plugins: they are installed beside testium, never inside
+it.
+
+### `wl_proxy_marshal_flags` symbol error (Wayland session)
 
 ```
 testium: symbol lookup error: ... undefined symbol: wl_proxy_marshal_flags
 ```
 
-Force the X11 Qt backend:
+The self-contained binary can hit a Qt/Wayland library mismatch on some
+distributions. Force the X11 Qt backend (`export QT_QPA_PLATFORM=xcb`),
+or use the AppImage or Flatpak, which bundle their platform libraries.
 
-```sh
-export QT_QPA_PLATFORM=xcb
-testium
-```
-
-### `xcb plugin missing`
+### Qt platform plugin `xcb` missing
 
 ```
 qt.qpa.plugin: Could not load the Qt platform plugin "xcb"
 ```
 
-Install the missing system libraries:
+pip-installed PySide6 needs `libxcb-cursor0` on minimal Debian/Ubuntu
+systems:
 
 ```sh
-sudo apt install libxcb-cursor0 libicu-dev libxcb-cursor-dev
+sudo apt install libxcb-cursor0
 ```
 
 ## License
