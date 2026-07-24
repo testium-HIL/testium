@@ -1,8 +1,8 @@
 **dialog_message** test item
 ============================================================
 
-This test item displays a simple dialog asking a question and returning the entered value.
-dialog_message test item has the following description format
+This test item displays a simple dialog showing a message.
+``dialog_message`` test item has the following description format
 
 .. code-block:: yaml
     :caption: example of ``dialog_message`` test item usage
@@ -23,4 +23,4 @@ Attributes
 Feature
 ---------------------
 
-Just display the message.
+Displays the message; no value is returned.

@@ -10,8 +10,8 @@ reports in several formats.
 
 * [Quick start](doc/quick_start.md) — install and run your first test in
   five minutes.
-* [Tutorial](doc/tutorial.md) — guided walk-through of the most common
-  test items with a runnable example.
+* [Tutorial](doc/tutorial.md) — step-by-step tutorial covering the most
+  common test items with a runnable example.
 * [Exporter tutorial](doc/exporter_tutorial.md) — write and use a custom
   report export format.
 * [User manual (PDF)](doc/manual/testium_manual.pdf) — full reference.
@@ -23,8 +23,8 @@ Pre-built artifacts are published at
 <https://git.beafrancois.fr/v-and-v/testium/releases>:
 
 * **Python wheel** (`testium-<version>-py3-none-any.whl`) — install with
-  `pip install testium-*.whl`. Lighter than the binary; pulls Python
-  dependencies from PyPI on install.
+  `pip install testium-*.whl`. Smaller download than the binary; downloads
+  Python dependencies from PyPI during installation.
 * **Self-contained Linux binary** (`testium`, built with PyInstaller) —
   runnable directly, no Python installation required on the host. Lua
   support still needs a system `lua` interpreter and the `lua-socket` /
@@ -65,7 +65,8 @@ Pre-built artifacts are published at
   `PATH`, which most modern distributions provide by default).
 
 Every channel ships the language server, so `testium lsp` (see
-[Editor support](#editor-support)) works out of the box from any of them.
+[Editor support](#editor-support)) works from any of them without extra
+setup.
 
 ## Quick start
 
@@ -115,12 +116,13 @@ completion of item types, hover documentation, and an outline view in any
 LSP-capable editor:
 
 ```sh
-testium lsp        # speaks LSP over stdio; an editor's LSP client drives it
+testium lsp        # LSP over stdio, controlled by the editor LSP client
 testium schema     # dumps the item/parameter schema as JSON (what the LSP serves)
 ```
 
 The server is bundled in every pre-built release (wheel, binary, Flatpak,
-AppImage). For a source / wheel install, pull the language-server extra:
+AppImage). For a source / wheel install, install the language-server
+extra:
 
 ```sh
 pip install 'testium[lsp]'                 # from PyPI / a wheel
@@ -131,7 +133,7 @@ A VSCode / VSCodium client extension (`testium_assist`) wraps `testium lsp`;
 the schema is built from testium itself, so new item types and parameters
 appear in the editor on the next testium upgrade with no client change.
 
-It is published on [Open VSX](https://open-vsx.org/extension/testium/testium-assist),
+The extension is published on [Open VSX](https://open-vsx.org/extension/testium/testium-assist),
 so in **VSCodium, Cursor, Windsurf, Theia and code-server** it installs from the
 Extensions view (search `testium-assist`) or with
 `codium --install-extension testium.testium-assist`.
@@ -182,6 +184,6 @@ testium is distributed under the **European Union Public Licence v. 1.2
 (EUPL-1.2)** — see [`LICENSE`](LICENSE) for the full text. SPDX:
 `EUPL-1.2`.
 
-Contributions are accepted under the same licence (inbound = outbound).
+Contributions are accepted under the same licence as the project.
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development setup, debugging
 workflow, and the release procedure.

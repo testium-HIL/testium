@@ -10,7 +10,7 @@ It supports JSONRPC `v1.0 <https://www.jsonrpc.org/specification_v1>`_ or
 
 This test item can access the jsonrpc server by using an existing
 :ref:`console<sec_console_test_item>` or directly using a UDP protocol.
-Two low level *adapters* can be then chosen: ``udp`` or ``console``.
+Two low level *adapters* can then be chosen: ``udp`` or ``console``.
 
 Example of ``jsonrpc`` test item with the console adapter:
 
@@ -67,21 +67,21 @@ the jsonrpc attributes are:
 Steps
 -----------------------
 
-the jsonrpc steps can be of the following:
+A jsonrpc step can be one of the following:
 
-* ``open``: used by UDP to open the socket explicitely,
-* ``close``: used by UDP adapter to close the socket explicitely,
+* ``open``: used by the UDP adapter to open the socket explicitly,
+* ``close``: used by the UDP adapter to close the socket explicitly,
 * ``query``: performs a complete or partial JSONRPC call,
 * ``receive``: used to receive the JSONRPC result of call previously
   done by the ``query`` action.
 
 If no ``expected_value`` attribute is defined for ``query`` or ``receive`` actions,
 the success of the step will depend on the value returned by the JSONRPC frame.
-Indeed, this protocol defines a mean to notify if the remote procedure has succeeded
-or failed.
+The protocol itself defines a way to report whether the remote procedure
+succeeded or failed.
 
 All the actions support the ``name`` attribute. The ``name`` is concatenated with
-the action type in the *testium* GUI, and recalled in the test log and reports.
+the action type in the *testium* GUI, and repeated in the test log and reports.
 
 adapter attributes
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -113,7 +113,7 @@ The adapters attributes are listed in the table below.
 
    * - ``console.prompt``
      - *string*
-     - the eventual enclosing suffix of the jsonrpc frame.
+     - optional suffix that terminates the jsonrpc frame.
 
    * - :rspan:`5` UDP
      - ``udp``
@@ -173,7 +173,7 @@ host the request may leave through the wrong network.
 -------------------------
 
 The ``open`` jsonrpc action is only used with the
-`UDP adapter<sec_jsonrpc_adapters>` but is mandatory before any ``query`` action.
+:ref:`UDP adapter<sec_jsonrpc_adapters>` but is mandatory before any ``query`` action.
 
 No parameter is required.
 
@@ -181,7 +181,7 @@ No parameter is required.
 ---------------------------
 
 The ``close`` jsonrpc action is only used with the
-`UDP adapter<sec_jsonrpc_adapters>` but is mandatory after JSONRPC transfers are finished.
+:ref:`UDP adapter<sec_jsonrpc_adapters>` but is mandatory after JSONRPC transfers are finished.
 
 No parameter is required.
 
@@ -191,13 +191,13 @@ No parameter is required.
 The ``query`` jsonrpc action has the following attributes:
 
 * ``method``: JSONRPC method to be called,
-* ``params``: JSONRPC param (must be conforming to the version defined above), by default it is an empty list.
+* ``params``: JSONRPC param (must conform to the version defined above), by default it is an empty list.
 * ``id``: JSONRPC id. If not defined or starts with ``rand``, it is chosen randomly.
   Otherwise it must be an integer value,
 * ``timeout``: reception timeout in seconds. It is a floating point number.
   It is by default the jsonrpc timeout.
 * ``no_wait``: Optional boolean. False by default. This attribute defines if
-  the reception is performed in this step (reception can be done appart, in the
+  the reception is performed in this step (reception can be done separately, in the
   ``receive`` action described below),
 
 ``receive`` action

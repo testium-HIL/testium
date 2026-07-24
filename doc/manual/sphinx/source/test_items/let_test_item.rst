@@ -13,10 +13,10 @@ This element is of the following form:
             - key2: value2
             - key3: <| $(variable)[$(loop_index)] |>
 
-The ``let`` element is used to set values in the global directory.
+The ``let`` element is used to set values in the global dictionary.
 
 Attributes
 ----------------
 
-* The ``values`` list gives the {<key>, <value>} couples to set in the
-  global directory,
+* The ``values`` list gives the {<key>, <value>} pairs to set in the
+  global dictionary,

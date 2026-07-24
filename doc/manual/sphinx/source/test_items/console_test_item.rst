@@ -24,7 +24,7 @@ The console test item is of the form:
                 expected: U-Boot
                 timeout: 15
             - read_until:
-                expected: Something that will never occurs
+                expected: Something that will never occur
                 timeout: 5
                 no_fail: True
                 mute: True
@@ -33,7 +33,7 @@ The console test item is of the form:
 Attributes
 -----------------------
 
-Beside common test items attributes, console test item has specific attributes:
+Besides the common test item attributes, the console test item has specific attributes:
 
 * ``console_name``: console instance name
 * ``write_delay``: optional parameter giving the delay to wait in
@@ -43,7 +43,7 @@ Beside common test items attributes, console test item has specific attributes:
 The console test item steps accept the parameters and configurations defined in the next sections.
 
 All the following actions support the ``name`` attribute. The ``name`` is concatenated with
-the step type in the *testium* GUI, and recalled in the test log and reports.
+the step type in the *testium* GUI, and repeated in the test log and reports.
 
 ``open`` action
 -------------------------
@@ -54,10 +54,10 @@ variables (cf :ref:`global variables<sec_global_variables>`).
 
 Open step accepts the following attribute:
 
-* ``protocol``: Setting of the console protocol, supported protocol are listed
-  in table below
-* Other attributes are dependent of the protocol in used and are listed
-  in table below
+* ``protocol``: Setting of the console protocol; supported protocols are listed
+  in the table below
+* The other attributes depend on the protocol in use and are listed
+  in the table below
 
 .. table:: console protocols
     :widths: 20, 30, 50
@@ -71,7 +71,7 @@ Open step accepts the following attribute:
     +---------------+------------------------+-------------------------------------------+
     |``ssh``        | ``ssh_host``           | Hostname or IP address of the target.     |
     |               +------------------------+-------------------------------------------+
-    |               | ``ssh_user``           | port of the telnet server of the target.  |
+    |               | ``ssh_user``           | User name for the SSH connection.         |
     |               +------------------------+-------------------------------------------+
     |               | ``ssh_pwd``            | Password (optional).                      |
     +---------------+------------------------+-------------------------------------------+
@@ -79,10 +79,9 @@ Open step accepts the following attribute:
     |               +------------------------+-------------------------------------------+
     |               | ``serial_baudrate``    | Baud rate of the serial connection.       |
     |               +------------------------+-------------------------------------------+
-    |               | ``buffered``           | Optinal boolean parameter. If ``False``,  |
-    |               |                        | it forces the                             |
-    |               |                        | console to read directly the device.      |
-    |               |                        | Default: ``True``.                        |
+    |               | ``buffered``           | Optional boolean parameter. If ``False``, |
+    |               |                        | it forces the console to read the device  |
+    |               |                        | directly. Default: ``True``.              |
     +---------------+------------------------+-------------------------------------------+
     |``rawtcp``     | ``tcp_host``           | hostname of the target.                   |
     |               +------------------------+-------------------------------------------+
@@ -118,8 +117,8 @@ writeln function is similar to the write function except that a '\n' (newline) c
 ``read_until`` action
 ----------------------------
 
-The ``read_until`` action is waiting for a string pattern from the console,
-its parameter are listed below
+The ``read_until`` action waits for a string pattern from the console.
+Its parameters are listed below:
 
 * ``expected``: the pattern(s) to wait for. It accepts either a **single
   value** or a **list of values**; when a list is given the action succeeds
@@ -129,9 +128,9 @@ its parameter are listed below
   expression (searched in the incoming stream, not anchored) instead of a
   literal string.
 * ``timeout``: Timeout setting for the action (in seconds)
-* ``no_fail``: Boolean value (``True`` or ``False``) leading to no error reported
-  if the expected input is not read
-* ``mute``: Boolean value (``True`` or ``False``) does not log any readen data
+* ``no_fail``: Boolean value (``True`` or ``False``). If ``True``, no error is
+  reported when the expected input is not read
+* ``mute``: Boolean value (``True`` or ``False``). If ``True``, the data read is not logged
 
 .. code-block:: yaml
     :caption: matching several values, and with a regular expression
@@ -161,5 +160,4 @@ When a list of values is given, the report also records, under the
     may not be detected. Literal matching (the default) has no such limit.
 
 In the example above, the global variable ``$(cn_test name in GUI)``
-would be created at the end of the step. It would contain the resulting
-data of the read.
+would be created at the end of the step. It contains the data that was read.

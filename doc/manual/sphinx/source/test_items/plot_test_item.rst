@@ -1,8 +1,8 @@
 **plot** test item
 ============================================================
 
-This test item is used to display runtime values of tests variables or any evolving value in
-a independent external window.
+This test item is used to display runtime values of test variables, or any changing value,
+in a separate external window.
 
 The plot window is defined using the ``plot`` test item:
 
@@ -21,7 +21,7 @@ The plot window is defined using the ``plot`` test item:
 Attributes
 ----------------------
 
-In addition to common test items attributes, console test item has specific attributes:
+In addition to common test items attributes, the ``plot`` test item has specific attributes:
 
 * ``plot_name``: plot window instance name.
 * ``steps``: a sequence of actions to be applied to the plot window. More than one action can be
@@ -37,8 +37,8 @@ the action type in the *testium* GUI, and recalled in the test log and reports.
 
 This action initializes and opens the plot window with the corresponding attributes as defined below.
 
-This action accepts one optional ``path`` parameter defining a path where are stored the
-plot lines values in csv format.
+This action accepts one optional ``log_path`` parameter defining the path where the
+plot line values are stored in CSV format.
 
 .. code-block:: yaml
     :caption: ``plot`` ``open`` action
@@ -54,14 +54,14 @@ plot lines values in csv format.
 ``close`` action
 ----------------------
 
-The ``close`` action closes the plot window and removes its from the managed instances of *testium*.
+The ``close`` action closes the plot window and removes it from the managed instances of *testium*.
 
 This action does not have mandatory parameters. However, ``close`` optional action parameters are:
 
 * ``wait_dialog_exit``: Boolean value. If set to True, the window
-  is kept opened until the user closes it manually.
+  is kept open until the user closes it manually.
 * ``timeout``: Value expressed in seconds. It is active if the ``wait_dialog_exit`` is set to True.
-  If this parameter is defined, and if not closed manually, the dialog window is kept opened until
+  If this parameter is defined, and if not closed manually, the dialog window is kept open until
   the timeout elapses.
 
 .. code-block:: yaml
@@ -81,7 +81,7 @@ This action does not have mandatory parameters. However, ``close`` optional acti
 ``add`` action
 ----------------------
 
-The ``add`` action is used to add a single data to the ``plot`` window.
+The ``add`` action is used to add a single data point to the ``plot`` window.
 
 .. code-block:: yaml
     :caption: ``plot`` ``add`` action
@@ -95,15 +95,15 @@ The ``add`` action is used to add a single data to the ``plot`` window.
                 value1: $(loop_index)
                 value2: $(loop_index)+2
 
-The parameter of the ``add`` action is a dictionnary of (*key*, *values*) pairs where the *key* is the plot line name and
+The parameter of the ``add`` action is a dictionary of (*key*, *values*) pairs where the *key* is the plot line name and
 *value* is the numeric value to add to the plot line.
 
-The *value* content is evaluated as a python statement if not a number, but a string.
+If the *value* is a string rather than a number, it is evaluated as a python expression.
 
 ``periodic`` action
 ----------------------
 
-This action allows to specify a python function to be called and which result is used to update the
+This action calls a python function periodically and uses its result to update the
 plot.
 
 ``periodic`` plots are updated automatically and don't require further steps in a test sequence, once executed.
@@ -112,13 +112,13 @@ plot.
 
 * ``period``: period of the automatic value update.
 * ``file``: python file containing the function to call.
-* ``func_name``: the name of the python function to be periodicaly called.
-* ``eval``: optional parameter allowing post treatment of the function result.
+* ``func_name``: the name of the python function to be periodically called.
+* ``eval``: optional parameter allowing post-processing of the function result.
 
-The ``eval`` parameter of the periodic action is a python evaluable string in which the $(result) keywork
+The ``eval`` parameter of the periodic action is a python evaluable string in which the $(result) keyword
 is replaced by the actual function call result.
 
-The result of the action must be a dictionnary of (*key*, *values*) pairs where the *key* is the plot line name and
+The result of the action must be a dictionary of (*key*, *values*) pairs where the *key* is the plot line name and
 *value* is the numeric value to add to the plot line.
 
 .. code-block:: yaml
@@ -138,13 +138,13 @@ The result of the action must be a dictionnary of (*key*, *values*) pairs where 
 ``last_value`` action
 ----------------------
 
-The ``last_value`` action returns the last values added to the plot (periodicaly or not) into
+The ``last_value`` action stores the last values added to the plot (periodically or not) in
 the global variables entries.
 
 ``last_value`` action parameters are:
 
-* ``name``: Optional parameter giving the list of measures to be returned. If
-  it is not defined, all the measures are returned.
+* ``name``: Optional parameter giving the list of plot lines (measurements) to
+  return. If it is not defined, all the plot lines are returned.
 
 .. code-block:: yaml
     :caption: ``plot`` ``last_value`` action

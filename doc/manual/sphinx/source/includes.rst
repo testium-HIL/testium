@@ -2,7 +2,7 @@
 Includes
 ---------
 
-It is possible to include TUM files from another one by using the ``!include`` tag before the included file.
+It is possible to include one TUM file in another by using the ``!include`` tag before the file name.
 
 This feature is a testium specific implementation and is not part of the YAML language,
 although it is based on the tagging feature of the language and the customization possibility

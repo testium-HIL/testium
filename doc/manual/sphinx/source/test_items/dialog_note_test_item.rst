@@ -1,7 +1,7 @@
 **dialog_note** test items
 ============================================================
 
-This test item displays a simple dialog allowing to enter some text and printing the entered value in logs.
+This test item displays a simple dialog that lets the operator enter text, and prints the entered text in the logs.
 
 ``dialog_note`` test item has the following description format
 

@@ -1,10 +1,10 @@
 **unittest** test item
 ============================================================
 
-unittest test item allows the execution of unittest test script which
-is part of python standard libraries.
+The unittest test item runs a test script written with the ``unittest``
+module from the python standard library.
 
-The tum file prototype is as followed:
+The tum file prototype is as follows:
 
 .. code-block:: yaml
     :caption: ``unittest`` test item usage example
@@ -19,9 +19,10 @@ The tum file prototype is as followed:
 Attributes
 ------------------
 
-Beside common test items attributes, unittest test item has specific attribute, some of which being mandatory.
+Besides the common test item attributes, the unittest test item has specific attributes;
+``test_file`` is mandatory.
 
-* ``test_file``: it is the name (and eventually path) of the unittest file
+* ``test_file``: it is the name (and optionally the path) of the unittest file
   to be processed.
 * ``test_method``: it is an optional unittest test sub-item. If one or more
   elements are present, the unittest python script file is parsed and only
@@ -37,7 +38,7 @@ by using the :ref:`helper's library<sec_python_helper_library>`.
 Report value from unittest
 ----------------------------------
 
-Value can be added to the test report from unitTest test at runtime.
+Values can be added to the test report from a ``unittest`` test at runtime.
 
 .. code-block:: python
     :caption: example of ``unittest`` test item python function

@@ -37,22 +37,22 @@ Command Line Interface
 ``-h, --help``
 --------------
 
-Returns what's in the previous section.
+Prints the usage message shown above.
 
 ``-b, --batch-execution``
 -------------------------
 
-Executes the test in text mode. No need to have QT installed in that case.
+Executes the test in text mode. Qt does not need to be installed in this mode.
 
 ``-o, --no-color``
 ------------------
 
-Switch allowing to disable the colored output in batch mode.
+Disables colored output in batch mode.
 
 ``-c, --config-file``
 ---------------------
 
-This option allows to provide configuration file(s) from the command line.
+This option provides configuration file(s) from the command line.
 The configuration files format and content is detailed in the :ref:`config files<sec_configuration_files>` section.
 
 If this parameter is not given while calling *testium*, the default configuration files will be used.
@@ -60,15 +60,15 @@ If this parameter is not given while calling *testium*, the default configuratio
 ``-r, --run-and-close``
 -----------------------
 
-This parameter makes testium to close immediately after running the ``test_file`` argument passed during its call.
+This parameter makes testium close immediately after running the ``test_file`` passed on the command line.
 
 If there is no ``test_file`` argument passed, this option is ignored.
 
 ``-l, --log-file``
 ------------------
 
-Path of the log file where to store the log of the test execution.
-Goes in a temporary folder if not provided.
+Path of the log file for the test execution.
+If not provided, the log is written to a temporary folder.
 
 .. _sec_option_define:
 
@@ -91,8 +91,8 @@ This option is only useful in :ref:`batch mode<sec_batch_mode>`.
 ``-t, --report-type``
 ---------------------
 
-This option is used in conjuction with option :ref:`-p<sec_p_param>` and is defining
-the type of report to be generated.
+This option is used together with option :ref:`-p<sec_p_param>` and defines
+the type of report to generate.
 
 Please read the :ref:`reports<sec_reports>` section for more details on
 the possible types of report.
@@ -100,8 +100,8 @@ the possible types of report.
 ``-n, --report-pattern``
 -------------------------
 
-This option is used in conjuction with option :ref:`-p<sec_p_param>` and is defining
-the report parttern(s) used to filter the report results which will be
+This option is used in conjunction with option :ref:`-p<sec_p_param>` and defines
+the report pattern(s) used to filter the report results which will be
 included in the report file.
 
 More details in :ref:`reports<sec_reports>` section.
@@ -109,7 +109,7 @@ More details in :ref:`reports<sec_reports>` section.
 ``-i, --include-path``
 ----------------------
 
-Addtional python paths. These paths are appended to the
+Additional Python paths. These paths are appended to the
 `sys.path <https://docs.python.org/3/library/sys.html?highlight=sys%20path#sys.path/>`_ python
 variable.
 
@@ -117,4 +117,4 @@ variable.
 ``-g, --debug``
 ---------------
 
-This option is only usefull while debugging *testium* in ``vscode`` in :ref:`graphical mode<sec_graphical_mode>`.
+This option is only useful when debugging *testium* in ``vscode`` in :ref:`graphical mode<sec_graphical_mode>`.

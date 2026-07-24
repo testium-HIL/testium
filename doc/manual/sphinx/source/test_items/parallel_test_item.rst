@@ -86,12 +86,12 @@ The prefix is not stored in the SQLite log column.
 Notes
 --------------------
 
-* A ``sleep`` item inside a branch is interruptible: if another
-  ``sync: any`` branch wins the race, slow ``sleep`` items are aborted
+* A ``sleep`` item inside a branch is interruptible: if another branch
+  finishes first under ``sync: any``, slow ``sleep`` items are aborted
   within ~50 ms.
 * A ``py_func`` or ``console`` item inside a branch is **not**
   interruptible: a ``sync: any`` stop will only take effect after the
   current item returns. The branch will then skip its remaining steps.
 * When a user disables a branch in the GUI tree, the branch returns
-  ``SKIP`` instantly without affecting the others (it does *not* win a
-  ``sync: any`` race).
+  ``SKIP`` instantly without affecting the others (it does *not* count as
+  the first finished branch under ``sync: any``).

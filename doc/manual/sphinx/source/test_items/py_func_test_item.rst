@@ -17,8 +17,8 @@ A class must be defined and derived from ``FunctionItem`` from the ``py_func.tm`
 
 From this class it is possible to define some custom reported values with the following API
 
-* ``reportValue(key, value)``: This ``FunctionItem`` method is adding a value added to the report,
-* ``reportedValues()``: This ``FunctionItem`` method is retrieving the current report values.
+* ``reportValue(key, value)``: This ``FunctionItem`` method adds a value to the report,
+* ``reportedValues()``: This ``FunctionItem`` method returns the values reported so far.
 
 .. code-block:: python
     :caption: ``py_func`` test item implementation example
@@ -26,9 +26,9 @@ From this class it is possible to define some custom reported values with the fo
 
     import py_func.tm as tm
 
-    class TestItemPyFunc(tm.FunctionItem)
+    class TestItemPyFunc(tm.FunctionItem):
 
-        def exec(param1, param2, param4, param4):
+        def exec(self, param1, param2, param3, param4):
             ...
             self.reportValue('my_reported_value', reported_value)
             print(self.reportedValues())
@@ -37,7 +37,7 @@ From this class it is possible to define some custom reported values with the fo
 The ``exec`` method of the ``FunctionItem`` derived class is executed while running the ``py_func`` test item.
 
 .. code-block:: yaml
-    :caption: legacy ``py_func`` test item implementation
+    :caption: class ``py_func`` test item usage
 
     - py_func:
         name: function test item
@@ -58,7 +58,7 @@ The legacy py_func test item is of the form:
     :caption: legacy ``py_func`` python function example
     :name: scriptTestFile.py
 
-    def dummy_func(param1, param2, param4, param4):
+    def dummy_func(param1, param2, param3, param4):
         ...
         return 10
 
@@ -80,15 +80,15 @@ There is no possibility to access the report features in that mode.
 
 **Attributes**
 
-Beside common test items attributes, ``py_func`` item has specific attribute,
-some of which being mandatory.
+Besides the common test item attributes, the ``py_func`` item has specific attributes;
+``file`` and ``func_name`` are mandatory.
 
 * ``file``: the script file name that contains the function to be executed.
   Only python script format is supported.
 * ``func_name``: The function name to be executed.
 * ``param``: This is a list of parameters that are passed to the function
   in the order they are presented in the script. These parameters are not
-  mandatory and are highly dependent of the function prototype.
+  mandatory and depend on the function prototype.
 * ``context_id``: Optional. When set, all ``py_func`` items sharing the same
   ``context_id`` value run inside the same persistent Python subprocess for the
   duration of the test. See :ref:`py_func context<sec_py_func_context>` for details.
@@ -102,8 +102,8 @@ some of which being mandatory.
         param:
             - $(my_param)
 
-The result of the function (after eventual post treatment) is stored in the global
-variable named ``pfn_<func_name>``
+The result of the function (after optional post-processing) is stored in the global
+variable named ``pfn_<item_name>``
 (See :ref:`global variables<sec_global_variables>` for more detail
 on how to access to global variables from test items and scripts).
 
@@ -111,8 +111,8 @@ In the example above, the global variable ``$(pfn_function test item)``
 would be created at the end of the item execution. It would contain the resulting
 value of the funcToBeExecuted python function.
 
-The ``py_func`` will always result ``PASS``, except if the called function raises
-and exception or if the ``expected_result`` attribute is used.
+The ``py_func`` result is always ``PASS``, unless the called function raises
+an exception or the ``expected_result`` attribute is used.
 
 .. _sec_py_func_context:
 
@@ -181,9 +181,9 @@ Some global variables have an impact on the ``py_func`` test item behavior:
 
 * ``python_bin``: This optional global variable can be used to define
   the python executable path. If not defined, the python interpreter is
-  searched in at the default places in the system.
+  looked up in the default system locations.
 * ``python_env``: This global variable can be used to define
-  environment variables for the lua script execution environment.
+  environment variables for the python script execution environment.
   Only `PATH` and `PYTHONPATH` are supported.
 
   .. code-block:: yaml

@@ -4,12 +4,12 @@ Test outputs
 
 A list of test result outputs is automatically updated by *testium*.
 
-This is a member of global variables dataset which key is ``test_outputs``.
+This is an entry of the global variables dataset whose key is ``test_outputs``.
 
 This global_dict member contains the log file path and, if configured,
 the report path as a list.
 
-Other custom logged files may be added by user updated this global variables entry.
+The user can add other logged files by updating this global variables entry.
 
 Post execution
 ------------------
@@ -18,9 +18,9 @@ A post execution script can be run for example to copy the output files.
 
 For that, a ``post_execution`` element can be defined in the .tum file.
 
-If the test set execution succeeded the ``post_exec`` function of file_name module is run else the ``post_exec_fail`` is run.
+If the test run succeeds, the ``post_exec`` function of the ``file_name`` module is run; otherwise ``post_exec_fail`` is run.
 
-If the post_execution element is not defined, the post_execution.py file in the test directory is used by default if existing.
+If the post_execution element is not defined, the post_execution.py file in the test directory is used by default if it exists.
 
 .. code-block:: yaml
     :caption: custom post execution python file
@@ -55,15 +55,15 @@ Here is an implementation example of a reference to a sub-sequence in a TUM file
             - *temperature_step_sequence
 
 .. note::
-    The entry before the alias (``sequence``: in the example above) is needed
-    mandatorily by YAML language syntax. Nevertheless, its value is not
-    used by *testium* and thus can be any value.
+    The entry before the alias (``sequence``: in the example above) is
+    required by YAML syntax. However, its value is not used by *testium*
+    and can be anything.
 
 
 Test documentation
 --------------------
 
-It is possible to display some explicative text user in the GUI.
+It is possible to display explanatory text in the GUI.
 
 The ``doc`` attribute of test items is used for that purpose and is displayed as
 a tooltip on the test row.

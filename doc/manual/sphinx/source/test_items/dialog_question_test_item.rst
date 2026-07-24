@@ -1,8 +1,8 @@
 **dialog_question** test item
 ============================================================
 
-This test item displays a simple dialog asking a question and returning
-the entered value.
+This test item displays a dialog asking a yes/no question; the answer
+determines the test result.
 
 ``dialog_question`` test item has the following description format
 

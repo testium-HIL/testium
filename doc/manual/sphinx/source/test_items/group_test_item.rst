@@ -17,10 +17,10 @@ This element is of the following form:
             - sleep:
                 timeout: 10
 
-The ``group`` element is used to manage a sequence of item as a group.
+The ``group`` element is used to run a sequence of items as a group.
 
 Attributes
 --------------------
 
 * The ``steps`` list describes the sequence executed in the group.
-  It is a list of any of the `testium` test items,
+  It is a list of any `testium` test items.

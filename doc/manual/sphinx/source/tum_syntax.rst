@@ -5,9 +5,9 @@ TUM file syntax
 
 The description of tests is based on the definition of test sequences. There is a main ``YAML`` element which is the *testium* tool entry point.
 
-All other steps are listed in the step list of the main. Some steps are themselves list of steps as well, such as loop or console items.
+All other steps are listed in the step list of the main. Some steps, such as loop or console items, are themselves lists of steps.
 
-``YAML`` is an indented language and parameter encapsulation is defined by their indentation.
+In ``YAML``, nesting is expressed by indentation.
 
 ``YAML`` language auto detects data type so that it is not necessary to cast the element type explicitly. See `YAML home page <https://yaml.org/>`_ for further information on the language.
 
@@ -22,7 +22,7 @@ The example below shows a basic implementation of the TUM description file:
             - test_item1:
                 name: test_1
             - loop :
-                name: test cyle
+                name: test cycle
                 iterator: 5
                 steps:
                     - test_item:
@@ -88,8 +88,8 @@ See more details :ref:`below<sec_global_variables>`.
 Global variables
 -------------------
 
-Global variables feature is adding the possibility for test items and test scripts to access a common
-and global variables database.
+The global variables feature lets test items and test scripts access a shared,
+global variables database.
 
 The global variables dataset is populated from various sources:
 
@@ -99,15 +99,15 @@ The global variables dataset is populated from various sources:
 * some test items results,
 * the :ref:`helper library API<sec_global_variables_helpers>`, accessible from python scripts.
 
-Theses global variables are used for variable expansion in scripts (see :ref:`variables expansion<sec_variable_expansion>`).
+These global variables are used for variable expansion in scripts (see :ref:`variables expansion<sec_variable_expansion>`).
 
 Another possible usage of the global variables is to share persistent data between test steps.
 
 A library allowing python functions to access global variables is available from the
 python scripts. See details in section :ref:`helper library<sec_python_helper_library>`.
 
-Apart from the value obtained from the default `param.yaml` or defined configuration files,
-the global variables entries contains also
+Besides the values from the default `param.yaml` or defined configuration files,
+the global variables also contain
 
 * built-in specific value (see :ref:`below<sec_global_variables_builtin>`),
 * values returned by test items.
@@ -145,8 +145,8 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 * ``loop_index``: loop index (available from within a loop item, see
   :ref:`sec_loop_item`),
 * ``loop_count``: loop number (available from within a loop item, see
-  :ref:`sec_loop_item`). If the loop number its value is the python constant
-  ``inf``.
+  :ref:`sec_loop_item`). If the loop is infinite, its value is the Python
+  constant ``inf``.
 
 Debug mode
 ^^^^^^^^^^^^^^^^^^^
@@ -160,22 +160,22 @@ For example, it can be defined in the configuration file as:
 
     [...]
     test_debug: True
-    [.]
+    [...]
 
 It can also be defined from the command line with the option
 ``-d test_debug``.
 
-When debug mode is enabled, additional information are displayed in the log window.
+When debug mode is enabled, additional information is displayed in the log window.
 
-Some :ref:`helper library functions<sec_python_helper_library>` are availabe
-to give the state of the debug mode.
+Some :ref:`helper library functions<sec_python_helper_library>` are available
+to query the state of the debug mode.
 
 Test items entries
 ^^^^^^^^^^^^^^^^^^^^
 
 All test items attributes can be global variable entries;
-when using the entry ``$(<global>)`` before a key value, the corresponding
-key entry is searched within the global variables dataset.
+when a value is written as ``$(<name>)``, the name is looked up in the
+global variables dataset.
 
 References
 ^^^^^^^^^^^^^^
@@ -192,11 +192,11 @@ key value being the test item name attribute (see :ref:`dialog_value test item<s
 
 .. _sec_variable_expansion:
 
-Paramers passing, variable expansion and evaluations
+Parameter passing, variable expansion and evaluation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One of the most useful functionalities for scalability and flexibility of the
-.tum files is the ability to expanse variables at test runtime.
+.tum files is the ability to expand variables at test runtime.
 
 It is done by replacing any occurrence of ``$(my_global)`` with the content of
 the variable in the global variables entries (see :ref:`global variables<sec_global_variables>`).
@@ -204,9 +204,9 @@ the variable in the global variables entries (see :ref:`global variables<sec_glo
 The variable substitution is recursive and checks all the occurrences of the
 ``$(x)`` pattern in a string.
 
-It is also possible to perform evaluation of python substrings during parameters passing.
+It is also possible to evaluate embedded Python expressions when parameters are passed.
 It is done by using the ``<| expr |>`` pattern in a string.
-`expr` may then be a correct python expression.
+`expr` must be a valid Python expression.
 
 Below are illustrated simple and more complicated cases of expansion and evaluation depending on
 their pattern.
@@ -227,10 +227,10 @@ Test Items
 --------------------
 
 All *testium* steps are described in sequence as test items in the step
-list of the main test item (and eventually of the loop test item).
+list of the main test item (and possibly of a loop test item).
 
-TUM file ``main`` item is itself a variant of test items with a name and an
-step list attributes.
+TUM file ``main`` item is itself a variant of test item with ``name`` and
+step-list attributes.
 
 .. note::
 

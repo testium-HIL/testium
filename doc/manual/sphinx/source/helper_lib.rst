@@ -3,7 +3,7 @@
 Python helper library
 ======================
 
-A python library including helper function for python modules called from
+A Python library of helper functions for Python modules called from
 testium ``py_func`` items.
 
 User scripts run inside the ``py_func`` subprocess and interact with testium

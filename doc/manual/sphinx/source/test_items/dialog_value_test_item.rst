@@ -29,5 +29,5 @@ Attributes
 Feature
 ----------------------
 
-The returned value is added in the global variable entry with the key being the
-``dialog_value`` test item name.
+The entered value is stored in the global variables under the
+``dialog_value`` test item name as key.

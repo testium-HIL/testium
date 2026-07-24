@@ -1,8 +1,8 @@
 **git** test item
 ============================================================
 
-Git test item allows
-this item has the following description format
+The ``git`` test item records the state of one or more git repositories.
+It has the following description format
 
 .. code-block:: yaml
     :caption: ``git`` test item usage example
@@ -14,4 +14,4 @@ this item has the following description format
 Attributes
 -----------------
 
-* ``repo``: a string or list of string path to the root of the git repositery(ies) to follow.
+* ``repo``: a path, or list of paths, to the root of the git repository or repositories to track.

@@ -7,16 +7,16 @@ Modes of operation
 Graphical mode
 ---------------
 
-*testium* tool has been initially designed to have Graphical User's interface.
+*testium* was originally designed as a graphical (GUI) application.
 
-The way to call it is simply by executing the ``testium`` command. It is the normal mode.
+Run the ``testium`` command to start it. This is the default mode.
 
 .. _sec_batch_mode:
 
 Batch mode
 ----------
 
-The batch mode allows to execute a test in text mode. In this mode, the test does not start any
+Batch mode executes a test in text mode. In this mode, the test does not start any
 graphical interface.
 
 .. code-block:: text

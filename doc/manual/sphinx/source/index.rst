@@ -1,4 +1,4 @@
-testium's User's Manual
+testium User Manual
 =====================================
 
 .. toctree::

@@ -3,8 +3,8 @@
 **dialog_choices** test item
 ============================================================
 
-This test item displays a dialog asking a question and waiting for
-a selection to be done among defined list of items.
+This test item displays a dialog asking a question and waits for the user
+to select entries from a defined list of items.
 
 These selectable items can be passed as a tree.
 
@@ -19,7 +19,7 @@ The :numref:`Figure %s<choices-dialog>` displays an example of this item.
     choices dialog
 
 The item parameters corresponding to :numref:`Figure %s<choices-dialog>`
-is shown below.
+are shown below.
 
 .. code-block:: yaml
     :caption: example of ``choices_dialog`` test item usage
@@ -62,7 +62,7 @@ Attributes
 The supported attributes of the ``dialog_choices`` test item are:
 
 * ``question``: Question to be displayed in the dialog box.
-* ``choices``: List of the choicies presented to the user.
+* ``choices``: List of the choices presented to the user.
 * ``icon``: Optional. Path of the icon used in the
   selection tree, for all the items by default.
 * ``auto_result``: Optional. Selection used in batch / non-interactive mode
@@ -73,16 +73,16 @@ The supported attributes of the ``dialog_choices`` test item are:
 
 Each choice element is a dictionary which can have the following attributes
 
-* ``name``: name of the choice to be done.
-* ``description``: description of the choice to be done.
+* ``name``: name of the choice.
+* ``description``: description of the choice.
 * ``icon``: Optional. Path of the icon displayed in the
   selection tree in front of the corresponding choice.
-* ``choices``: List of sub-choicies presented to the user (recursive).
+* ``choices``: List of sub-choices presented to the user (recursive).
 
 Feature
 ------------------
 
-The dialog references test item creates the ``cs_<name of test item>`` entry in the
+The ``dialog_choices`` test item creates the ``cs_<name of test item>`` entry in the
 global dictionary.
 
 In the example above, the global variable name containing the
@@ -108,4 +108,4 @@ object of this form:
     ]
 
 See :ref:`global variables<sec_global_variables>` for more detail
-on how to access to global variables from test items and scripts.
+on how to access global variables from test items and scripts.

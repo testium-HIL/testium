@@ -1,14 +1,14 @@
 Overview
 ========
 
-*testium* is an automated test framework developed in python by François Dausseur.
-This software is developed in python and it implements the Qt6 graphical framework.
+*testium* is an automated test framework written in Python by François Dausseur.
+It uses the Qt6 graphical framework.
 
 It has been developed since 2013 with production and development testing in mind.
 
-It's function is to automate the execution of tests. It can be invoked either as command line application or as a graphical interface application.
+Its function is to automate the execution of tests. It can be invoked either as command line application or as a graphical interface application.
 
-Tests reports generation and customization are also in this tool's scope.
+The tool also generates test reports and lets you customize them.
 
 Its main features are:
 
@@ -21,12 +21,11 @@ Its main features are:
 * Modularity of tests (reusable test sequences),
 * etc.
 
-All these features give the ability to the test engineer to perform efficient and robust testings.
+These features let the test engineer write efficient and robust tests.
 
 .. figure:: testium_snapshot.png
 
    testium
 
 Each test is described with the help of a `YAML <https://yaml.org/>`_ file having .tum as extension.
-This file is analyzed and then displayed as a tree in a graphical way in the
-GUI (see Figure above).
+This file is analyzed and then displayed as a tree in the GUI (see Figure above).

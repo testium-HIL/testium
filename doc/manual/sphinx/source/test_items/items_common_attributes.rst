@@ -3,9 +3,8 @@
 Items common attributes
 ============================================================
 
-All test items have common attributes independently of their types, which are
-listed in next table, those are all optional parameters and their default value
-if not provided is given in the table as well.
+All test item types share the common attributes listed in the following table.
+They are all optional; the table also gives their default values.
 
 .. table:: test items common attributes
     :widths: 25, 15, 60
@@ -25,13 +24,13 @@ if not provided is given in the table as well.
     +-----------------------+-------------------+-------------------------------------------------------+
     |``stop_on_failure``    |``False``          | If ``stop_on_failure`` is set to                      |
     |                       |                   | ``True``, the test sequence execution                 |
-    |                       |                   | stops on test tem failure and no                      |
+    |                       |                   | stops on test item failure and no                     |
     |                       |                   | further test items are executed,                      |
-    |                       |                   | except those withexecute_on_stop                      |
+    |                       |                   | except those with the ``execute_on_stop``             |
     |                       |                   | attribute set (see below)                             |
     |                       |                   |                                                       |
-    |                       |                   | It depends on the test item to take it                |
-    |                       |                   | into account or not.                                  |
+    |                       |                   | Not all test item types honor this                    |
+    |                       |                   | attribute.                                            |
     |                       |                   | For example it makes sense to use it                  |
     |                       |                   | for ``unittest`` test type                            |
     |                       |                   | because it  can contain many sub-tests,               |
@@ -66,8 +65,8 @@ if not provided is given in the table as well.
     +-----------------------+-------------------+-------------------------------------------------------+
     |``Key``                | /                 | This attribute defines a key which                    |
     |                       |                   | will be attached to the test result and               |
-    |                       |                   | which will allow to be filtered during                |
-    |                       |                   | the report generation.                                |
+    |                       |                   | which allows results to be filtered                   |
+    |                       |                   | during the report generation.                         |
     +-----------------------+-------------------+-------------------------------------------------------+
     |``report``             | /                 | This attribute defines values (a dictionary) which    |
     |                       |                   | will be added in the ``data`` field of the report.    |
@@ -98,10 +97,10 @@ last test result
 
 The global variable ``last_step_result`` is automatically set at the end of a test item execution.
 
-If the corresponding test item does not return any acutal, the content of the ``last_step_result``
+If the corresponding test item does not return any actual value, the content of the ``last_step_result``
 variable will be the test success (``PASS``, ``FAIL`` or ``SKIP``).
 
-It the test item returns a value, the ``last_step_result`` variable will contain the returned value.
+If the test item returns a value, the ``last_step_result`` variable will contain the returned value.
 
 The main test items returning a value are:
 
@@ -146,14 +145,14 @@ not met).
 Process result
 -----------------------------------------------
 
-The ``process_result`` attribute can be applied to all the test items. However, it's behavior is different
-depending if the test item is returning a value or not.
+The ``process_result`` attribute can be applied to all the test items. However, its behavior differs
+depending on whether the test item returns a value.
 
 The ``process_result`` attribute content is evaluated as a python line.
 
 The special ``$(result)`` variable is replaced in the ``process_result`` attribute content with the test result value.
 
-The process result is done before the ``expected_result``
+``process_result`` is evaluated before ``expected_result``.
 
 If the result of the evaluation is a boolean, the test will be *PASSED* if ``True``, and *FAIL* otherwise.
 
@@ -162,8 +161,8 @@ If the result of the evaluation is a boolean, the test will be *PASSED* if ``Tru
 Expected result
 -----------------------------------------------
 
-The ``expected_result`` attribute can be applied to all the test items. However, it's behavior is different
-depending if the test item is returning a value or not.
+The ``expected_result`` attribute can be applied to all the test items. However, its behavior differs
+depending on whether the test item returns a value.
 
 The test items returning a value are:
 
@@ -182,7 +181,7 @@ compared to ``PASS`` or ``FAIL``.
 
 The ``expected_result`` attribute content is a simple comparison with ``$(result)``.
 
-If the result and the expected_result is equal, the test will be *PASSED* if ``True``, and *FAIL* otherwise.
+The test is *PASS* if the result equals ``expected_result``, and *FAIL* otherwise.
 
 The special ``$(result)`` variable is replaced in the ``expected_result`` attribute content with the test result value.
 
@@ -242,11 +241,11 @@ but **before** ``no_fail``. This ensures the real outcome is captured even when
         param: [$(reboot_status)]
 
 
-Export attribute
+``key`` and ``report`` attributes
 -----------------------------------------------
 
 .. code-block:: yaml
-    :caption: Example of ``export`` common attribute usage
+    :caption: Example of ``key`` and ``report`` common attributes usage
 
     - check:
         name: Example of result specific to the step 001
@@ -268,8 +267,8 @@ Container items GUI default folding
 The container items are items which are the parent of other test items. For example loops and groups
 are container test items.
 
-In the GUI, if the user wants that a container test item is folded when he opens a test, the ``.``
-character has to be place before the test item declaration.
+In the GUI, to make a container test item folded when the test is opened, place a ``.``
+character before the test item declaration.
 
 See an example below:
 
