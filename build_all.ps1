@@ -150,8 +150,10 @@ if ($Manual) {
 }
 
 # ---------- summary ----------
+function Artifact($path) { if (Test-Path $path) { $path } else { '(missing)' } }
+
 Step "All Windows packages built"
-Write-Host ("  wheel        : {0}" -f ((Test-Path $wheel) ? $wheel : '(missing)'))
-Write-Host ("  portable zip : {0}" -f ((Test-Path $zip) ? $zip : '(missing)'))
-Write-Host ("  installer    : {0}" -f ((Test-Path $setup) ? $setup : '(missing)'))
-if ($Manual) { Write-Host ("  manual       : {0}" -f ((Test-Path $manualPdf) ? $manualPdf : '(missing)')) }
+Write-Host ("  wheel        : {0}" -f (Artifact $wheel))
+Write-Host ("  portable zip : {0}" -f (Artifact $zip))
+Write-Host ("  installer    : {0}" -f (Artifact $setup))
+if ($Manual) { Write-Host ("  manual       : {0}" -f (Artifact $manualPdf)) }

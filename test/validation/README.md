@@ -14,10 +14,11 @@ re-used across every packaging channel.
 ./test/validation/run.sh --mode appimage
 ```
 
-On Windows (only `source`, `wheel`, `pyinstaller` are supported):
+On Windows the wrapper is `run.ps1`, with the same arguments (only
+`source`, `wheel`, `pyinstaller` are supported):
 
-```bat
-test\validation\run.bat --mode pyinstaller
+```powershell
+test\validation\run.ps1 --mode pyinstaller
 ```
 
 Pass `clean` as the **first** argument to recreate the validation venv
@@ -25,6 +26,18 @@ from scratch (useful after a system Python upgrade):
 
 ```sh
 ./test/validation/run.sh clean --mode flatpak
+```
+
+Pass `--gui` to run the suite through the GUI instead of batch mode
+(`-r`: the window opens, runs the suite and closes, with the run result
+as exit code). The log is written to a temp file (`-l`) and the
+post-check result is printed at the end. The pre-checks still run first:
+
+```sh
+./test/validation/run.sh --gui
+```
+```powershell
+test\validation\run.ps1 --gui --mode wheel
 ```
 
 Any extra arguments after the mode flag are forwarded to testium.

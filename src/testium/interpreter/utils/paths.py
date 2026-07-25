@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import inspect
 from pathlib import Path
@@ -44,24 +45,11 @@ def abs_path_from_file(file):
 
 
 def sys_app_path_win(app_name):
-    try:
-        result = subprocess.run(
-            f"where {app_name}",
-            shell=True,
-            capture_output=True,
-            text=True,
-            encoding="oem",
-            timeout=10,
-            **no_window_kwargs(),
-        )
-        data = result.stdout
-    except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
-        data = ""
-    sys_python_bin = data.splitlines()
-    for l in sys_python_bin:
-        if f"{app_name}.exe" in l:
-            return l
-    return ""
+    # shutil.which() rather than `where`: the console output code page is not
+    # always the OEM one, so decoding `where` output mangled any non-ASCII
+    # path (C:\Users\François\... -> C:\Users\Fran├ºois\...) and discovery
+    # failed. which() reads PATH/PATHEXT as str, with no encoding round-trip.
+    return shutil.which(app_name) or ""
 
 
 def sys_app_path_lin(app_name):

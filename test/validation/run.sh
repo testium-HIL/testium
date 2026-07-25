@@ -8,9 +8,10 @@
 #   clean           remove the validation venv before recreating it
 #                   (must be the first argument; useful after a Python upgrade)
 #
-#   --gui           open the GUI with the suite loaded instead of running in
-#                   batch; run it manually from the window, which stays open
-#                   (handy to inspect the tree, try the Ctrl+F search, ...)
+#   --gui           run the suite through the GUI instead of batch
+#                   (-r: the window opens, runs the suite and closes);
+#                   the log goes to a temp file and the post-check result
+#                   is printed at the end
 #
 #   --mode MODE     which testium build to validate. One of:
 #                       source       (default) src/testium via project run.sh
@@ -49,7 +50,6 @@ else
 fi
 
 EXTRA=()
-RUN_FLAGS=(-b)            # batch by default; --gui opens the GUI and stays open
 GUI=0
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -63,8 +63,7 @@ while [ $# -gt 0 ]; do
             ;;
         --gui)
             GUI=1
-            RUN_FLAGS=()     # no -b: launch the GUI with the suite loaded,
-            shift            # run it manually; the window does not auto-close
+            shift
             ;;
         *)
             EXTRA+=("$1")
@@ -72,6 +71,16 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+# batch by default; --gui runs through the GUI with -r (run and close) and
+# logs to a temp file, echoed back after the run.
+RUN_FLAGS=(-b)
+GUI_LOG=""
+if [ "$GUI" -eq 1 ]; then
+    GUI_LOG="${TMPDIR:-/tmp}/testium-validation-${MODE}.log"
+    rm -f "$GUI_LOG"
+    RUN_FLAGS=(-r -l "$GUI_LOG")
+fi
 
 # ---------- validation venv ---------------------------------------------------
 
@@ -210,10 +219,22 @@ if [ "$MODE" = "source" ]; then
 fi
 
 if [ "$GUI" -eq 1 ]; then
-    echo "-- GUI mode: the suite is loaded; press Start to run. Window stays open."
+    echo "-- GUI mode: the suite runs in the GUI window (log: $GUI_LOG)."
 fi
 
-exec "${CMD[@]}" "${RUN_FLAGS[@]}" \
+RC=0
+"${CMD[@]}" "${RUN_FLAGS[@]}" \
     -d "python_bin=$VENV_PYTHON" \
     -d "validation_report_file=validation-$MODE" \
-    -- "$SCRIPT_DIR/main.tum" "${EXTRA[@]}"
+    -- "$SCRIPT_DIR/main.tum" "${EXTRA[@]}" || RC=$?
+
+# GUI mode: the run log went to the file, show the post-check result.
+if [ "$GUI" -eq 1 ]; then
+    echo "-- log file: $GUI_LOG"
+    if [ -f "$GUI_LOG" ] && grep -q "Post execution started" "$GUI_LOG"; then
+        sed -n '/Post execution started/,$p' "$GUI_LOG"
+    else
+        echo "WARNING: no post-execution result found in the log." >&2
+    fi
+fi
+exit $RC

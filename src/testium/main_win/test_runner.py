@@ -77,15 +77,21 @@ class TestRunner:
                         i += 1
                         fname = log_file + "-" + str(i) + ".saved"
                     os.rename(log_file, fname)
-                self.logFileHandler = open(log_file, "w")
+                # utf-8: the locale codec (cp1252) cannot encode all log chars
+                self.logFileHandler = open(log_file, "w",
+                                           encoding="utf-8", errors="replace")
                 w.out_log.set(self.logFileHandler)
                 w.logFileName = log_file
             except:
-                self.logFileHandler = NamedTemporaryFile(mode="w", suffix=".log", delete=False)
+                self.logFileHandler = NamedTemporaryFile(
+                    mode="w", suffix=".log", delete=False,
+                    encoding="utf-8", errors="replace")
                 w.out_log.set(self.logFileHandler)
                 w.logFileName = self.logFileHandler.name
         else:
-            self.logFileHandler = NamedTemporaryFile(mode="w", suffix=".log", delete=False)
+            self.logFileHandler = NamedTemporaryFile(
+                mode="w", suffix=".log", delete=False,
+                encoding="utf-8", errors="replace")
             w.out_log.set(self.logFileHandler)
             w.logFileName = self.logFileHandler.name
 

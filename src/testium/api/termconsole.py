@@ -18,7 +18,11 @@ class TermConsole(Console):
     def __init__(self, name, project_path=None, cust_shell=None, echoOn=False, write_delay=0):
         Console.__init__(self, name, echoOn, write_delay)
         if sys.platform.startswith('win'):
-            self.encoding = 'cp850'
+            # cmd uses the active console code page (65001 in a UTF-8
+            # terminal, not always cp850); 'oem' when no console is attached.
+            import ctypes
+            cp = ctypes.windll.kernel32.GetConsoleOutputCP()
+            self.encoding = f'cp{cp}' if cp else 'oem'
         
         if not project_path:
             self.ppath = os.getcwd()

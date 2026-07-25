@@ -8,6 +8,7 @@ Runs a headless MainWindow against a throwaway HOME. Run by run.sh in
 source mode.
 """
 import os
+import platform
 import sys
 import tempfile
 
@@ -16,11 +17,14 @@ SRC = os.path.abspath(os.path.join(HERE, "..", "..", "src"))
 sys.path.insert(0, os.path.join(SRC, "testium"))
 sys.path.insert(0, SRC)
 
-# Throwaway config/settings dir, set before any testium import.
-# .config must pre-exist: TestiumSettings only creates the two last levels.
+# Throwaway config/settings dir, set before any testium import. TestiumSettings
+# roots itself at $APPDATA on Windows and $HOME/.config elsewhere, so redirect
+# both. .config must pre-exist: only the two last levels are created.
 WORK = tempfile.mkdtemp(prefix="testium-state-check-")
 os.environ["HOME"] = WORK
 os.makedirs(os.path.join(WORK, ".config"))
+if "windows" in platform.system().lower():
+    os.environ["APPDATA"] = WORK
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 FIXTURE = """main:

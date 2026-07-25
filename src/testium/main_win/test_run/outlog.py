@@ -27,7 +27,11 @@ class OutLog(QObject):
         self.logToBeAppended.emit(m)
 
         if self.out:
-            self.out.write(m)
+            try:
+                self.out.write(m)
+            except (UnicodeEncodeError, ValueError, OSError):
+                # never kill the capture thread on a file-side write error
+                pass
 
     def writeln(self, m=""):
         self.write(m + "\n")

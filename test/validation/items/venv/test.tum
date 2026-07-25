@@ -1,7 +1,7 @@
 # venv test: assert that the dedicated validation venv is the python
 # being used for every test-execution subprocess (eval_proc / py_func /
 # cycle / ...). The venv path is pinned by ``-d python_bin=...`` in
-# test/validation/run.sh (or run.bat).
+# test/validation/run.sh (or run.ps1).
 #
 # We use ``abspath``/``normpath`` rather than ``realpath`` on purpose:
 # the venv's ``bin/python3`` is a symlink to the host python, so

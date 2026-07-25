@@ -56,6 +56,17 @@ For existing files, keep the header that is already there.
 - Add or update tests in `test/validation/` for new test items or behaviours
 - Update `CLAUDE.md` and the Sphinx manual for user-visible changes
 
+### Comments
+
+Comments must be short and factual. State what the code does or why a
+non-obvious choice was made, in as few lines as possible.
+
+- No essays: if a comment needs more than two or three lines, the code or
+  the commit message is the right place.
+- No restating the code, no narrating the history of a fix.
+- No humour, no slang, no jargon of the "funcky", "smoke test", "flaky",
+  "magic", "hack" kind. Plain, neutral wording only.
+
 ## Development
 
 ### Debugging in VSCode
@@ -108,12 +119,13 @@ sudo apt install texlive-full
 
 ### Validation suite
 
-The single entry point is `test/validation/run.sh` (`run.bat` on Windows).
+The single entry point is `test/validation/run.sh` (`run.ps1` on Windows).
 It prepares a dedicated venv under `/tmp/testium-validation-venv`
 (junit-xml, pytest, jsonschema, pyyaml), runs the pre-checks — language
 server (`lsp_check.py`), JSON Schema dump (`schema_check.py`), load-error
 messages (`load_errors_check.py`), GUI reload leaks (`gui_reload_check.py`,
-source mode only) — then executes the full suite headless.
+source mode only) — then executes the full suite headless. Pass `--gui` to
+run it through the GUI instead (`-r`: opens, runs, closes).
 
 ```sh
 ./test/validation/run.sh

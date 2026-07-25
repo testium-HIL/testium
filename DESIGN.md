@@ -407,12 +407,16 @@ commit messages and in `## Recent fixes / notable changes` below, not in
 ## Validation tests
 Located in `test/validation/`. Two entry points:
 ```
-./test/validation/run.sh [clean] [--mode MODE] [extra args]   # wrapper — uses a dedicated venv (see below)
-./run.sh -b -- test/validation/main.tum                       # direct — testium's own python is used for test execution
+./test/validation/run.sh [clean] [--mode MODE] [--gui] [extra args]   # wrapper — uses a dedicated venv (see below)
+./run.sh -b -- test/validation/main.tum                               # direct — testium's own python is used for test execution
 ```
+On Windows the wrapper is `test\validation\run.ps1`, with the same arguments.
+
 The same item set is reused across every packaging channel — `--mode source|wheel|pyinstaller|flatpak|appimage` selects which testium binary launches the suite (`source` is the default, invoking the project's `run.sh`). Each mode stamps its results into a distinct report file (`validation-<mode>.sqlite`, `validation-<mode>-<item>.xml`) so successive runs in different modes don't clobber each other. Prerequisites (PyInstaller binary built, Flatpak bundle installed, …) are checked before launch with a hint pointing at `build_all.sh`. On Windows only `source`, `wheel`, `pyinstaller` are supported.
 
-The `run.sh` / `run.bat` wrappers create a dedicated **host** Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside that venv. testium itself keeps running in its own environment for the chosen mode. The venv is shared across modes because every test-execution subprocess ends up on the host either directly (source/wheel/pyinstaller/appimage) or via `flatpak-spawn --host` (flatpak). `clean` as the first argument recreates the venv. `wheel` mode also creates a separate `testium-wheel-venv-<v>` to hold the installed package.
+`--gui` replaces the `-b` batch flag with `-r` (run-and-close): the suite runs through the GUI window, which closes at the end, with the run result as exit code. The log is redirected to a temp file with `-l` and the post-check result (`post_execution.py` output) is printed back at the end. The per-channel checks below still run first, in both batch and GUI mode.
+
+The `run.sh` / `run.ps1` wrappers create a dedicated **host** Python venv at `${TMPDIR:-/tmp}/testium-validation-venv` (Linux) or `%TEMP%\testium-validation-venv` (Windows), with `--system-site-packages` + `pip install junit-xml pytest jsonschema pyyaml`, and run the suite with `-d python_bin=…` so every test-execution subprocess (eval_proc, py_func, cycle, post_exec) runs inside that venv. testium itself keeps running in its own environment for the chosen mode. The venv is shared across modes because every test-execution subprocess ends up on the host either directly (source/wheel/pyinstaller/appimage) or via `flatpak-spawn --host` (flatpak). `clean` as the first argument recreates the venv. `wheel` mode also creates a separate `testium-wheel-venv-<v>` to hold the installed package.
 
 `test/validation/gui_reload_check.py` (source mode only, run by `run.sh` before the suite) drives a headless `MainWindow`, reloads a small `.tum` 15×, and fails if open fds / live threads / `sys.path` grow — guarding the reload cleanup (control queues, stdout-capture pipe/thread, `sys.path`). It skips cleanly when PySide6 is unavailable.
 

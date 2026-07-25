@@ -259,11 +259,18 @@ class Export:
         db = _db_snapshot(con)
         try:
             try:
+                # posix=False on Windows: posix mode eats path backslashes.
                 # Placeholders substituted per token so paths with spaces
                 # stay a single argument.
+                if tm.OS() == 'Windows':
+                    toks = [t[1:-1] if len(t) > 1 and t[0] == t[-1]
+                            and t[0] in '"\'' else t
+                            for t in shlex.split(cmd, posix=False)]
+                else:
+                    toks = shlex.split(cmd)
                 argv = [tok.replace(self._CMD_DB, db)
                            .replace(self._CMD_OUT, path)
-                        for tok in shlex.split(cmd)]
+                        for tok in toks]
             except ValueError as e:
                 print(f'[report] Export skipped: cannot parse command '
                       f'"{cmd}" ({e}).')
