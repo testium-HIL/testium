@@ -2,18 +2,27 @@
 #   1. Wheel           -> dist\testium-<v>-py3-none-any.whl
 #   2. PyInstaller exe -> dist\testium-<v>\  (one-folder) + testium-<v>-win64.zip
 #   3. Installer       -> dist\testium-<v>-setup.exe  (Inno Setup, per-user)
-#   4. Manual PDF      -> dist\testium-manual-<v>.pdf  (only with -Manual)
+#   4. Manual PDF      -> dist\testium-manual-<v>.pdf  (needs Git Bash + LaTeX;
+#                         skipped with a warning when the toolchain is missing)
 #
 # Flatpak / AppImage are Linux-only and intentionally absent here.
-# A step is skipped if its artifact already exists; -Clean forces a rebuild.
+# A step is skipped if its artifact already exists; --clean forces a rebuild.
 #
-# Usage: .\build_all.ps1 [-Clean] [-Manual]
+# Usage: .\build_all.ps1 [--clean] [--serial] [--ram]
+#
+# Same options as build_all.sh. On Windows the steps are dependent
+# (installer needs the one-folder build) so the build is always serial:
+# --serial changes nothing. --ram has no tmpfs equivalent and is ignored.
 
-[CmdletBinding()]
-param(
-    [switch]$Clean,
-    [switch]$Manual
-)
+$Clean = $false
+foreach ($a in $args) {
+    switch -Regex ($a) {
+        '^(--clean|-c|-Clean)$' { $Clean = $true }
+        '^(--serial|-Serial)$'  { }  # builds are always serial on Windows
+        '^(--ram|-Ram)$'        { Write-Warning "--ram: no tmpfs on Windows - ignored." }
+        default                 { Write-Host "Unknown option: $a" -ForegroundColor Red; exit 1 }
+    }
+}
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -127,24 +136,22 @@ if ((Test-Path $setup) -and -not $Clean) {
     }
 }
 
-# ---------- 4. manual PDF (opt-in: needs sphinx + LaTeX via Git Bash) ----------
-if ($Manual) {
-    Step "4  Manual PDF ($version)"
-    if (Test-Path $manualPdf) {
-        Write-Host "manual: already built - skipping"
+# ---------- 4. manual PDF (needs sphinx + LaTeX via Git Bash) ----------
+Step "4  Manual PDF ($version)"
+if (Test-Path $manualPdf) {
+    Write-Host "manual: already built - skipping"
+} else {
+    $bash = (Get-Command bash.exe -ErrorAction SilentlyContinue).Source
+    if (-not $bash) {
+        Write-Warning "manual: skipped - bash.exe (Git Bash) not found."
     } else {
-        $bash = (Get-Command bash.exe -ErrorAction SilentlyContinue).Source
-        if (-not $bash) {
-            Write-Warning "manual: skipped - bash.exe (Git Bash) not found."
+        & $bash (Join-Path $root 'doc/manual/sphinx/build_doc.sh')
+        $pdf = Join-Path $root 'doc\manual\testium_manual.pdf'
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $pdf)) {
+            Copy-Item -Force $pdf $manualPdf
+            Write-Host "manual: done"
         } else {
-            & $bash (Join-Path $root 'doc/manual/sphinx/build_doc.sh')
-            $pdf = Join-Path $root 'doc\manual\testium_manual.pdf'
-            if ($LASTEXITCODE -eq 0 -and (Test-Path $pdf)) {
-                Copy-Item -Force $pdf $manualPdf
-                Write-Host "manual: done"
-            } else {
-                Write-Warning "manual: build failed (LaTeX toolchain missing?)."
-            }
+            Write-Warning "manual: build failed (LaTeX toolchain missing?)."
         }
     }
 }
@@ -156,4 +163,4 @@ Step "All Windows packages built"
 Write-Host ("  wheel        : {0}" -f (Artifact $wheel))
 Write-Host ("  portable zip : {0}" -f (Artifact $zip))
 Write-Host ("  installer    : {0}" -f (Artifact $setup))
-if ($Manual) { Write-Host ("  manual       : {0}" -f (Artifact $manualPdf)) }
+Write-Host ("  manual       : {0}" -f (Artifact $manualPdf))
