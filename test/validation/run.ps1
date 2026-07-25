@@ -143,13 +143,16 @@ switch ($mode.ToLower()) {
         $cmd = @((Join-Path $wheelVenv 'Scripts\python.exe'), '-m', 'testium')
     }
     'pyinstaller' {
-        $pyiBin = Join-Path $projectDir "dist\testium-$version.exe"
-        if (-not (Test-Path $pyiBin)) {
-            # one-folder build
-            $pyiBin = Join-Path $projectDir "dist\testium-$version\testium.exe"
-        }
-        if (-not (Test-Path $pyiBin)) {
-            Fail "PyInstaller binary not found in $projectDir\dist - run .\build_all.ps1 first."
+        # build_all.ps1 zips the one-folder build and leaves it in
+        # package\pyinstaller\dist; also accept an unpacked copy in dist\.
+        $candidates = @(
+            (Join-Path $projectDir "dist\testium-$version.exe"),
+            (Join-Path $projectDir "dist\testium-$version\testium.exe"),
+            (Join-Path $projectDir 'package\pyinstaller\dist\testium\testium.exe')
+        )
+        $pyiBin = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if (-not $pyiBin) {
+            Fail "PyInstaller binary not found ($($candidates -join ', ')) - run .\build_all.ps1 first."
         }
         $cmd = @($pyiBin)
     }
@@ -201,17 +204,26 @@ $tail = $runFlags + @(
 
 $exe = $cmd[0]
 $cmdArgs = @($cmd | Select-Object -Skip 1) + $tail
-& $exe @cmdArgs
+if ($gui) {
+    # windowed exe (frozen build): piping stdout forces PowerShell to wait
+    & $exe @cmdArgs | Out-Null
+} else {
+    & $exe @cmdArgs
+}
 $rc = $LASTEXITCODE
 
 # GUI mode: the run log went to the file, show the post-check result.
 if ($gui) {
     Write-Host "-- log file: $guiLog"
-    $hit = Select-String -Path $guiLog -Pattern 'Post execution started' -SimpleMatch -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($hit) {
-        Get-Content $guiLog | Select-Object -Skip ($hit.LineNumber - 2) | Write-Host
+    if (-not (Test-Path $guiLog)) {
+        Write-Host "WARNING: log file not created." -ForegroundColor Yellow
     } else {
-        Write-Host "WARNING: no post-execution result found in the log." -ForegroundColor Yellow
+        $hit = Select-String -Path $guiLog -Pattern 'Post execution started' -SimpleMatch | Select-Object -First 1
+        if ($hit) {
+            Get-Content $guiLog | Select-Object -Skip ($hit.LineNumber - 2) | Write-Host
+        } else {
+            Write-Host "WARNING: no post-execution result found in the log." -ForegroundColor Yellow
+        }
     }
 }
 exit $rc
