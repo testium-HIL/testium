@@ -40,7 +40,9 @@ function Test-Import {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        & $Python -c $Code *> $null
+        # -I keeps the current directory out of sys.path: a package source
+        # tree in the working directory must not satisfy the check.
+        & $Python -I -c $Code *> $null
         return ($LASTEXITCODE -eq 0)
     } finally { $ErrorActionPreference = $prev }
 }
@@ -196,11 +198,12 @@ if ($gui) {
     Write-Host "-- GUI mode: the suite runs in the GUI window (log: $guiLog)."
 }
 
+# $extra before "--": forwarded arguments are options (-d ...), the test
+# file is the only positional.
 $tail = $runFlags + @(
     '-d', "python_bin=$venvPython",
-    '-d', "validation_report_file=validation-$mode",
-    '--', (Join-Path $scriptDir 'main.tum')
-) + $extra
+    '-d', "validation_report_file=validation-$mode"
+) + $extra + @('--', (Join-Path $scriptDir 'main.tum'))
 
 $exe = $cmd[0]
 $cmdArgs = @($cmd | Select-Object -Skip 1) + $tail

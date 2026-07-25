@@ -100,7 +100,9 @@ VENV_PYTHON="$VENV_DIR/bin/python3"
 # Report exporter plugins are discovered on the host python (the venv passed
 # as python_bin below), so the fake_exporter plugin must be installed there
 # for the report_plugin item — in every mode, not only source.
-if ! "$VENV_PYTHON" -c "import fake_exporter" &>/dev/null; then
+# -I keeps the current directory out of sys.path: run from test/validation,
+# the plugin source tree would satisfy the import and skip the install.
+if ! "$VENV_PYTHON" -I -c "import fake_exporter" &>/dev/null; then
     "$VENV_DIR/bin/pip" install --quiet -e "$SCRIPT_DIR/fake_exporter"
 fi
 
@@ -223,10 +225,13 @@ if [ "$GUI" -eq 1 ]; then
 fi
 
 RC=0
+# EXTRA before "--": forwarded arguments are options (-d ...), the test
+# file is the only positional.
 "${CMD[@]}" "${RUN_FLAGS[@]}" \
     -d "python_bin=$VENV_PYTHON" \
     -d "validation_report_file=validation-$MODE" \
-    -- "$SCRIPT_DIR/main.tum" "${EXTRA[@]}" || RC=$?
+    "${EXTRA[@]}" \
+    -- "$SCRIPT_DIR/main.tum" || RC=$?
 
 # GUI mode: the run log went to the file, show the post-check result.
 if [ "$GUI" -eq 1 ]; then
