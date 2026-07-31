@@ -10,7 +10,7 @@ import traceback
 from runtime.jrpc import JsonRpcSrv
 from runtime.tum_except import ETUMRuntimeError, print_exception
 import py_func.tm as tm
-from py_func.func_call import func_exec
+from py_func.func_call import func_exec, format_user_traceback
 
 
 class FuncHandler(JsonRpcSrv):
@@ -31,13 +31,12 @@ class FuncHandler(JsonRpcSrv):
                                 "reported_values": reported_values,
                             }
                         }
-                    except TypeError as e:
-                        return {
-                            "error": f'In file "{file}",\ncalling function "{fname}" with bad arguments ({args}).\nMessage is "{str(e)}"'
-                        }
-                    except Exception as e:
-                        tb = traceback.format_exc()
-                        return {"error": "\n".join(tb.splitlines())}
+                    except ETUMRuntimeError as e:
+                        # Already a user-oriented message (bad signature,
+                        # unknown function, import error).
+                        return {"error": str(e)}
+                    except Exception:
+                        return {"error": format_user_traceback()}
                 except Exception as e:
                     tb = traceback.format_exc()
                     return {

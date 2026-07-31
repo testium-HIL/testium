@@ -57,7 +57,17 @@ function handle.func_call(params)
         print(string.format("Function executed from '%s'", pfile))
         utils.log("func_call function found '%s', '%s'", file, fname)
         -- manage tuple output of a lua function
-        err_res = {pcall(func, unpack(prms))}
+        -- xpcall + debug.traceback: report the call stack, not only the
+        -- innermost error line. Closure keeps Lua 5.1 compatibility
+        -- (xpcall has no vararg forwarding there). The trace is cut at
+        -- the xpcall frame so testium internals do not show.
+        err_res = {xpcall(function() return func(unpack(prms)) end,
+                          function(e)
+                              local tb = debug.traceback(tostring(e), 2)
+                              local cut = tb:find("\n[^\n]*in function 'xpcall'")
+                              if cut then tb = tb:sub(1, cut - 1) end
+                              return tb
+                          end)}
         succ = table.remove(err_res, 1)
         if #err_res > 1 then
             ret = err_res

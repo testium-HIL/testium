@@ -12,10 +12,12 @@ class ETUMError(Exception):
         return [self._message, self._file]
 
     def __str__(self):
-        # Long messages are wrapped so they stay readable in the log.
+        # Long lines are wrapped so they stay readable in the log; embedded
+        # newlines (e.g. tracebacks) are preserved.
         out = []
         for line in self.str_lines():
-            out.extend(textwrap.wrap(line, width=100) or [line])
+            for sub in str(line).splitlines() or [""]:
+                out.extend(textwrap.wrap(sub, width=100) or [sub])
         return "\n".join(out)
 
 
