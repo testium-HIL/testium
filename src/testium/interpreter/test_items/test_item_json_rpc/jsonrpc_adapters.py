@@ -260,6 +260,15 @@ class JrpcUdpAdapter(JrpcAdapter):
     def del_global_sock(self):
         tm.delgd(f"jrpc_udp_rcv_port_{self._rcv_port}")
 
+    def _opened_sock(self):
+        s = self.sock
+        if s is None:
+            raise ETUMRuntimeError(
+                f"JSONRPC udp socket for rcv_port {self._rcv_port} is not "
+                "open. Run the 'open' action first, or check that its "
+                "rcv_port matches this item's.")
+        return s
+
     def _send(self, message: str):
         # The socket is created once by the 'open' action and shared through
         # the global dict by rcv_port. multicast_if only acts at creation:
@@ -284,7 +293,7 @@ class JrpcUdpAdapter(JrpcAdapter):
                 raise ETUMRuntimeError("JSONRPC udp send unknown address.")
 
         # Sends the message to the server
-        self.sock.sendto(message.encode(), srv)
+        self._opened_sock().sendto(message.encode(), srv)
 
         # Don't log if mute
         if not self._mute:
@@ -293,7 +302,8 @@ class JrpcUdpAdapter(JrpcAdapter):
     def _receive(self, timeout: float) -> str:
         # Poll in short chunks so a stop request is honored within
         # STOP_POLL_INTERVAL.
-        self.sock.settimeout(STOP_POLL_INTERVAL)
+        sock = self._opened_sock()
+        sock.settimeout(STOP_POLL_INTERVAL)
         deadline = time.monotonic() + float(timeout)
         data = None
         addr = None
@@ -301,7 +311,7 @@ class JrpcUdpAdapter(JrpcAdapter):
             if self._should_stop is not None and self._should_stop():
                 raise ETUMRuntimeError("JSONRPC udp receive aborted on stop request.")
             try:
-                data, addr = self.sock.recvfrom(self._bufsize)
+                data, addr = sock.recvfrom(self._bufsize)
                 break
             except socket.timeout:
                 if time.monotonic() >= deadline:

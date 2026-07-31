@@ -1,4 +1,5 @@
 from interpreter.test_items.test_item import TestItem, LOG_TEST_START, LOG_TEST_STOP
+from interpreter.test_items.test_result import TestValue
 
 
 class TestItemAction(TestItem):
@@ -33,6 +34,11 @@ class TestItemAction(TestItem):
     def write_footer(self):
         if self.banner != "":
             super().write_footer()
+        elif (self.result.test_result == TestValue.FAILURE
+              and self.result.message):
+            # Unnamed action: no footer, but a failure message must
+            # still reach the log.
+            print(self.result.message)
 
     @property
     def token(self):

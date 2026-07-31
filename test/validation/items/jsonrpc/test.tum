@@ -422,6 +422,20 @@
             params: [x]
 
 - json_rpc:
+    name: UDP query without open action (explicit failure)
+    doc: The socket is not open; the query must fail with a plain message, not an AttributeError traceback.
+    key: $(test)_FAIL
+    udp:
+        server: localhost
+        snd_port: 4323
+        rcv_port: 48212
+    timeout: 1
+    steps:
+        - query:
+            method: echo
+            params: [x]
+
+- json_rpc:
     name: UDP port given as text (explicit failure)
     key: $(test)_FAIL
     udp:
