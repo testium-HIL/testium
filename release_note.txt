@@ -1,3 +1,11 @@
+version 0.4.1
+==============
+- ``py_func`` failures now report the Python traceback of your code, the
+  expected signature on a call with wrong arguments, and the available
+  functions on a wrong ``func_name``.
+- ``lua_func`` failures now report the Lua call stack of your code, not
+  only the innermost error line.
+
 version 0.4
 ==============
 - Start/Pause and Stop moved to the step toolbar, which is now always
