@@ -7,6 +7,8 @@ Five minutes from zero to a passing test.
 From a checkout of the repository:
 
 ```sh
+git clone https://github.com/testium-HIL/testium.git
+cd testium
 ./run.sh --version    # Linux
 run.bat               # Windows cmd
 ```

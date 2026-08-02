@@ -20,7 +20,7 @@ reports in several formats.
 ## Pre-built releases
 
 Pre-built artifacts are published at
-<https://git.beafrancois.fr/v-and-v/testium/releases>:
+<https://github.com/testium-HIL/testium/releases>:
 
 * **Python wheel** (`testium-<version>-py3-none-any.whl`) — install with
   `pip install testium-*.whl`. Smaller download than the binary; downloads
@@ -70,7 +70,8 @@ setup.
 
 ## Quick start
 
-From a checkout of the repository:
+From a checkout of the repository
+(`git clone https://github.com/testium-HIL/testium.git`):
 
 | OS | Command |
 |----|---------|

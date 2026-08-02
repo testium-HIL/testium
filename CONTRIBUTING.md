@@ -41,7 +41,7 @@ For existing files, keep the header that is already there.
 ## How to contribute
 
 1. Open an issue describing the change you want to make (bug, feature, doc).
-2. Fork the repository, create a topic branch.
+2. Fork <https://github.com/testium-HIL/testium>, create a topic branch.
 3. Commit with a clear message (one logical change per commit).
 4. Make sure the validation suite still passes:
    ```

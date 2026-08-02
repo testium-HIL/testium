@@ -30,6 +30,10 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.urls]
+Homepage = "https://github.com/testium-HIL/testium"
+Repository = "https://github.com/testium-HIL/testium"
+
 [project.optional-dependencies]
 # `pip install testium[lsp]` adds the language-server dependencies. The
 # stdio-only LSP server (`testium lsp`) reuses the schema export from the

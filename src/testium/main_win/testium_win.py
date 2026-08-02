@@ -714,7 +714,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def webbrowser_open(self):
         def open_browser_thread():
             webbrowser.open(
-                "https://git.beafrancois.fr/v-and-v/testium/src/branch/main/doc/manual/testium_manual.pdf",
+                "https://github.com/testium-HIL/testium/blob/main/doc/manual/testium_manual.pdf",
                 new=2,
                 autoraise=True,
             )

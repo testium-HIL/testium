@@ -8,6 +8,9 @@ It has been developed since 2013 with production and development testing in mind
 
 Its function is to automate the execution of tests. It can be invoked either as command line application or as a graphical interface application.
 
+Sources and pre-built releases are hosted at
+`github.com/testium-HIL/testium <https://github.com/testium-HIL/testium>`_.
+
 The tool also generates test reports and lets you customize them.
 
 Its main features are:
