@@ -184,7 +184,9 @@ Debugging your functions
 ------------------------------------------
 
 Setting ``debug: true`` on a ``py_func`` item lets you debug the function
-step by step from your IDE. Before calling the function, the subprocess
+step by step from your IDE. A step-by-step tutorial is provided in
+``doc/debug_tutorial.md`` of the source repository; this section is the
+reference. Before calling the function, the subprocess
 starts a `debugpy <https://github.com/microsoft/debugpy>`_ listener on
 ``localhost:5678`` and waits for a debugger to attach; the test log shows::
 

@@ -14,6 +14,8 @@ reports in several formats.
   common test items with a runnable example.
 * [Exporter tutorial](doc/exporter_tutorial.md) — write and use a custom
   report export format.
+* [Debug tutorial](doc/debug_tutorial.md) — debug the Python code of
+  your `py_func` items from your IDE.
 * [User manual (PDF)](doc/manual/testium_manual.pdf) — full reference.
 * [`doc/examples/`](doc/examples/) — runnable `.tum` snippets.
 
