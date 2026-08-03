@@ -92,6 +92,9 @@ Besides the common test item attributes, the ``py_func`` item has specific attri
 * ``context_id``: Optional. When set, all ``py_func`` items sharing the same
   ``context_id`` value run inside the same persistent Python subprocess for the
   duration of the test. See :ref:`py_func context<sec_py_func_context>` for details.
+* ``debug``: Optional. When ``true``, the subprocess waits for a debugger to
+  attach before running the function. See
+  :ref:`debugging<sec_py_func_debug>` below.
 
 .. code-block:: yaml
     :caption: ``py_func`` test item example of usage
@@ -174,6 +177,55 @@ calls — including objects that cannot be transmitted to other processes.
         expected_result: open
 
 The shared subprocess is automatically stopped at the end of the test run.
+
+.. _sec_py_func_debug:
+
+Debugging your functions
+------------------------------------------
+
+Setting ``debug: true`` on a ``py_func`` item lets you debug the function
+step by step from your IDE. Before calling the function, the subprocess
+starts a `debugpy <https://github.com/microsoft/debugpy>`_ listener on
+``localhost:5678`` and waits for a debugger to attach; the test log shows::
+
+    py_func waiting for the debugger on localhost:5678 — attach from your IDE, or Stop to cancel
+
+Requirements: install debugpy with the host Python — the ``python_bin``
+interpreter, the same one running your functions:
+
+.. code-block:: sh
+
+    <python_bin> -m pip install debugpy
+
+Then attach from the IDE. VSCode configuration (``launch.json``):
+
+.. code-block:: json
+
+    {
+        "name": "Attach to py_func",
+        "type": "debugpy",
+        "request": "attach",
+        "connect": {"host": "localhost", "port": 5678},
+        "justMyCode": true
+    }
+
+Set breakpoints in your ``.py`` file and press F5: once attached, the
+function runs and stops on your breakpoints. Notes:
+
+* the run resumes only after the debugger is attached. Stop cancels the
+  wait (the item fails); an item left waiting fails after one hour;
+* the listening port can be changed with the ``py_func_debug_port``
+  global variable (configuration file or ``-d py_func_debug_port=<n>``);
+* with ``context_id``, the shared subprocess opens the listener once: the
+  first ``debug: true`` item fixes the port (a later change is ignored
+  with a warning) and the debugger stays attached for the following
+  items. If the IDE disconnects, the next ``debug: true`` item waits for
+  a new attach;
+* the listener only accepts local connections. To debug a testium
+  running on a remote machine, open an SSH tunnel:
+  ``ssh -L 5678:localhost:5678 <remote>``;
+* with the ``redirectOutput`` debugger option, the function's prints may
+  appear both in the IDE debug console and in the testium log.
 
 **Python Interpreter environment setup**
 

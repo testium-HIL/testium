@@ -35,6 +35,10 @@ class TestItemPyFunc(TestItem):
               doc="If set, the py_func subprocess is kept alive and reused by "
                   "every other py_func item with the same context_id — enables "
                   "shared in-memory state between successive calls."),
+        Param("debug", default=False,
+              doc="If truthy, the py_func subprocess waits for a debugpy "
+                  "client (IDE) to attach on localhost before running the "
+                  "function. Port: global py_func_debug_port (default 5678)."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
@@ -47,6 +51,7 @@ class TestItemPyFunc(TestItem):
             self.func_name = self._prms.getParam("func_name", required=True)
             self.params = self._prms.getParamAll("param")
             self._context_id = self._prms.getParam("context_id", default=None, processed=False)
+            self._debug = self._prms.getParam("debug", default=False, processed=False)
         self._py_func_proc = PyFuncExecEngine(api_request, 10)
 
     def _get_engine(self):
@@ -98,7 +103,9 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                     )
 
             try:
-                success, ret = engine.func_call(self.file_name, self.func_name, pl)
+                dbg = bool(self._prms.expanse(self._debug))
+                success, ret = engine.func_call(self.file_name, self.func_name,
+                                                pl, debug=dbg)
             finally:
                 if not persistent:
                     engine.stop()
@@ -125,6 +132,10 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
         except ConnectionAbortedError:
             self.result.set(TestValue.FAILURE, "py_func aborted on stop request")
             print("py_func aborted on stop request.")
+        except ETUMRuntimeError as e:
+            # Configuration error (bad debug port, engine start...):
+            # plain message, no traceback.
+            self.result.set(TestValue.FAILURE, str(e))
         except:
             traceback.print_exception(*sys.exc_info())
             if self.isStopped():

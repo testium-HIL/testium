@@ -238,6 +238,12 @@ main:
                            func_name: return_explicit_none
                            key: $(test)_PASS
                            name: function returning explicit None should succeed
+                     -  py_func:
+                           debug: true
+                           file: $(test_path)$(psep)py_func.py
+                           func_name: donothing
+                           key: $(test)_FAIL
+                           name: debug on a busy port (explicit failure)
                      -  group:
                            name: context_id tests
                            steps:

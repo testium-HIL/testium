@@ -334,3 +334,29 @@
             func_name: get_ns_value
             context_id: ctx_ns_test
             expected_result: hello ns
+
+- group:
+    name: debug attribute tests
+    steps:
+        - let:
+            name: debug port used by the busy-port test
+            values:
+                - py_func_debug_port: 5699
+        - py_func:
+            name: hold the debug port
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: hold_port
+            context_id: dbg_hold
+            param:
+                - 5699
+            expected_result: True
+        # Fails fast whether debugpy is installed on the host interpreter
+        # (listen fails: port busy) or not (install message) — never blocks
+        # waiting for an attach.
+        - py_func:
+            name: debug on a busy port (explicit failure)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)py_func.py
+            func_name: donothing
+            debug: true

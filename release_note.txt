@@ -1,3 +1,10 @@
+version 0.4.2
+==============
+- Debug your ``py_func`` functions step by step: with ``debug: true`` on
+  the item, the subprocess waits for your IDE debugger (debugpy) before
+  running the function. Breakpoints, stepping and variable inspection
+  work as usual.
+
 version 0.4.1
 ==============
 - ``py_func`` failures now report the Python traceback of your code, the
