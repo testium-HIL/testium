@@ -59,6 +59,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="labelRepo">
+     <property name="text">
+      <string>&lt;a href=&quot;https://github.com/testium-HIL/testium&quot;&gt;github.com/testium-HIL/testium&lt;/a&gt;</string>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="labelLicence">
      <property name="text">
       <string>Licensed under &lt;a href=&quot;https://eupl.eu/1.2/en/&quot;&gt;EUPL-1.2&lt;/a&gt;</string>

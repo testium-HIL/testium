@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'about_win.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.10.2
+## Created by: Qt User Interface Compiler version 6.11.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -47,6 +47,12 @@ class Ui_About(object):
 
         self.verticalLayout.addWidget(self.labelCopyright)
 
+        self.labelRepo = QLabel(About)
+        self.labelRepo.setObjectName(u"labelRepo")
+        self.labelRepo.setOpenExternalLinks(True)
+
+        self.verticalLayout.addWidget(self.labelRepo)
+
         self.labelLicence = QLabel(About)
         self.labelLicence.setObjectName(u"labelLicence")
         self.labelLicence.setOpenExternalLinks(True)
@@ -72,6 +78,7 @@ class Ui_About(object):
         self.label.setText(QCoreApplication.translate("About", u"Testium", None))
         self.labelVersion.setText("")
         self.labelCopyright.setText(QCoreApplication.translate("About", u"\u00a9 2025-2026 Fran\u00e7ois Dausseur", None))
+        self.labelRepo.setText(QCoreApplication.translate("About", u"<a href=\"https://github.com/testium-HIL/testium\">github.com/testium-HIL/testium</a>", None))
         self.labelLicence.setText(QCoreApplication.translate("About", u"Licensed under <a href=\"https://eupl.eu/1.2/en/\">EUPL-1.2</a>", None))
     # retranslateUi
 
