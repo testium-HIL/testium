@@ -138,10 +138,14 @@ ssh -L 5678:localhost:5678 bench-host
 
 ## Troubleshooting
 
+* The run does not pause and continues — look for a `WARN py_func debug
+  setup failed` line in the log: the item failed instead of waiting
+  (debugpy missing or port busy) and the run went on.
 * `debugpy is not installed on the host interpreter used by testium
   (python_bin)...` — install debugpy as in step 1, with the exact
-  interpreter used by testium (check the `python_bin` global; if it
-  points to a venv, install into that venv).
+  interpreter used by testium (check the `python_bin` global in the
+  variables window (F1); if it points to a venv, install into that
+  venv).
 * `debugpy could not listen on localhost:5678 (...). Is the port
   free?` — another program (or another testium run) holds the port; set
   `py_func_debug_port` to a free one.

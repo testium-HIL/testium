@@ -30,3 +30,4 @@ AppDir
 doc/manual/doxygen
 doc/manual/sphinx/build/*
 doc/manual/sphinx/source/_build/*
+/.zed

@@ -216,6 +216,9 @@ function runs and stops on your breakpoints. Notes:
 
 * the run resumes only after the debugger is attached. Stop cancels the
   wait (the item fails); an item left waiting fails after one hour;
+* if debugpy is missing or the port cannot be opened, the function is
+  not run: the item fails with an explanatory message plus a ``WARN``
+  line, and the test run continues;
 * the listening port can be changed with the ``py_func_debug_port``
   global variable (configuration file or ``-d py_func_debug_port=<n>``);
 * with ``context_id``, the shared subprocess opens the listener once: the

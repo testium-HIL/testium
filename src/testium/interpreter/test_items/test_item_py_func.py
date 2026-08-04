@@ -125,6 +125,10 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
             else:
                 self.result.set(TestValue.FAILURE, ret)
                 print("Failed!")
+                if dbg and isinstance(ret, str) and "debugpy" in ret:
+                    tm.print_warn(
+                        "py_func debug setup failed (see the item message): "
+                        "the function was not run and the test continues.")
                 tm.print_debug(textwrap.indent(pprint.pformat(ret), " |"))
 
             return
