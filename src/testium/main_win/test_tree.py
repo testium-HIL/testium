@@ -88,20 +88,6 @@ class QTestTree(QTreeWidget):
 
         self.header().sectionResized.connect(self.resized)
 
-        # TESTIUM_TREE_DIAG=1: trace every row removal with the Python call
-        # stack on the real stderr, to locate unexpected tree emptying.
-        if os.environ.get("TESTIUM_TREE_DIAG"):
-            self.model().rowsAboutToBeRemoved.connect(self._diag_rows_removed)
-
-    def _diag_rows_removed(self, parent, first, last):
-        import traceback
-        import datetime
-        msg = (f"[tree-diag] {datetime.datetime.now().isoformat()} rows "
-               f"{first}-{last} removed (top-level={not parent.isValid()}, "
-               f"count before={self.topLevelItemCount()})\n"
-               + "".join(traceback.format_stack()))
-        os.write(2, msg.encode())
-
     def updateTestSetItemState(self, tree_item, tst_ctrl: TestControllerService, state, unitary=False):
         id = tree_item.id
         tst_ctrl.set_enabled_state(id, state, unitary=unitary)
