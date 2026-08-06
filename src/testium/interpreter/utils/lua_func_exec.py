@@ -42,8 +42,7 @@ class LuaFuncExecEngine(LuaProcessBase):
         else:
             raise ETUMRuntimeError(
                 f"The lua_func subprocess is not running (function "
-                f"'{func_name}', file '{file}'). It crashed, was stopped, "
-                f"or could not be started — check the log above and the "
-                f"lua_bin interpreter '{self._lbin}'."
+                f"'{func_name}', file '{file}'): crashed, stopped or never "
+                f"started. lua_bin: '{self._lbin}'."
             )
 

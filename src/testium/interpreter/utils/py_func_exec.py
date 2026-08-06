@@ -52,7 +52,6 @@ class PyFuncExecEngine(PyProcessBase):
         else:
             raise ETUMRuntimeError(
                 f"The py_func subprocess is not running (function "
-                f"'{func_name}', file '{file}'). It crashed, was stopped, "
-                f"or could not be started — check the log above and the "
-                f"python_bin interpreter '{self._pbin}'."
+                f"'{func_name}', file '{file}'): crashed, stopped or never "
+                f"started. python_bin: '{self._pbin}'."
             )

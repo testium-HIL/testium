@@ -183,8 +183,8 @@ class Console(object):
         status = -1
         if not match:
             raise ETUMRuntimeError(
-                "'expected' pattern can not be empty (got {!r}); an unresolved "
-                "$(var) is a common cause".format(match))
+                "'expected' pattern can not be empty "
+                "(got {!r})".format(match))
 
         # match: a string or list of strings; succeed as soon as any is seen.
         if isinstance(match, (list, tuple)):
@@ -195,7 +195,7 @@ class Console(object):
             if len(m) == 0:
                 raise ETUMRuntimeError(
                     "'expected' pattern can not be empty: entry {} of {!r} is "
-                    "empty; an unresolved $(var) is a common cause".format(
+                    "empty".format(
                         idx, matches))
 
         if timeout is None:

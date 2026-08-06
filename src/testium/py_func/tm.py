@@ -33,7 +33,7 @@ def _make_api(name):
                 raise ETUMRuntimeError(f"Malformed answer to a tm API call: {res}. Internal error, please report it.")
             return ret_val
         else:
-            raise ETUMRuntimeError("The RPC link to testium is not up: tm API calls only work when the script runs under a py_func item.")
+            raise ETUMRuntimeError("No RPC link to testium: tm API calls require running under a py_func item.")
     _wrapper.__name__ = name
     return _wrapper
 
@@ -66,7 +66,7 @@ def gd(name, default=None):
             raise ETUMRuntimeError(f"api call to 'tm.gd' failed with error '{res['error']}'")
         else:
             raise ETUMRuntimeError(f"Malformed answer to a tm API call: {res}. Internal error, please report it.")
-    raise ETUMRuntimeError("The RPC link to testium is not up: tm API calls only work when the script runs under a py_func item.")
+    raise ETUMRuntimeError("No RPC link to testium: tm API calls require running under a py_func item.")
 
 
 def setgd(name, value):
@@ -94,7 +94,7 @@ def setgd(name, value):
             raise ETUMRuntimeError(f"api call to 'tm.setgd' failed with error '{res['error']}'")
         else:
             raise ETUMRuntimeError(f"Malformed answer to a tm API call: {res}. Internal error, please report it.")
-    raise ETUMRuntimeError("The RPC link to testium is not up: tm API calls only work when the script runs under a py_func item.")
+    raise ETUMRuntimeError("No RPC link to testium: tm API calls require running under a py_func item.")
 
 
 def delgd(name):
@@ -114,7 +114,7 @@ def delgd(name):
             raise ETUMRuntimeError(f"api call to 'tm.delgd' failed with error '{res['error']}'")
         else:
             raise ETUMRuntimeError(f"Malformed answer to a tm API call: {res}. Internal error, please report it.")
-    raise ETUMRuntimeError("The RPC link to testium is not up: tm API calls only work when the script runs under a py_func item.")
+    raise ETUMRuntimeError("No RPC link to testium: tm API calls require running under a py_func item.")
 
 
 def _init_api(host, port, timeout):

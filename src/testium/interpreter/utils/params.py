@@ -327,8 +327,7 @@ def _warn_unknown_global(glob):
                 "loop_count", "db", "out", "result") or "\x00" in glob:
         return
     warn_once(("global", glob),
-              f"$({glob}) is not defined at this point — left as-is "
-              "(check the name if it is not set by a later step).")
+              f"$({glob}) is not defined — left as-is.")
 
 
 def _operate_param(glob, parent):

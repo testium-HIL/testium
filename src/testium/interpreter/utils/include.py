@@ -55,8 +55,8 @@ class TUMLoaderRawIncludes(TUMLoaderNoIncludes):
             declared = (f'"{raw_name}"' if raw_name == expanded
                         else f'"{raw_name}" (expanded to "{expanded}")')
             raise ETUMFileError(
-                f'Included file {declared} not found: no file at "{filename}" '
-                f'(relative paths are resolved against "{self._root}").',
+                f'Included file {declared} not found: '
+                f'no file at "{filename}".',
                 self._src_name)
 
         # Copy of the global dict content to be passed as parameter

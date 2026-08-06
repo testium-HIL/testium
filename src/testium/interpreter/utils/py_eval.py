@@ -35,9 +35,8 @@ class EvalExecEngine(PyProcessBase):
         else:
             raise ETUMRuntimeError(
                 f"The evaluation subprocess is not running (expression "
-                f"'{value}'). It crashed, was stopped, or could not be "
-                f"started — check the log above and the python_bin "
-                f"interpreter '{self._pbin}'."
+                f"'{value}'): crashed, stopped or never started. "
+                f"python_bin: '{self._pbin}'."
             )
 
 
@@ -48,8 +47,8 @@ def eval_exec(value):
     else:
         raise ETUMRuntimeError(
             f"The evaluation subprocess is not running (expression "
-            f"'{value}'). It crashed, was stopped, or could not be "
-            f"started — check the log above and the python_bin setting."
+            f"'{value}'): crashed, stopped or never started. Check the "
+            f"python_bin setting."
         )
 
     return result
