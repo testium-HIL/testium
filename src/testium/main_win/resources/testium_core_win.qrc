@@ -29,6 +29,7 @@
         <file alias="let.png">black/let.png</file>
         <file alias="start.png">black/start.png</file>
         <file alias="step-over.png">black/step-over.png</file>
+        <file alias="bug.png">black/bug.png</file>
         <file alias="step-into.png">black/step-into.png</file>
         <file alias="step-out.png">black/step-out.png</file>
         <file alias="stop.png">black/stop.png</file>
@@ -81,6 +82,7 @@
         <file alias="let.png">white/let.png</file>
         <file alias="start.png">white/start.png</file>
         <file alias="step-over.png">white/step-over.png</file>
+        <file alias="bug.png">white/bug.png</file>
         <file alias="step-into.png">white/step-into.png</file>
         <file alias="step-out.png">white/step-out.png</file>
         <file alias="stop.png">white/stop.png</file>
@@ -133,6 +135,7 @@
         <file alias="let.png">color/let.png</file>
         <file alias="start.png">color/start.png</file>
         <file alias="step-over.png">color/step-over.png</file>
+        <file alias="bug.png">color/bug.png</file>
         <file alias="step-into.png">color/step-into.png</file>
         <file alias="step-out.png">color/step-out.png</file>
         <file alias="stop.png">color/stop.png</file>

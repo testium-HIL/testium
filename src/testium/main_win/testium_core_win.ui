@@ -285,6 +285,7 @@
     <addaction name="actionStep_over"/>
     <addaction name="actionStep_into"/>
     <addaction name="actionStep_out"/>
+    <addaction name="actionDebugOutput"/>
     <addaction name="separator"/>
     <addaction name="actionTestInformation"/>
     <addaction name="actionSave_report"/>
@@ -802,6 +803,24 @@
    </property>
    <property name="shortcut">
     <string>Shift+F11</string>
+   </property>
+  </action>
+  <action name="actionDebugOutput">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources/testium_core_win.qrc">
+     <normaloff>:/black/bug.png</normaloff>:/black/bug.png</iconset>
+   </property>
+   <property name="text">
+    <string>Debug</string>
+   </property>
+   <property name="toolTip">
+    <string>Debug output (Ctrl+Shift+D)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
    </property>
   </action>
   <action name="actionAbout_testium">

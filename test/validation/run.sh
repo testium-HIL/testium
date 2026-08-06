@@ -200,6 +200,17 @@ if [ "$MODE" = "source" ]; then
     "$STEP_PY" "$SCRIPT_DIR/step_check.py"
 fi
 
+# ---------- debug-output check (source only) ----------------------------------
+# The debug toggle drives test_debug live through the control queue and
+# survives the end-of-run global-dict restore. Imports the interpreter
+# directly, so source mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- debug output check ($MODE)"
+    DBG_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$DBG_PY" ] || DBG_PY="$VENV_PYTHON"
+    "$DBG_PY" "$SCRIPT_DIR/debug_output_check.py"
+fi
+
 # ---------- GUI reload check (source only) ------------------------------------
 # Repeated GUI reloads must not leak fds/threads/sys.path. Imports main_win, so
 # source mode only; the script skips itself if PySide6 is unavailable.

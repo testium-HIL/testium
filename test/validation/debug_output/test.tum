@@ -1,0 +1,9 @@
+main:
+    name: debug output fixture
+    steps:
+        - sleep:
+            name: reported sleep
+            timeout: 0.1
+            dialog: false
+            report:
+                marker: value

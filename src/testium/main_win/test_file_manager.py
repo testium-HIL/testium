@@ -198,7 +198,9 @@ class TestFileManager:
             progress = None
             w.treeTests.setFoldDefault()
             w.treeTests.updateTreeSkipState(w.test_service)
-            w.d_f1_win.load_initial_vars(w.test_service.get_gd_vars())
+            gd_vars = w.test_service.get_gd_vars()
+            w.d_f1_win.load_initial_vars(gd_vars)
+            w.sync_debug_output_action(gd_vars)
 
             w.checkSelect.setChecked(True)
             w.testFile = file_name
@@ -239,6 +241,9 @@ class TestFileManager:
         pp = prefs.settings.lua_bin
         if pp != "":
             d["lua_bin"] = pp
+        # Set only when true, so config files and -d keep priority.
+        if prefs.settings.debug_output:
+            d["test_debug"] = True
         return d
 
     # --- Recent files ---

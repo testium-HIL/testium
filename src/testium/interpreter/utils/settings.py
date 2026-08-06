@@ -48,6 +48,7 @@ class TestiumSettings():
     SettingsGitSupported = SettingsItem('logGitSupported', bool, True)
     SettingsPythonPath = SettingsItem('pythonPath', str, '')
     SettingsLuaPath = SettingsItem('luaPath', str, '')
+    SettingsDebugOutput = SettingsItem('debugOutput', bool, False)
 
     recent_files = _pref(SettingsRecentFiles)
     log_file = _pref(SettingsLastLogFile)
@@ -66,6 +67,7 @@ class TestiumSettings():
     git_supported = _pref(SettingsGitSupported)
     python_bin = _pref(SettingsPythonPath)
     lua_bin = _pref(SettingsLuaPath)
+    debug_output = _pref(SettingsDebugOutput)
 
     def __init__(self):
         if 'windows' in platform.system().lower():

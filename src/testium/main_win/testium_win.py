@@ -294,6 +294,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.actionHelp:            "help",
             self.actionPreferences:     "settings",
             self.actionTestInformation: "info",
+            self.actionDebugOutput:     "bug",
         }
         for widget, name in icons.items():
             icon = QtGui.QIcon()
@@ -396,6 +397,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ):
             action.setToolTip(tip)
             self.stepBar.addAction(action)
+
+        self.actionDebugOutput.setChecked(prefs.settings.debug_output)
+        self.stepBar.addSeparator()
+        self.stepBar.addAction(self.actionDebugOutput)
 
         self.addToolBar(Qt.TopToolBarArea, self.stepBar)
         # Fires on undock and on re-dock after a drag, so every move ends
@@ -678,6 +683,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.prefs_apply_font()
             if self.pref_win.isChanged(prefs.settings.SettingsLogFontSize):
                 self.prefs_apply_font_size()
+
+    @Slot(bool)
+    def on_actionDebugOutput_toggled(self, checked):
+        prefs.settings.debug_output = checked
+        if self.test_service is not None:
+            self.test_service.set_gd_var("test_debug", bool(checked))
+
+    def sync_debug_output_action(self, gd_vars):
+        """Show the effective test_debug value; the preference is unchanged."""
+        effective = bool(gd_vars.get("test_debug", False))
+        if effective != self.actionDebugOutput.isChecked():
+            self.actionDebugOutput.blockSignals(True)
+            self.actionDebugOutput.setChecked(effective)
+            self.actionDebugOutput.blockSignals(False)
 
     @Slot()
     def on_actionRefresh_test_triggered(self):

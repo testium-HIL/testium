@@ -246,9 +246,16 @@ def backup_gd():
     return copy.deepcopy(globdict.global_dict)
 
 
+# Debug switches: toggled while a test is loaded, kept across runs.
+STICKY_GD = ("test_debug", "debug_rpc")
+
+
 def restore_gd(dict):
+    sticky = {k: globdict.global_dict[k]
+              for k in STICKY_GD if k in globdict.global_dict}
     clear_recursively(globdict.global_dict)
     globdict.global_dict.update(dict)
+    globdict.global_dict.update(sticky)
 
 
 def test_run_init():
