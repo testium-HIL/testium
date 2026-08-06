@@ -129,17 +129,22 @@ def _feed_gd_with_params(param_file, silent=True):
         elif isinstance(p, list):
             for pp in p:
                 files.append(pp)
-    for p in files:
-        if p is None:
+    for raw in files:
+        if raw is None:
             continue
-        if not isinstance(p, str):
-            raise ETUMSyntaxError(f'Parameter file "{p}" not a file path.')
-        p = expanse(p)
+        if not isinstance(raw, str):
+            raise ETUMSyntaxError(f'Parameter file "{raw}" not a file path.')
+        p = expanse(raw)
         pf = p
         if not os.path.isabs(pf):
             pf = os.path.normpath(os.path.join(test_dir, pf))
         if not os.path.isfile(pf):
-            raise ETUMSyntaxError(f'Parameter file "{pf}" not found')
+            declared = (f'"{raw}"' if raw == p
+                        else f'"{raw}" (expanded to "{p}")')
+            raise ETUMSyntaxError(
+                f'Parameter file {declared} not found: '
+                f'no file at "{pf}".',
+                tm.gd("test_main_file", ""))
 
         ext = os.path.splitext(pf)[1]
         if (ext == ".yaml") or (ext == ".yml"):
