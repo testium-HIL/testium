@@ -3,7 +3,13 @@ from interpreter.utils.py_eval import eval_exec
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
 
-def evaluate(val, **replacement_dict):
+def evaluate(val, _warn_on_failure=False, **replacement_dict):
+    """Evaluate *val* in the eval subprocess.
+
+    _warn_on_failure is set only for real ``<| ... |>`` constructs: other
+    callers (expected_result, process_result) evaluate speculatively and
+    failing is their normal outcome.
+    """
     v2 = val
     evaluated = False
     if isinstance(val, str):
@@ -13,10 +19,19 @@ def evaluate(val, **replacement_dict):
         try:
             v2 = eval_exec(val)
         except Exception as e:
-            # eval can crash
-            if tm.debug_enabled():
-                s = f"Evaluation of '{val}' failed with message:\n  " + str(e)
-                tm.print_debug(s)
+            # eval can crash; the value is kept as-is (some expressions
+            # only become evaluable later in the run).
+            if _warn_on_failure:
+                from interpreter.utils.params import warn_once
+                # ETUM errors already carry a full message; avoid nesting.
+                detail = (getattr(e, "_message", None)
+                          or f"{type(e).__name__}: {e}")
+                warn_once(("eval", val),
+                          f"Evaluation failed — left as-is (may resolve "
+                          f"later in the run): {detail}")
+            elif tm.debug_enabled():
+                tm.print_debug(
+                    f"Evaluation of '{val}' failed with message:\n  {e}")
             v2 = val
         evaluated = val != v2
     return evaluated, v2

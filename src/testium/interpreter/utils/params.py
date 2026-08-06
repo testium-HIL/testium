@@ -302,12 +302,21 @@ def _parse_and_process(left_patt, right_patt, value, func, *fparam):
     return result
 
 
-# Unknown $(...) names already reported, one WARN each per test load.
-_warned_globals = set()
+# Expansion problems already reported, one WARN each per test load.
+_warned_expansions = set()
 
 
 def reset_expansion_warnings():
-    _warned_globals.clear()
+    _warned_expansions.clear()
+
+
+def warn_once(key, message):
+    """Print a WARN once per key and per test load."""
+    if key in _warned_expansions:
+        return
+    _warned_expansions.add(key)
+    import api.testium as tm
+    tm.print_warn(message)
 
 
 def _warn_unknown_global(glob):
@@ -317,12 +326,9 @@ def _warn_unknown_global(glob):
     if glob in ("loop_param", "loop_index", "loop_index_inverse",
                 "loop_count", "db", "out", "result") or "\x00" in glob:
         return
-    if glob in _warned_globals:
-        return
-    _warned_globals.add(glob)
-    import api.testium as tm
-    tm.print_warn(f"$({glob}) is not defined at this point — left as-is "
-                  "(check the name if it is not set by a later step).")
+    warn_once(("global", glob),
+              f"$({glob}) is not defined at this point — left as-is "
+              "(check the name if it is not set by a later step).")
 
 
 def _operate_param(glob, parent):

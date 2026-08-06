@@ -177,7 +177,9 @@ def set_standard_gd_keys(test_name, test_dir, test_file, config_files):
 def env_init():
     if not hasattr(prefs, "settings"):
         prefs.init()
-    eval_func_init(evaluate)
+    # The registered function only serves the <| ... |> pattern: warn there
+    # on failure (other evaluate() callers are speculative).
+    eval_func_init(lambda val: evaluate(val, _warn_on_failure=True))
     _constants_init()
 
 
