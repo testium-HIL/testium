@@ -1,5 +1,7 @@
 version 0.4.2
 ==============
+- Error messages name the file, the item and the value in cause.
+- An unresolved ``$(variable)`` prints a WARN naming it.
 - Debug your ``py_func`` functions step by step: with ``debug: true`` on
   the item, the subprocess waits for your IDE debugger (debugpy) before
   running the function. Breakpoints, stepping and variable inspection
