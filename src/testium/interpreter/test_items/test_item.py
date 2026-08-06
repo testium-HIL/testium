@@ -10,7 +10,8 @@ from interpreter.utils.param_decl import (
 )
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
-from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
+from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, \
+    item_load_context, wrap_lines
 
 LOG_TEST_STOP = '<----- step "{}" finished'
 LOG_TEST_START = '-----> step "{}" started'
@@ -350,7 +351,7 @@ class TestItem:
 
     def write_footer(self):
         if self.parent() is not None:
-            print(self.result.message)
+            print(wrap_lines(self.result.message))
             print(self.footer + f": {str(self.result.test_result)}")
 
     def run_test_init(self):

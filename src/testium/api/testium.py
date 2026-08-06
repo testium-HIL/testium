@@ -4,7 +4,7 @@ import sys
 import textwrap
 from time import monotonic
 import interpreter.utils.globdict as globdict
-from runtime.tum_except import (ETUMSyntaxError)
+from runtime.tum_except import (ETUMSyntaxError, wrap_lines)
 
 ###############################################################################
 # Console helper functions
@@ -284,7 +284,11 @@ def _custom_print(pref: str, *vargs, lf_first: bool = False):
         to_print += f"{varg}"
     if lf_first:
         print("\n")
-    print(textwrap.indent(to_print, pref))
+    # Wrapped to 100 columns, prefix included; the prefix marks the first
+    # line only, continuation lines are space-indented under it.
+    wrapped = wrap_lines(to_print, width=100 - len(pref))
+    indented = textwrap.indent(wrapped, " " * len(pref))
+    print(pref + indented[len(pref):])
 
 
 def print_debug(*vargs, lf_first: bool = False):

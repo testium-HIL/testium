@@ -8,7 +8,7 @@ from functools import wraps
 import sqlite3
 from time import (time, sleep)
 import traceback
-from runtime.tum_except import (ETUMRuntimeError, ETUMSyntaxError)
+from runtime.tum_except import (ETUMRuntimeError, ETUMSyntaxError, wrap_lines)
 from runtime.stdout_redirect import stdio_redir
 from interpreter.utils.params import (expanse)
 from interpreter.utils.paths import prepare_file_to_save, no_window_kwargs
@@ -115,6 +115,10 @@ def _run_on_host(argv, cwd=None):
         return None
 
 
+def _rprint(msg):
+    print(wrap_lines(msg))
+
+
 def tr_procedure(f):
     @wraps(f)
     def wrapper(self, *args, **kwds):
@@ -194,7 +198,7 @@ class Export:
                 cls(name, con, path, pats, keys, no_header)
             except ETUMRuntimeError as e:
                 where = f' to "{path}"' if path else ''
-                print(f'[report] Export skipped: format "{et}"{where}: {e}')
+                _rprint(f'[report] Export skipped: format "{et}"{where}: {e}')
         else:
             self._exec_plugin(con, et, name, path, pats, keys, no_header)
 
@@ -211,7 +215,7 @@ class Export:
         where = f' to "{path}"' if path else ''
         pbin = bins.python_bin()
         if not pbin:
-            print(f'[report] Export skipped: format "{et}"{where}: needs a '
+            _rprint(f'[report] Export skipped: format "{et}"{where}: needs a '
                   'host Python 3 interpreter and none was found. Set the '
                   '"python_bin" global or preference.')
             return
@@ -230,7 +234,7 @@ class Export:
                 pass
 
         if r is None:
-            print(f'[report] Export skipped: format "{et}"{where}: could '
+            _rprint(f'[report] Export skipped: format "{et}"{where}: could '
                   f'not start the host Python "{pbin}".')
             return
         if r.returncode == _WORKER_EXIT_UNKNOWN_FORMAT:
@@ -239,14 +243,14 @@ class Export:
                 if line.startswith(_WORKER_FORMATS_SENTINEL):
                     names = line[len(_WORKER_FORMATS_SENTINEL):]
                     plugins = [n for n in names.split(',') if n]
-            print(f'[report] Export skipped: format "{et}"{where}: format '
+            _rprint(f'[report] Export skipped: format "{et}"{where}: format '
                   f'not found. Available: {self._available(plugins)}')
             return
         if r.stdout.strip():
             print(r.stdout.rstrip())
         if r.returncode != 0:
             detail = r.stderr.strip() or f'exit code {r.returncode}'
-            print(f'[report] Export skipped: format "{et}"{where}: {detail}')
+            _rprint(f'[report] Export skipped: format "{et}"{where}: {detail}')
 
     # Sentinels masking $(db)/$(out) from expanse(): they are export
     # placeholders resolved here, not global variables, so a global named
@@ -262,7 +266,7 @@ class Export:
             cmd = expanse(cmd.replace('$(db)', self._CMD_DB)
                              .replace('$(out)', self._CMD_OUT))
         if not isinstance(cmd, str) or not cmd.strip():
-            print('[report] Export skipped: the "command" export needs a '
+            _rprint('[report] Export skipped: the "command" export needs a '
                   'non-empty "cmd" string.')
             return
         db = _db_snapshot(con)
@@ -281,7 +285,7 @@ class Export:
                            .replace(self._CMD_OUT, path)
                         for tok in toks]
             except ValueError as e:
-                print(f'[report] Export skipped: cannot parse command '
+                _rprint(f'[report] Export skipped: cannot parse command '
                       f'"{cmd}" ({e}).')
                 return
             # Test directory as cwd so relative paths in cmd behave as in
@@ -292,7 +296,7 @@ class Export:
                 cwd = "/tmp" if os.path.isdir("/tmp") else None
             r = _run_on_host(argv, cwd=cwd)
             if r is None:
-                print(f'[report] Export skipped: format "command"'
+                _rprint(f'[report] Export skipped: format "command"'
                       + (f' to "{path}"' if path else '')
                       + f': could not start "{argv[0]}" (not found or not '
                       f'executable; cwd: {cwd}).')
@@ -301,7 +305,7 @@ class Export:
                 print(r.stdout.rstrip())
             if r.returncode != 0:
                 detail = r.stderr.strip()
-                print(f'[report] Export skipped: command "{argv[0]}" exited '
+                _rprint(f'[report] Export skipped: command "{argv[0]}" exited '
                       f'with code {r.returncode}'
                       + (f': {detail}' if detail else '.'))
         finally:
@@ -462,7 +466,7 @@ class TestReport:
                     export.exec(self._con)
 
             except:
-                print('[report] Report close failed (header write or '
+                _rprint('[report] Report close failed (header write or '
                       'export); traceback follows.')
                 print(traceback.format_exc())
         finally:

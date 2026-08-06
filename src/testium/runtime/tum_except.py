@@ -3,6 +3,15 @@ import textwrap
 from contextlib import contextmanager
 
 
+def wrap_lines(text, width=100):
+    """Wrap each physical line of *text* to *width* columns, preserving
+    embedded newlines (e.g. tracebacks)."""
+    out = []
+    for sub in str(text).splitlines() or [""]:
+        out.extend(textwrap.wrap(sub, width=width) or [sub])
+    return "\n".join(out)
+
+
 class ETUMError(Exception):
     def __init__(self, message: str, file: str):
         self._message = message
@@ -12,13 +21,8 @@ class ETUMError(Exception):
         return [self._message, self._file]
 
     def __str__(self):
-        # Long lines are wrapped so they stay readable in the log; embedded
-        # newlines (e.g. tracebacks) are preserved.
-        out = []
-        for line in self.str_lines():
-            for sub in str(line).splitlines() or [""]:
-                out.extend(textwrap.wrap(sub, width=100) or [sub])
-        return "\n".join(out)
+        # Long lines are wrapped so they stay readable in the log.
+        return "\n".join(wrap_lines(line) for line in self.str_lines())
 
 
 class ETUMRuntimeError(ETUMError):
