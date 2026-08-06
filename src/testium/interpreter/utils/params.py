@@ -1,7 +1,39 @@
+import re
+
 import interpreter.utils.globdict as globdict
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
 glob_eval_func = None
+
+_VAR_PATTERN = re.compile(r"\$\(([^)]+)\)")
+# Names that legitimately stay unresolved: loop variables outside a loop
+# context, deferred placeholders (command export, process_result).
+_DEFERRED_NAMES = ("loop_param", "loop_index", "loop_index_inverse",
+                   "loop_count", "db", "out", "result")
+
+
+def unresolved_names(value):
+    """Return the unresolved $(...) names found in *value* (strings are
+    scanned recursively through lists/dicts), deferred placeholders and
+    internal sentinels excluded."""
+    found = []
+
+    def _scan(v):
+        if isinstance(v, str):
+            for name in _VAR_PATTERN.findall(v):
+                if (name not in _DEFERRED_NAMES and "\x00" not in name
+                        and name not in found):
+                    found.append(name)
+        elif isinstance(v, dict):
+            for key, val in v.items():
+                _scan(key)
+                _scan(val)
+        elif isinstance(v, (list, tuple)):
+            for val in v:
+                _scan(val)
+
+    _scan(value)
+    return found
 
 class TestItemParams:
 
@@ -24,7 +56,19 @@ class TestItemParams:
             return "", ""
 
     def expanse(self, param_value):
-        return expanse(param_value, parent=self._parent)
+        result = expanse(param_value, parent=self._parent)
+        # An unresolved $(...) reaching a parameter of a *running* item is
+        # worth a signal: this run used the literal text.
+        o = self._owner
+        if o is not None and getattr(o, "_is_running", False):
+            for name in unresolved_names(result):
+                warn_once(
+                    ("param", o.name(), name),
+                    f"$({name}) is not defined in a parameter of "
+                    f"'{o.cmd()}' item '{o.name()}' — left as-is.",
+                    debug_hint="Fix the name, or set the variable before "
+                               "this item runs.")
+        return result
 
     def getParam(self, parameter, default=None, required=False, processed=False):
         """Returns a parameter value from the test item dictionnary.
@@ -310,24 +354,16 @@ def reset_expansion_warnings():
     _warned_expansions.clear()
 
 
-def warn_once(key, message):
-    """Print a WARN once per key and per test load."""
+def warn_once(key, message, debug_hint=None):
+    """Print a WARN once per key and per test load. The optional hint is
+    printed on a DEBUG line (visible in debug mode only)."""
     if key in _warned_expansions:
         return
     _warned_expansions.add(key)
     import api.testium as tm
     tm.print_warn(message)
-
-
-def _warn_unknown_global(glob):
-    # Loop variables resolve only inside a loop; db/out/result are deferred
-    # placeholders (command export, process_result); NUL bytes mark internal
-    # placeholders. None is a user typo.
-    if glob in ("loop_param", "loop_index", "loop_index_inverse",
-                "loop_count", "db", "out", "result") or "\x00" in glob:
-        return
-    warn_once(("global", glob),
-              f"$({glob}) is not defined — left as-is.")
+    if debug_hint:
+        tm.print_debug(debug_hint)
 
 
 def _operate_param(glob, parent):
@@ -348,7 +384,6 @@ def _operate_param(glob, parent):
     if g is None:
         treated = False
         g = glob
-        _warn_unknown_global(glob)
     return treated, g
 
 

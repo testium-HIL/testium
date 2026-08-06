@@ -22,11 +22,21 @@ def evaluate(val, _warn_on_failure=False, **replacement_dict):
             # eval can crash; the value is kept as-is (some expressions
             # only become evaluable later in the run).
             if _warn_on_failure:
-                from interpreter.utils.params import warn_once
-                # ETUM errors already carry a full message; avoid nesting.
-                detail = (getattr(e, "_message", None)
-                          or f"{type(e).__name__}: {e}")
-                warn_once(("eval", val), f"{detail} — left as-is.")
+                from interpreter.utils.params import warn_once, \
+                    unresolved_names
+                # An unresolved $(...) in the expression is the root cause;
+                # otherwise report the evaluation error itself.
+                unres = unresolved_names(val)
+                if unres:
+                    detail = (f"'<| {val} |>' evaluation failed: unresolved "
+                              + ", ".join(f"$({n})" for n in unres))
+                else:
+                    # ETUM errors already carry a full message; avoid nesting.
+                    detail = (getattr(e, "_message", None)
+                              or f"{type(e).__name__}: {e}")
+                warn_once(("eval", val), f"{detail} — left as-is.",
+                          debug_hint="Fix the expression, or set the "
+                                     "variable before it is evaluated.")
             elif tm.debug_enabled():
                 tm.print_debug(
                     f"Evaluation of '{val}' failed with message:\n  {e}")
