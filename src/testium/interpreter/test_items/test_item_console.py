@@ -101,7 +101,8 @@ class TestItemConsoleOpen(TestItemConsoleAction):
         if not (self._protocol in ["telnet", "ssh", "rawtcp", "serial", "terminal"]):
             self.result.set(
                 TestValue.FAILURE,
-                '"protocol" can only be "telnet", "ssh", "rawtcp", "serial" or "terminal"',
+                '"protocol" is {!r}; it can only be "telnet", "ssh", "rawtcp", '
+                '"serial" or "terminal"'.format(self._protocol),
             )
             return
 
@@ -330,11 +331,11 @@ class TestItemConsoleWrite(TestItemConsoleAction):
             m = f"Console '{self.token['console_name']}': impossible to write ({e._message})"
             self.result.set(result=TestValue.FAILURE, message=m)
             print(m)
-        except Exception:
+        except Exception as e:
             print(traceback.format_exc())
             self.result.set(
                 result=TestValue.FAILURE,
-                message=f"Console '{self.token['console_name']}': impossible to write",
+                message=f"Console '{self.token['console_name']}': impossible to write ({e})",
             )
 
 
@@ -364,11 +365,11 @@ class TestItemConsoleWriteLn(TestItemConsoleAction):
             m = f"Console '{self.token['console_name']}': impossible to write ({e._message})"
             self.result.set(result=TestValue.FAILURE, message=m)
             print(m)
-        except Exception:
+        except Exception as e:
             print(traceback.format_exc())
             self.result.set(
                 result=TestValue.FAILURE,
-                message=f"Console '{self.token['console_name']}': impossible to write",
+                message=f"Console '{self.token['console_name']}': impossible to write ({e})",
             )
 
 
@@ -430,7 +431,12 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
                     message="Console read aborted on stop request",
                 )
             else:
-                self.result.set(result=TestValue.FAILURE, message="No matching text")
+                msg = "No matching text: expected {!r}".format(ru)
+                if read_timeout is not None:
+                    msg += " within {:g}s".format(read_timeout)
+                if data:
+                    msg += "; received tail: {!r}".format(data[-200:])
+                self.result.set(result=TestValue.FAILURE, message=msg)
             reported = {"data": "" if mute else data}
             # When several patterns were given, expose which one matched.
             if status == 0 and isinstance(ru, (list, tuple)):
@@ -444,12 +450,12 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
             msg = f"Console '{self.token['console_name']}': impossible to read ({e._message})"
             self.result.set(result=TestValue.FAILURE, message=msg)
             print(msg)
-        except Exception:
+        except Exception as e:
             # Unexpected error: keep the full traceback for diagnosis.
             print(traceback.format_exc())
             self.result.set(
                 result=TestValue.FAILURE,
-                message=f"Console '{self.token['console_name']}': impossible to read",
+                message=f"Console '{self.token['console_name']}': impossible to read ({e})",
             )
 
 

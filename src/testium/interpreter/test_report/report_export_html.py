@@ -39,7 +39,8 @@ class ReportExportHTML(Exporter):
                     p = lxml.etree.SubElement(self.logsection, 'p')
                     p.text = html.escape(l)
         except ValueError as e:
-            print(f"Error reporting html: {e}")
+            print(f'[report] HTML export: cannot render row for test '
+                  f'"{row.name}": {e}')
 
 
     def create_base(self):

@@ -9,6 +9,7 @@ from PySide6.QtGui import QIcon, QPixmap
 
 from interpreter.utils.icons import icon_prefix
 import interpreter.utils.settings as prefs
+import api.testium as tm
 
 
 class TestState(Enum):
@@ -82,12 +83,15 @@ class TestRunner:
                                            encoding="utf-8", errors="replace")
                 w.out_log.set(self.logFileHandler)
                 w.logFileName = log_file
-            except:
+            except BaseException as e:
                 self.logFileHandler = NamedTemporaryFile(
                     mode="w", suffix=".log", delete=False,
                     encoding="utf-8", errors="replace")
                 w.out_log.set(self.logFileHandler)
                 w.logFileName = self.logFileHandler.name
+                tm.print_warn(
+                    f"Could not open the log file {log_file} ({e}); "
+                    f"logging to {w.logFileName} instead.")
         else:
             self.logFileHandler = NamedTemporaryFile(
                 mode="w", suffix=".log", delete=False,
@@ -109,6 +113,7 @@ class TestRunner:
             w.test_service.set_test_outputs([w.logFileName])
             w.test_service.execute()
         except:
+            print(f"The test run could not be started ({w.testFile}).")
             print(traceback.format_exc())
             self.restore_interface_after_test()
 

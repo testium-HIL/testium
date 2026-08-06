@@ -102,12 +102,16 @@ class TestiumSettings():
 
     def value(self, key: SettingsItem, default=_UNSET):
         if not isinstance(key, SettingsItem):
-            raise ETUMRuntimeError('Not a proper Settings item.')
+            raise ETUMRuntimeError(
+                f'Not a SettingsItem: {key!r}. '
+                f'Internal error, please report it.')
         if default is _UNSET:
             default = key.default
         if type(default) != key.t:
             raise ETUMRuntimeError(
-                'Types mismatch in config file. You could try to erase "{}" to solve the issue'.format(self.settings_fname))
+                f'Type mismatch for setting "{key.name}": default is '
+                f'{type(default).__name__}, expected {key.t.__name__}. '
+                f'Erasing "{self.settings_fname}" may solve the issue.')
         ret = default
         try:
             if key.t == int:
@@ -134,7 +138,9 @@ class TestiumSettings():
     def set_value(self, key: SettingsItem, value: any):
         if type(value) != key.t:
             raise ETUMRuntimeError(
-                'Types mismatch in config file. You could try to erase "{}" to solve the issue'.format(self.settings_fname))
+                f'Type mismatch for setting "{key.name}": got '
+                f'{type(value).__name__}, expected {key.t.__name__}. '
+                f'Erasing "{self.settings_fname}" may solve the issue.')
         if key.t == int:
             self.conf.set('Default', key.name, str(int(value)))
         elif key.t == bool:

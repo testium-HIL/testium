@@ -25,6 +25,7 @@ Exit codes:
 import json
 import sqlite3
 import sys
+import traceback
 
 FORMATS_SENTINEL = "__TESTIUM_EXPORT_FORMATS__="
 EXIT_UNKNOWN_FORMAT = 3
@@ -53,7 +54,8 @@ def main():
         cls(params["name"], con, params["path"],
             params["pats"], params["keys"], params["no_header"])
     except Exception as e:
-        print(f'Exporter "{fmt}" failed: {type(e).__name__}: {e}',
+        print(f'Exporter "{fmt}" failed writing "{params["path"]}": '
+              f'{type(e).__name__}: {e}\n{traceback.format_exc()}',
               file=sys.stderr)
         return 1
     finally:

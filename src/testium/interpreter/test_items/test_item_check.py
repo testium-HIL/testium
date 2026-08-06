@@ -43,6 +43,7 @@ class TestItemCheckValue(TestItem):
             self._action_list = [self._action_list]
 
         is_success = True
+        failed = []
         #test core function
         for v in self._action_list:
             val = self._prms.expanse(v)
@@ -53,8 +54,9 @@ class TestItemCheckValue(TestItem):
                 print("Evaluation of '{}' --> {}.".format(v, val))
             if not val:
                 is_success = False
+                failed.append("'{}' evaluated to {}".format(v, val))
 
         if is_success:
             self.result.set(TestValue.SUCCESS, 'Check passed')
         else:
-            self.result.set(TestValue.FAILURE, 'Check failed')
+            self.result.set(TestValue.FAILURE, 'Check failed: ' + '; '.join(failed))

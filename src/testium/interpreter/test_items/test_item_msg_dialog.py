@@ -44,7 +44,7 @@ class TestItemMsgDialog(TestItemDialogBase):
                 if ar is not None:
                     self.result.set(TestValue.SUCCESS)
                 else:
-                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    self.result.set(TestValue.FAILURE, "Dialog not supported in batch mode: set 'auto_result' to run this item headless")
             return
         from interpreter.test_items.dialog_msg_files import msg_dialog
         ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None

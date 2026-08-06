@@ -68,7 +68,8 @@ local server_sock = socket.tcp()
 
 local ok, err = server_sock:bind(config.host, config.port)
 if not ok then
-    utils.log("error : %s", err)
+    io.stderr:write(string.format("lua_func: cannot bind %s:%d: %s\n",
+                                  config.host, config.port, tostring(err)))
     os.exit(1)
 end
 
@@ -85,8 +86,9 @@ server_sock:settimeout(config.timeout) -- Prevents hanging on dead connections
 -- Main Server Loop
 local client_sock, err = server_sock:accept()
 if err then
-    utils.log("connection failed: %s", err)
-    os.exit(0)
+    io.stderr:write(string.format(
+        "lua_func: no client connected on %s:%d: %s\n", ip, port, tostring(err)))
+    os.exit(1)
 end
 
 utils.log("Client connected")

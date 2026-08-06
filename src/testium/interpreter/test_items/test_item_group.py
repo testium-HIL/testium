@@ -59,11 +59,26 @@ class TestItemGroup(TestItem):
         # end of loop test
         if self.isStopped() or to_be_stopped:
             if to_be_stopped:
-                self.result.set(TestValue.FAILURE, 'Group execution aborted on failure')
+                msg = 'Group execution aborted on failure'
+                failing = self.__failing_child_name()
+                if failing:
+                    msg += " of step '{}'".format(failing)
+                self.result.set(TestValue.FAILURE, msg)
             else:
                 self.result.set(TestValue.NORUN, 'Group execution aborted on user request')
         else:
             self.result.set(TestValue.SUCCESS, '')
             for res in results:
                 if not res.success:
-                    self.result.set(TestValue.FAILURE, '')
+                    failing = self.__failing_child_name()
+                    self.result.set(
+                        TestValue.FAILURE,
+                        "Step '{}' failed".format(failing) if failing
+                        else 'A child step failed')
+
+    def __failing_child_name(self):
+        """Name of the first failed child, for result messages only."""
+        for j in range(self.childCount()):
+            if self.child(j).result.test_result == TestValue.FAILURE:
+                return self.child(j).name()
+        return None

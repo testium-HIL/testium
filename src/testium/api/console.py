@@ -74,8 +74,11 @@ class Console(object):
         before the Console object is terminated by the garbage collector (GC).
         """
         if getattr(self, "isOpened", False):
-            print('Warning: {classname} is about to be deleted but the connection was not closed. \
-A {classname}.close() is missing somewhere in your code !'.format(classname=type(self).__name__))
+            name = getattr(self, "name", None)
+            who = ("console '{}' ({})".format(name, type(self).__name__)
+                   if name else type(self).__name__)
+            print('Warning: {} is about to be deleted but the connection was not closed. '
+                  'A close() call is missing somewhere in your code!'.format(who))
             self.close()
 
     def __enter__(self):
@@ -110,7 +113,8 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         underlying transport (telnet/ssh session, serial port, socket, …)."""
         if not getattr(self, "isOpened", False):
             raise ETUMRuntimeError(
-                "console '{}' is not open".format(getattr(self, "name", "?"))
+                "console '{}' is not open: its open action failed, never ran, "
+                "or it was closed".format(getattr(self, "name", "?"))
             )
 
     def _is_valid_character(self, data):
@@ -178,15 +182,21 @@ A {classname}.close() is missing somewhere in your code !'.format(classname=type
         read_data = ''
         status = -1
         if not match:
-            raise ETUMRuntimeError("'expected' pattern can not be empty")
+            raise ETUMRuntimeError(
+                "'expected' pattern can not be empty (got {!r}); an unresolved "
+                "$(var) is a common cause".format(match))
 
         # match: a string or list of strings; succeed as soon as any is seen.
         if isinstance(match, (list, tuple)):
             matches = [str(m) for m in match]
         else:
             matches = [str(match)]
-        if (not matches) or any(len(m) == 0 for m in matches):
-            raise ETUMRuntimeError("'expected' pattern can not be empty")
+        for idx, m in enumerate(matches):
+            if len(m) == 0:
+                raise ETUMRuntimeError(
+                    "'expected' pattern can not be empty: entry {} of {!r} is "
+                    "empty; an unresolved $(var) is a common cause".format(
+                        idx, matches))
 
         if timeout is None:
             timeout = 1000000
@@ -340,13 +350,19 @@ class TelnetConsole(Console):
                 self.port = Telnet(self.host, self.port_id)
                 break
             except (TimeoutError, ConnectionRefusedError) as exc:
-                msg = '{}, Retrying in {} seconds...'.format(str(exc), mdelay)
+                msg = 'WARN: could not connect to telnet {}:{} ({}), retrying in {} seconds...'.format(
+                    self.host, self.port_id, exc, mdelay)
                 print(msg)
                 sleep(mdelay)
                 mtries -= 1
                 mdelay *= 2
         else:
-            self.port = Telnet(self.host, self.port_id)
+            try:
+                self.port = Telnet(self.host, self.port_id)
+            except OSError as exc:
+                raise ETUMRuntimeError(
+                    "could not connect to telnet {}:{} for console '{}': {}".format(
+                        self.host, self.port_id, self.name, exc)) from None
 
         self.isOpened = True
 
@@ -450,6 +466,18 @@ class ETSConsole(TelnetConsole):
         self.read_until(">", 5)
 
 
+def _serial_open_error_message(port_id, exc):
+    """Build a short, direct message for a failed serial open."""
+    errno_ = getattr(exc, "errno", None)
+    if errno_ == errno.ENOENT:
+        return "Serial device '{}' does not exist.".format(port_id)
+    if errno_ == errno.EACCES:
+        return ("Permission denied opening serial device '{}' "
+                "(is your user allowed to access it, e.g. 'dialout' group?)."
+                .format(port_id))
+    return "Could not open serial device '{}': {}".format(port_id, exc)
+
+
 class SerialConsole(Console):
     TYPE = 'serial'
 
@@ -493,15 +521,7 @@ class SerialConsole(Console):
             self._thd.start()
 
     def _open_error_message(self, exc):
-        """Build a short, direct message for a failed serial open."""
-        errno_ = getattr(exc, "errno", None)
-        if errno_ == errno.ENOENT:
-            return "Serial device '{}' does not exist.".format(self.port_id)
-        if errno_ == errno.EACCES:
-            return ("Permission denied opening serial device '{}' "
-                    "(is your user allowed to access it, e.g. 'dialout' group?)."
-                    .format(self.port_id))
-        return "Could not open serial device '{}': {}".format(self.port_id, exc)
+        return _serial_open_error_message(self.port_id, exc)
 
     def read_thread(self):
         while not self.stop.is_set():
@@ -523,11 +543,13 @@ class SerialConsole(Console):
 
     def readchar(self, timeout):
         if not self.isOpened:
-            raise ETUMRuntimeError("Serial console '{}' is not open".format(self.name))
+            raise ETUMRuntimeError(
+                "serial console '{}' ({}) is not open".format(self.name, self.port_id))
         if self.bufferize:
             if not self._thd.is_alive() and not self.stop.isSet():
                 raise ETUMRuntimeError(
-                    "Impossible to read the serial console, it may be already opened")
+                    "cannot read serial console '{}' ({}): its background reader "
+                    "thread is not running".format(self.name, self.port_id))
             if timeout < TIMEOUT_NULL:
                 return self.rx_queue.get(block=False)
             else:
@@ -540,11 +562,13 @@ class SerialConsole(Console):
 
     def read_nowait(self, mute=False):
         if not self.isOpened:
-            raise ETUMRuntimeError("Serial console '{}' is not open".format(self.name))
+            raise ETUMRuntimeError(
+                "serial console '{}' ({}) is not open".format(self.name, self.port_id))
         if self.bufferize:
             if not self._thd.is_alive() and not self.stop.isSet():
                 raise ETUMRuntimeError(
-                    "Impossible to read the serial console, it may be already opened")
+                    "cannot read serial console '{}' ({}): its background reader "
+                    "thread is not running".format(self.name, self.port_id))
             st = self.rx_queue.getAll().decode(self.encoding, errors='replace')
             if not mute:
                 date_str = str(datetime.now()).split('.')[0].split(' ')[1]
@@ -662,7 +686,8 @@ class LoggedConsole(Console):
 
     def readchar(self, timeout=None):
         if self.log_fd is None:
-            raise ConnectionAbortedError
+            raise ConnectionAbortedError(
+                "console '{}' closed while reading".format(self.name))
         try:
             return self.rx_queue.get(timeout=timeout)
         except Empty:
@@ -670,7 +695,8 @@ class LoggedConsole(Console):
 
     def read_nowait(self, mute=False):
         if self.log_fd is None:
-            raise ConnectionAbortedError
+            raise ConnectionAbortedError(
+                "console '{}' closed while reading".format(self.name))
         chars = ''
         for _ in range(self.rx_queue.qsize()):
             chars = chars + self.rx_queue.get().decode(self.encoding, errors='replace')
@@ -694,7 +720,10 @@ class SerialLoggedConsole(LoggedConsole):
         return self.port.read(1)
 
     def open(self):
-        self.port = serial.Serial(port=self.port_id, baudrate=self.baudrate, timeout=None)
+        try:
+            self.port = serial.Serial(port=self.port_id, baudrate=self.baudrate, timeout=None)
+        except (serial.SerialException, OSError) as e:
+            raise ETUMRuntimeError(_serial_open_error_message(self.port_id, e)) from None
         super().open()
 
 
@@ -708,7 +737,12 @@ class TelnetLoggedConsole(LoggedConsole):
         self.port_id = port
 
     def open(self):
-        self.port = Telnet(self.host, self.port_id)
+        try:
+            self.port = Telnet(self.host, self.port_id)
+        except OSError as exc:
+            raise ETUMRuntimeError(
+                "could not connect to telnet {}:{} for console '{}': {}".format(
+                    self.host, self.port_id, self.name, exc)) from None
         super().open()
 
     def _readPort(self, timeout=0.2):

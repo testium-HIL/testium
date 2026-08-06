@@ -47,7 +47,7 @@ class TestItemNoteDialog(TestItemDialogBase):
                 ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
                 av = self._prms.expanse(self._auto_value) if self._auto_value is not None else None
                 if ar is None:
-                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    self.result.set(TestValue.FAILURE, "Dialog not supported in batch mode: set 'auto_result' to run this item headless")
                     return
                 if ar == 'cancel':
                     self.result.set(TestValue.FAILURE, 'Dialog cancelled')

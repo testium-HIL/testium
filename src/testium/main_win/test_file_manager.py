@@ -124,7 +124,8 @@ class TestFileManager:
         progress = None
         try:
             if not file_name:
-                raise ETUMFileError("No file to load")
+                raise ETUMFileError(
+                    "No file to load. Internal error, please report it.")
 
             file_name = os.path.abspath(file_name)
             # Kept so Refresh can retry even after a failed load.
@@ -182,8 +183,8 @@ class TestFileManager:
                 del w.ts_controller
                 w.ts_controller = None
                 raise ETUMRuntimeError(
-                    "Test could not be loaded. See the log above for the cause "
-                    "(syntax error, missing file, missing module, ...)."
+                    f"{file_name} could not be loaded. See the log above for "
+                    "the cause (syntax error, missing file, missing module, ...)."
                 )
 
             progress.setLabelText("Building test tree…")
@@ -225,6 +226,8 @@ class TestFileManager:
             w.actionStart_test.setDisabled(True)
             w.actionStep_into.setDisabled(True)
             w.actionRefresh_test.setEnabled(True)
+            print(f"{file_name or 'The test file'} could not be loaded: "
+                  "unexpected error, traceback follows.")
             print(traceback.format_exc())
             return False
 

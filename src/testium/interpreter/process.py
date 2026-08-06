@@ -74,10 +74,13 @@ class TestProcess(Process):
     def _check_test_dict(self, test_dict):
         if not isinstance(test_dict, dict):
             raise ETUMSyntaxError(
-                "The tum file has a major problem. Please check the documentation for syntax.")
+                f"The tum file root must be a dictionary of sections, "
+                f"got {type(test_dict).__name__}: {test_dict!r}.",
+                self.__fname)
         if not 'main' in test_dict.keys():
             raise ETUMSyntaxError(
-                "The tum file has a major problem. The 'main' section could not be found.")
+                "The 'main' root item of the principal 'tum' file could not be found.",
+                self.__fname)
 
     def _locate_config_files(self, test_dir, config_files, silent=False):
         ret = []
@@ -130,7 +133,10 @@ class TestProcess(Process):
                         pf.append(p)
             else:
                 raise ETUMSyntaxError(
-                    'Unrecognized tum "param_file" : {}'.format(param_filename))
+                    f'Unrecognized "param_file" value, '
+                    f'got {type(param_filename).__name__}: {param_filename!r}. '
+                    f'Expected a file path string or a list of file path strings.',
+                    self.__fname)
         elif isinstance(config_files, list):
             pf = config_files
         elif isinstance(config_files, str):
@@ -242,8 +248,11 @@ class TestProcess(Process):
                 tm.print_debug(f"python bin is: '{eval_proc.python_bin}'.")
                 if not eval_proc.wait_ready(10):
                     raise ETUMRuntimeError(
-                                        f"""Impossible to start the external python execution process.
-Is the python exec path correct ?"""
+                        f"Could not start the external python execution process.\n"
+                        f"python_bin = \"{eval_proc.python_bin}\"\n"
+                        f"Check the python_bin setting (GUI preference, "
+                        f"'-d python_bin=...' or param file).",
+                        self.__fname
                     )
 
                 try:
@@ -428,7 +437,9 @@ Is the python exec path correct ?"""
                         elif args is None:
                             res = {cmd: self.__cmds[cmd]()}
                         else:
-                            raise ETUMRuntimeError("Test process control command malformed")
+                            raise ETUMRuntimeError(
+                                f"Malformed test process control command: "
+                                f"{qcontent!r}. Internal error, please report it.")
                     except ETUMRuntimeError as e:
                         res = (None, str(e))
                     except:

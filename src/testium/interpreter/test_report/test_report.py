@@ -193,7 +193,8 @@ class Export:
                 cls = _EXPORTER_REGISTRY[et]()
                 cls(name, con, path, pats, keys, no_header)
             except ETUMRuntimeError as e:
-                print(f'[report] Export skipped: {e}')
+                where = f' to "{path}"' if path else ''
+                print(f'[report] Export skipped: format "{et}"{where}: {e}')
         else:
             self._exec_plugin(con, et, name, path, pats, keys, no_header)
 
@@ -207,10 +208,12 @@ class Export:
     def _exec_plugin(self, con, et, name, path, pats, keys, no_header):
         """Run a non-builtin export format through the host-side worker
         (entry-point plugins are installed on the host Python)."""
+        where = f' to "{path}"' if path else ''
         pbin = bins.python_bin()
         if not pbin:
-            print(f'[report] Export skipped: format "{et}" needs a host '
-                  'Python 3 interpreter and none was found.')
+            print(f'[report] Export skipped: format "{et}"{where}: needs a '
+                  'host Python 3 interpreter and none was found. Set the '
+                  '"python_bin" global or preference.')
             return
         worker = os.path.join(bins._get_host_testium_path(),
                               'runtime', 'export_worker.py')
@@ -227,8 +230,8 @@ class Export:
                 pass
 
         if r is None:
-            print(f'[report] Export skipped: format "{et}": could not start '
-                  f'the host Python "{pbin}".')
+            print(f'[report] Export skipped: format "{et}"{where}: could '
+                  f'not start the host Python "{pbin}".')
             return
         if r.returncode == _WORKER_EXIT_UNKNOWN_FORMAT:
             plugins = []
@@ -236,14 +239,14 @@ class Export:
                 if line.startswith(_WORKER_FORMATS_SENTINEL):
                     names = line[len(_WORKER_FORMATS_SENTINEL):]
                     plugins = [n for n in names.split(',') if n]
-            print(f'[report] Export skipped: format "{et}" not found. '
-                  f'Available: {self._available(plugins)}')
+            print(f'[report] Export skipped: format "{et}"{where}: format '
+                  f'not found. Available: {self._available(plugins)}')
             return
         if r.stdout.strip():
             print(r.stdout.rstrip())
         if r.returncode != 0:
             detail = r.stderr.strip() or f'exit code {r.returncode}'
-            print(f'[report] Export skipped: {detail}')
+            print(f'[report] Export skipped: format "{et}"{where}: {detail}')
 
     # Sentinels masking $(db)/$(out) from expanse(): they are export
     # placeholders resolved here, not global variables, so a global named
@@ -282,11 +285,17 @@ class Export:
                       f'"{cmd}" ({e}).')
                 return
             # Test directory as cwd so relative paths in cmd behave as in
-            # the rest of the .tum.
-            r = _run_on_host(argv, cwd=tm.gd('test_directory', None))
+            # the rest of the .tum. Same fallback as _run_on_host so the
+            # error message names the cwd actually used.
+            cwd = tm.gd('test_directory', None)
+            if cwd is None or not os.path.isdir(cwd):
+                cwd = "/tmp" if os.path.isdir("/tmp") else None
+            r = _run_on_host(argv, cwd=cwd)
             if r is None:
-                print(f'[report] Export skipped: could not start command '
-                      f'"{argv[0]}".')
+                print(f'[report] Export skipped: format "command"'
+                      + (f' to "{path}"' if path else '')
+                      + f': could not start "{argv[0]}" (not found or not '
+                      f'executable; cwd: {cwd}).')
                 return
             if r.stdout.strip():
                 print(r.stdout.rstrip())
@@ -427,8 +436,11 @@ class TestReport:
         else:
             rep_path = expanse(rep_path)
             prepare_file_to_save(rep_path)
-            if not os.path.exists(os.path.dirname(rep_path)):
-                raise ETUMRuntimeError("Report path does not exist: " + rep_path)
+            rep_dir = os.path.dirname(rep_path)
+            if not os.path.exists(rep_dir):
+                raise ETUMRuntimeError(
+                    f'Report directory does not exist: "{rep_dir}" '
+                    f'(report file: "{rep_path}")')
         self._con = sqlite3.connect(rep_path, check_same_thread=False)
         self.createHeader(header)
         self.createTestTable()
@@ -450,6 +462,8 @@ class TestReport:
                     export.exec(self._con)
 
             except:
+                print('[report] Report close failed (header write or '
+                      'export); traceback follows.')
                 print(traceback.format_exc())
         finally:
             self._con.close()
@@ -525,7 +539,14 @@ class TestReport:
                 else:
                     param = param + ('',)
             else:
-                raise ETUMRuntimeError('unknow database key')
+                raise ETUMRuntimeError(
+                    f'Unknown report database column "{l[0]}". Accepted: '
+                    + ', '.join((cst.DB_TEST_TIMESTAMP_START, cst.DB_TEST_ID,
+                                 cst.DB_TEST_PARENT_ID, cst.DB_TEST_LEVEL,
+                                 cst.DB_TEST_NAME, cst.DB_TEST_TYPE,
+                                 cst.DB_TEST_KEY, cst.DB_TEST_RESULT,
+                                 cst.DB_TEST_MESSAGE, cst.DB_TEST_DURATION,
+                                 cst.DB_TEST_LOG, cst.DB_TEST_DATA)))
 
         req = 'INSERT INTO tests VALUES('
         for l in self.TEST_COLS:

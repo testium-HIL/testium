@@ -160,7 +160,8 @@ class TestItemPlotActionPeriodic(TestItemPlotAction):
         except:
             traceback.print_exception(*sys.exc_info())
             self.result.set(
-                result=TestValue.FAILURE, message='Unrecoverable "plot" item error'
+                result=TestValue.FAILURE,
+                message='Unrecoverable "plot" item error: {}'.format(sys.exc_info()[1])
             )
         else:
             self.result.set(result=TestValue.SUCCESS)
@@ -191,7 +192,8 @@ class TestItemPlotActionAdd(TestItemPlotAction):
         else:
             self.result.set(
                 TestValue.FAILURE,
-                f"Plot item ({self._name}) 'add' content must be a dict.",
+                f"Plot item ({self._name}) 'add' content must be a dict, "
+                f"but got {type(input).__name__} ({input!r}).",
             )
             return
 
@@ -223,7 +225,8 @@ class TestItemPlotActionLastValues(TestItemPlotAction):
         else:
             self.result.set(
                 TestValue.FAILURE,
-                f"Plot item ({self._name}) 'name' parameter of 'last_value' action must be a list.",
+                f"Plot item ({self._name}) 'name' parameter of 'last_value' action "
+                f"must be a list, but got {type(keys).__name__} ({keys!r}).",
             )
             return
 

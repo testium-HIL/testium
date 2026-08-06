@@ -58,8 +58,11 @@ class TestItemCycle(TestItem):
 
         if "exit_condition" in dict_cycle:
             if not isinstance(dict_cycle["exit_condition"], dict):
+                ec = dict_cycle["exit_condition"]
                 raise ETUMSyntaxError(
-                    f"The '{self.cmd()}' test item named '{self.name()}' has an error in its exit condition",
+                    f"The '{self.cmd()}' test item named '{self.name()}' has an invalid "
+                    f"'exit_condition': a mapping is expected but got "
+                    f"{type(ec).__name__} ({ec!r})",
                 self.seqFilename()
             )
 
@@ -259,7 +262,10 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                             else:
                                 print("Exiting condition not met : \"{}\"".format(fres))
                         else:
-                            raise ETUMRuntimeError(f"Loop exiting function failed: \"{res}\"")
+                            raise ETUMRuntimeError(
+                                f'Loop exit function "{func}" (file "{file}") failed at '
+                                f'iteration {i}/{self._niter}: "{res}"',
+                                self.seqFilename())
 
                         if post_eval:
                             print(f"Evaluation: \"{post_eval}\"")

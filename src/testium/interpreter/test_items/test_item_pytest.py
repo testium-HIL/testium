@@ -186,7 +186,9 @@ class TestItemPytestFile(TestItem):
     def _pytest_popen(self, args):
         pbin = bins.python_bin()
         if not pbin:
-            raise ETUMRuntimeError("No valid Python 3 interpreter found")
+            raise ETUMRuntimeError(
+                "No valid Python 3 interpreter found on PATH: set 'python_bin' "
+                "in the YAML config to override", self.seqFilename())
 
         env = os.environ.copy()
         bins.apply_host_libs(env)
@@ -253,26 +255,35 @@ class TestItemPytestFile(TestItem):
     def load(self):
         ret = {}
         if self._fileName == '':
-            raise ETUMFileError('A file name is expected but got "None"')
+            raise ETUMFileError(
+                "The 'test_file' parameter is empty: a pytest file path is expected",
+                self.seqFilename())
 
+        raw = self._fileName
         if not os.path.isabs(self._fileName):
             self._fileName = os.path.normpath(os.path.join(self._testDir, self._fileName))
         if not os.path.isfile(self._fileName):
-            raise ETUMFileError('File "%s" is not found' % (self._fileName))
+            declared = ('"%s"' % raw if raw == self._fileName
+                        else '"%s" (resolved to "%s" in test directory "%s")'
+                             % (raw, self._fileName, self._testDir))
+            raise ETUMFileError('File %s is not found' % declared,
+                                self.seqFilename())
 
         self._cwd = os.path.dirname(self._fileName) or "."
         self._launcher = self._write_launcher()
 
         nodeids, output = self._collect()
         if not nodeids:
-            raise ETUMFileError(self._collection_error(output))
+            raise ETUMFileError(self._collection_error(output), self.seqFilename())
 
         if self._test_methods:
             present = {nid.split("::")[-1].split("[")[0] for nid in nodeids}
             for m in self._test_methods:
                 if m not in present:
                     raise ETUMFileError(
-                        'Test function "%s" is not found in "%s"' % (m, self._fileName))
+                        'Test function "%s" is not found in "%s". Collected: %s'
+                        % (m, self._fileName, ", ".join(sorted(present))),
+                        self.seqFilename())
             wanted = set(self._test_methods)
             nodeids = [nid for nid in nodeids
                        if nid.split("::")[-1].split("[")[0] in wanted]

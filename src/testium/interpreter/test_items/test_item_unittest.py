@@ -176,13 +176,20 @@ class TestItemUnittestFile(TestItem):
     def load(self):
         ret = {}
         if self._fileName == '':
-            raise ETUMFileError('A file name is expected but got "None"')
+            raise ETUMFileError(
+                "The 'test_file' parameter is empty: a unittest file path is expected",
+                self.seqFilename())
 
+        raw = self._fileName
         if not os.path.isabs(self._fileName):
             self._fileName = os.path.normpath(os.path.join(self._testDir, self._fileName))
 
         if not os.path.isfile(self._fileName):
-            raise ETUMFileError('File "%s" is not found' % (self._fileName))
+            declared = ('"%s"' % raw if raw == self._fileName
+                        else '"%s" (resolved to "%s" in test directory "%s")'
+                             % (raw, self._fileName, self._testDir))
+            raise ETUMFileError('File %s is not found' % declared,
+                                self.seqFilename())
 
         sys.path.append(os.path.dirname(self._fileName))
 
@@ -208,8 +215,10 @@ class TestItemUnittestFile(TestItem):
 
         for test_method in self._test_methods:
             if not test_method in testnames:
-                raise ETUMFileError('Test method "%s" is not found in "%s"' % (
-                    test_method, self._fileName))
+                raise ETUMFileError(
+                    'Test method "%s" is not found in "%s". Available: %s'
+                    % (test_method, self._fileName, ", ".join(sorted(testnames))),
+                    self.seqFilename())
 
         for tests in test_suites:
             for test in tests:

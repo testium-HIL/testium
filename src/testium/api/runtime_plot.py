@@ -324,7 +324,9 @@ class RuntimePlot:
             self.p.join()
             print("Plot window closed.")
         else:
-            raise ETUMRuntimeError(f"The plot window \"{self.name}\" has died unexpectedly")
+            raise ETUMRuntimeError(
+                f"The plot window \"{self.name}\" has died unexpectedly: "
+                f"check the log for the plot subprocess error")
 
     def close_wait_dialog_exit(self, timeout=-1):
         for p in self.periodic:
@@ -338,7 +340,9 @@ class RuntimePlot:
             self.p.join()
             print("Plot window closed.")
         else:
-            raise ETUMRuntimeError(f"The plot window \"{self.name}\" has died unexpectedly")
+            raise ETUMRuntimeError(
+                f"The plot window \"{self.name}\" has died unexpectedly: "
+                f"check the log for the plot subprocess error")
 
     def on_close_timeout(self):
         if self.p.is_alive():
@@ -358,7 +362,8 @@ class RuntimePlot:
         path = abs_path_from_file(file_name)
         if not path.suffix in self.EXPORTS:
             raise ETUMRuntimeError(
-                f"The \"{self.name}\" plot exported file type is unknown (file = {str(path)})"
+                f"The \"{self.name}\" plot exported file type is unknown "
+                f"(file = {str(path)}): accepted extensions are {', '.join(self.EXPORTS)}"
             )
 
         self.msg_queue_out.put({"command": "export" + path.suffix, "values": str(path)})
@@ -370,5 +375,7 @@ class RuntimePlot:
         try:
             res = self.msg_queue_in.get(timeout=5)
         except queue.Empty:
-            raise ETUMRuntimeError(f"Impossible to retrieve the last values of the \"{self.name}\" plot")
+            raise ETUMRuntimeError(
+                f"Impossible to retrieve the last values of the \"{self.name}\" plot "
+                f"within the 5 s timeout")
         return res

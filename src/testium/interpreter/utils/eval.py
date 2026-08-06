@@ -53,7 +53,9 @@ def eval_to_boolean(c):
     elif type(c) is int:
         condition = c > 0
     else:
-        raise ETUMSyntaxError("c : {} not string, int or bool".format(c))
+        raise ETUMSyntaxError(
+            f"Condition must evaluate to a string, int or bool, "
+            f"got {type(c).__name__}: {c!r}.")
     return condition
 
 
@@ -67,9 +69,12 @@ def post_evaluate(post_eval, res):
                 f"'eval' ({post_eval}) must be a string and have the '$(result)' substitution keyword."
             )
 
+        substituted = post_eval.replace("$(result)", str(res))
         is_evaluated, res = evaluate(post_eval, result=res)
         if not is_evaluated:
             raise ETUMRuntimeError(
-                f"Function result evaluation fails: '{post_eval}' syntax error."
+                f"Result evaluation failed: '{post_eval}' "
+                f"(after substitution: '{substituted}') is not a valid "
+                f"expression."
             )
     return res

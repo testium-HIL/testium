@@ -363,10 +363,16 @@ class JsonRpcSrv(JsonRpcBase):
         self.name = f"JsonRpcSvr_{port}"
         self._bound_port = None
         self._bound_evt = threading.Event()
+        self._bind_error = None
 
     @property
     def bound_port(self):
         return self._bound_port
+
+    @property
+    def bind_error(self):
+        """OSError raised by bind(), if any (for error reporting)."""
+        return self._bind_error
 
     def wait_bound(self, timeout=None):
         self._bound_evt.wait(timeout)
@@ -378,7 +384,11 @@ class JsonRpcSrv(JsonRpcBase):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
                 # No SO_REUSEADDR: fresh ephemeral port; on Windows it enables hijacking.
-                sock.bind((self._host, self._port))
+                try:
+                    sock.bind((self._host, self._port))
+                except OSError as e:
+                    self._bind_error = e
+                    raise
 
                 # Listens incoming connections
                 sock.listen(1)

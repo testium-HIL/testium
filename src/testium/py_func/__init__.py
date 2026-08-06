@@ -42,7 +42,10 @@ def main():
     # Announce the bound port on real stdout (before redirection) so the parent connects.
     port = thrd_api.wait_bound(args.timeout)
     if port is None:
-        print("py_func: failed to bind a listening port", file=sys.stderr, flush=True)
+        msg = f"py_func: failed to bind a listening port on {args.ip}"
+        if thrd_api.bind_error is not None:
+            msg += f": {thrd_api.bind_error}"
+        print(msg, file=sys.stderr, flush=True)
         return
     print(f"{RPC_PORT_SENTINEL}{port}", flush=True)
 

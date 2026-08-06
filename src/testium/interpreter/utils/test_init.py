@@ -134,7 +134,10 @@ def _feed_gd_with_params(param_file, silent=True):
         if raw is None:
             continue
         if not isinstance(raw, str):
-            raise ETUMSyntaxError(f'Parameter file "{raw}" not a file path.')
+            raise ETUMSyntaxError(
+                f'Parameter file entry must be a file path string, '
+                f'got {type(raw).__name__}: {raw!r}.',
+                tm.gd("test_main_file", ""))
         p = expanse(raw)
         pf = p
         if not os.path.isabs(pf):
@@ -151,7 +154,12 @@ def _feed_gd_with_params(param_file, silent=True):
         if (ext == ".yaml") or (ext == ".yml"):
             yamltodict(pf, silent)
         else:
-            raise ETUMSyntaxError('config files must be "*.yaml" or "*.yml"')
+            declared = (f'"{raw}"' if raw == p
+                        else f'"{raw}" (expanded to "{p}")')
+            raise ETUMSyntaxError(
+                f'Config file {declared} has unsupported extension "{ext}": '
+                f'config files must be "*.yaml" or "*.yml".',
+                tm.gd("test_main_file", ""))
 
 
 def set_standard_gd_keys(test_name, test_dir, test_file, config_files):

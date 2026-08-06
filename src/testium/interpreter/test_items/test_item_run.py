@@ -130,12 +130,17 @@ class TestItemRun(TestItem):
     @test_run
     def execute(self):
         try:
-            file_path = self._prms.expanse(self.tum_file)
+            raw = self.tum_file
+            file_path = self._prms.expanse(raw)
             if not os.path.exists(file_path) and not os.path.isabs(file_path):
                 file_path = os.path.join(tm.gd('test_directory'), file_path)
             if not os.path.isfile(file_path):
+                declared = ('"{}"'.format(raw) if raw == file_path
+                            else '"{}" (resolved to "{}" in test directory "{}")'
+                                 .format(raw, file_path, tm.gd('test_directory')))
                 raise ETUMRuntimeError(
-                    '"{}" file could not be found'.format(file_path))
+                    'Sub-test file {} could not be found'.format(declared),
+                    self.seqFilename())
             self.tum_file = file_path
             pf = self._prms.expanse(self.param_file)
             lp = self._prms.expanse(self.log_path)
@@ -170,7 +175,8 @@ class TestItemRun(TestItem):
 
             if self.wait_for_exec and (self.start_time is None or self.end_time is None):
                 raise ETUMRuntimeError(
-                    '"wait_for_exec" set but not start_time or end_time')
+                    '"wait_for_exec" set but not start_time or end_time',
+                    self.seqFilename())
 
             ran = False
             if self.wait_for_exec:
@@ -192,7 +198,10 @@ class TestItemRun(TestItem):
             if ran:
                 self.result.set(TestValue.SUCCESS)
             else:
-                self.result.set(TestValue.FAILURE, 'Sub-test did not execute')
+                self.result.set(
+                    TestValue.FAILURE,
+                    'Sub-test "{}" did not execute: start_time/end_time window not met'
+                    .format(self.tum_file))
         except:
             traceback.print_exception(*sys.exc_info())
             self.result.set(TestValue.FAILURE, 'Unrecoverable "run" item error')

@@ -30,7 +30,8 @@ class TestItemParallelBranch(TestItemContainer):
             wf = dict_item["wait_for"]
             if not isinstance(wf, dict):
                 raise ETUMSyntaxError(
-                    f"'wait_for' in branch '{self.name()}' must be a dict with 'condition' and optional 'timeout'",
+                    f"'wait_for' in branch '{self.name()}' must be a dict with 'condition' "
+                    f"and optional 'timeout', but got {type(wf).__name__} ({wf!r})",
                     self.seqFilename(),
                 )
             self._wait_condition = wf.get("condition", None)
@@ -66,7 +67,14 @@ class TestItemParallelBranch(TestItemContainer):
 
         if stopped:
             if result.test_result == TestValue.FAILURE:
-                self.result.set(TestValue.FAILURE, "Branch aborted on failure")
+                failing = next(
+                    (self.child(j).name() for j in range(self.childCount())
+                     if self.child(j).result.test_result == TestValue.FAILURE),
+                    None)
+                msg = "Branch aborted on failure"
+                if failing:
+                    msg += f" of step '{failing}'"
+                self.result.set(TestValue.FAILURE, msg)
             else:
                 self.result.set(TestValue.NORUN, "Branch aborted on user request")
         else:
@@ -203,7 +211,15 @@ class TestItemParallel(TestItemContainer):
                 for r in branch_results
             )
 
+        msg = f"parallel sync={self._sync}"
+        if not success:
+            failed = [self.child(i).name() for i, r in enumerate(branch_results)
+                      if r is not None and r.test_result == TestValue.FAILURE]
+            if failed:
+                msg += ": failed branch(es): " + ", ".join(failed)
+            else:
+                msg += ": no branch succeeded"
         self.result.set(
             TestValue.SUCCESS if success else TestValue.FAILURE,
-            f"parallel sync={self._sync}",
+            msg,
         )

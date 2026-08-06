@@ -70,18 +70,21 @@ def template_to_test(filename: str, params: list):
         params["include_directory"] = os.path.dirname(os.path.abspath(filename))
         rendered = j2_template.render(params)
     except TemplateSyntaxError as e:
-        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
-Syntax error in template: {e.message}""")
+        raise ETUMSyntaxError(f"Template syntax error: {e.message}", filename)
     except UndefinedError as e:
-        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
-Undefined variable error: {e.message}""")
+        raise ETUMSyntaxError(
+            f"Undefined template variable: {e.message}\n"
+            f"Define it in a param file, a '-d' define or the include "
+            f"parameters.",
+            filename)
     except TemplateError as e:
-        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
-Template rendering error: {e.message}""")
+        raise ETUMSyntaxError(f"Template rendering error: {e.message}", filename)
     except Exception as e:
-    # Catch any other unexpected errors
-        raise ETUMSyntaxError(f"""Template loading of file '{filename}' with following parameters '{str(params)}'
-Unexpected error: {str(e)}""")
+        # Catch any other unexpected errors
+        raise ETUMSyntaxError(
+            f"Unexpected error while rendering the template: "
+            f"{type(e).__name__}: {e}",
+            filename)
 
     stream = _RenderedStream(rendered)
     stream.root = os.path.dirname(filename)

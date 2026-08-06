@@ -25,7 +25,10 @@ class LuaProcessBase:
         """
         self._lbin = bins.lua_bin()
         if not self._lbin:
-            raise ETUMRuntimeError("No valid Lua 5.1+ interpreter found")
+            raise ETUMRuntimeError(
+                "No valid Lua 5.1+ interpreter found: tried "
+                f"{bins._LUA_CANDIDATES} on PATH, none usable. Set "
+                "'lua_bin' in the YAML config to override.")
         self._req_handler = request_handler
         self._process = None
         self._port = 0
@@ -44,7 +47,9 @@ class LuaProcessBase:
         """
         # This thread is not closed until new test is loaded
         if self._process is not None:
-            raise ETUMRuntimeError("The function subprocess has already been started.")
+            raise ETUMRuntimeError(
+                "The function subprocess has already been started. "
+                "Internal error, please report it.")
 
         # In Flatpak the host can't see /app/lib/testium/lua_func, so use a
         # staged copy under /tmp (shared between sandbox and host).

@@ -53,7 +53,7 @@ class TestItemTestedRefsDialog(TestItemDialogBase):
             else:
                 ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
                 if ar is None:
-                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    self.result.set(TestValue.FAILURE, "Dialog not supported in batch mode: set 'auto_result' to run this item headless")
                     return
                 succ = ar != 'cancel'
             result = [val, succ]

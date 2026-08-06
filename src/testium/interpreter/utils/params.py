@@ -311,16 +311,18 @@ def reset_expansion_warnings():
 
 
 def _warn_unknown_global(glob):
-    # Loop variables resolve only inside a loop; NUL bytes mark internal
-    # placeholders. Neither is a user typo.
+    # Loop variables resolve only inside a loop; db/out/result are deferred
+    # placeholders (command export, process_result); NUL bytes mark internal
+    # placeholders. None is a user typo.
     if glob in ("loop_param", "loop_index", "loop_index_inverse",
-                "loop_count") or "\x00" in glob:
+                "loop_count", "db", "out", "result") or "\x00" in glob:
         return
     if glob in _warned_globals:
         return
     _warned_globals.add(glob)
     import api.testium as tm
-    tm.print_warn(f"$({glob}) is not a defined global variable — left as-is.")
+    tm.print_warn(f"$({glob}) is not defined at this point — left as-is "
+                  "(check the name if it is not set by a later step).")
 
 
 def _operate_param(glob, parent):

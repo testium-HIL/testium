@@ -434,7 +434,9 @@ class TestItem:
         except Exception as e:
             print("   Result processing failed!")
             print(e)
-            self.result.set(TestValue.FAILURE, "Result processing failed")
+            self.result.set(
+                TestValue.FAILURE,
+                f'Result processing failed: {e} (expression: "{pe}")')
 
     def store_result(self):
         if self._store_result is None:
@@ -482,7 +484,9 @@ class TestItem:
                 if eres == res:
                     self.result.set(TestValue.SUCCESS, f"Expected result met.")
                 else:
-                    self.result.set(TestValue.FAILURE, f"Expected result not met.")
+                    self.result.set(
+                        TestValue.FAILURE,
+                        f'Expected result not met: expected "{eres}", got "{res}".')
             else:
                 if str(eres).lower() != str(self.result.test_result).lower():
                     self.result.set(

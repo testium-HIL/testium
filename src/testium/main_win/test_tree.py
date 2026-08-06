@@ -316,7 +316,10 @@ class QTestTree(QTreeWidget):
         for test_id in test_set_item.keys():
             childType = test_set_item[test_id]["type"]
             if childType not in self._KNOWN_TYPES:
-                raise ETUMSyntaxError(f"Error in the test_set, type {childType} undefined")
+                item_name = test_set_item[test_id].get("name", test_id)
+                raise ETUMSyntaxError(
+                    f"Error in the test_set: item '{item_name}' has "
+                    f"undefined type '{childType}'")
             tree_item = make_tree_item(tree_parent, test_set_item[test_id], self.cols)
 
             cb = QComboBox(self)

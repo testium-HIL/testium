@@ -18,7 +18,10 @@ class PyProcessBase:
     def __init__(self, request_handler=None, timeout=10, python_path=""):
         self._pbin = bins.python_bin()
         if not self._pbin:
-            raise ETUMRuntimeError("No valid Python 3 interpreter found")
+            raise ETUMRuntimeError(
+                "No valid Python 3 interpreter found: tried "
+                f"{bins._PYTHON_CANDIDATES} on PATH, none usable. Set "
+                "'python_bin' in the YAML config to override.")
         self._ppath = python_path
         self._req_handler = request_handler
         self._process = None
@@ -33,7 +36,9 @@ class PyProcessBase:
         """
         # This thread is not closed until new test is loaded
         if self._process is not None:
-            raise ETUMRuntimeError("The function subprocess has already been started.")
+            raise ETUMRuntimeError(
+                "The function subprocess has already been started. "
+                "Internal error, please report it.")
 
         # POpen config
         py_env = tm.gd("python_env", {})

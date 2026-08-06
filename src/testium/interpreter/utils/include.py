@@ -18,6 +18,9 @@ class TUMLoaderNoIncludes(YAML_BASE_LOADER):
         else:
             self._root = os.path.split(stream.name)[0]
 
+        # File being parsed, for error messages (CLoader has no .name).
+        self._src_name = getattr(stream, "name", "")
+
         super().__init__(stream)
 
     def include_none(self, node):
@@ -35,18 +38,26 @@ class TUMLoaderRawIncludes(TUMLoaderNoIncludes):
             # Check if templating used on the include file
             # {file: <filename>, ...} dictionnary required.
             p = self.construct_mapping(node, deep=True)
-            filename = expanse(p["file"])
+            raw_name = p["file"]
+            filename = expanse(raw_name)
             p.pop("file")
         except:
             # Only file parameter
             p = self.construct_scalar(node)
+            raw_name = p
             filename = expanse(p)
 
+        expanded = filename
         if not os.path.isabs(filename):
             filename = os.path.join(self._root, filename)
 
         if not os.path.isfile(filename):
-            raise ETUMFileError('File "{}" not found'.format(filename))
+            declared = (f'"{raw_name}"' if raw_name == expanded
+                        else f'"{raw_name}" (expanded to "{expanded}")')
+            raise ETUMFileError(
+                f'Included file {declared} not found: no file at "{filename}" '
+                f'(relative paths are resolved against "{self._root}").',
+                self._src_name)
 
         # Copy of the global dict content to be passed as parameter
         gd_copy = copy(global_dict)

@@ -76,7 +76,9 @@ class Batch:
                 threading.Thread(target=_wait_loaded, daemon=True).start()
                 while not _loaded_event.wait(timeout=0.1):
                     if not tst_proc.is_alive():
-                        raise ETUMRuntimeError("TestProcess terminated unexpectedly during load")
+                        raise ETUMRuntimeError(
+                            "TestProcess terminated unexpectedly during load.",
+                            file_name)
 
                 self.tst_ctrl.control(
                     "report",

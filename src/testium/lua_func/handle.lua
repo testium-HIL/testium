@@ -24,7 +24,8 @@ local function _get_func_by_path(file_path, func_name)
 
     -- 3. Validate the module is a table and contains the function
     if type(module) ~= "table" then
-        return nil, "Module did not return a table (returned " .. type(module) .. ")"
+        return nil, "Module '" .. file_path .. "' did not return a table (returned "
+            .. type(module) .. "). The .lua file must end with 'return M' (its module table)."
     end
 
     local target_func = module[func_name]

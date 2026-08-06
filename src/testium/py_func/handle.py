@@ -94,7 +94,9 @@ class FuncHandler(JsonRpcSrv):
                     except Exception as e:
                         # eval can crash
                         return {
-                            "error": f"Evaluation of '{value}' failed with message:\n  "+str(e)
+                            "error": f"Evaluation of the expression "
+                            f"'{value}' (from a <| ... |> in the .tum) "
+                            f"failed with {type(e).__name__}:\n  {e}"
                         }
                 except Exception as e:
                     tb = traceback.format_exc()

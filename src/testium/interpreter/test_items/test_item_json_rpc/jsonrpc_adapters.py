@@ -25,6 +25,14 @@ def is_ip_multicast(ip):
     return 0xE0000000 <= ip_int <= 0xEFFFFFFF
 
 
+def _frame_excerpt(frame, limit: int = 200) -> str:
+    """Format a received frame for error messages, truncated to 'limit' chars."""
+    text = frame if isinstance(frame, str) else json.dumps(frame)
+    if len(text) > limit:
+        text = text[:limit] + "..."
+    return text
+
+
 def jrpc_query(version: str, method: str, obj, jrpc_id: int):
     req = {
         "1.0": {
@@ -36,7 +44,10 @@ def jrpc_query(version: str, method: str, obj, jrpc_id: int):
         },
     }
     if not version in ["1.0", "2.0"]:
-        raise ETUMRuntimeError("JSONRPC frame creation with bad version value.")
+        raise ETUMRuntimeError(
+            f"Cannot build JSONRPC frame: bad version '{version}' "
+            "(allowed: '1.0', '2.0')."
+        )
     req = req[version]
     req["params"] = obj
     req["id"] = jrpc_id
@@ -55,7 +66,9 @@ class JrpcAdapter:
         # action before each query/receive call.
         self._should_stop = None
         if not (version == "1.0" or version == "2.0"):
-            raise ETUMRuntimeError("Invalid JSONRPC version passed.")
+            raise ETUMRuntimeError(
+                f"Invalid JSONRPC version '{version}' (allowed: '1.0', '2.0')."
+            )
 
     def set_should_stop(self, cb):
         self._should_stop = cb
@@ -68,26 +81,31 @@ class JrpcAdapter:
         if "1.0" == self._jrpc_version:
             if not ("error" in obj.keys()):
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 1.0 answer. 'error' required."
+                    "Malformed JSONRPC 1.0 answer: 'error' required. "
+                    f"Received: {_frame_excerpt(obj)}"
                 )
             if not ("result" in obj.keys()):
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 1.0 answer. 'result' required."
+                    "Malformed JSONRPC 1.0 answer: 'result' required. "
+                    f"Received: {_frame_excerpt(obj)}"
                 )
 
             if obj["result"] is not None and obj["error"] is not None:
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 1.0 answer. If 'result' is not null, 'error' must be null."
+                    "Malformed JSONRPC 1.0 answer: if 'result' is not null, "
+                    f"'error' must be null. Received: {_frame_excerpt(obj)}"
                 )
 
             if not ("id" in obj.keys()):
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 1.0 answer. 'id' must be defined."
+                    "Malformed JSONRPC 1.0 answer: 'id' must be defined. "
+                    f"Received: {_frame_excerpt(obj)}"
                 )
         else:
             if "2.0" != obj.get("jsonrpc", ""):
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 2.0 answer. 'jsonrpc' required."
+                    "Malformed JSONRPC 2.0 answer: 'jsonrpc' required. "
+                    f"Received: {_frame_excerpt(obj)}"
                 )
 
             is_error = True
@@ -99,14 +117,19 @@ class JrpcAdapter:
 
             if not (is_error ^ is_result):
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 2.0 answer. 'result' and 'error' can't exist together."
+                    "Malformed JSONRPC 2.0 answer: exactly one of 'result' or "
+                    f"'error' must be present. Received: {_frame_excerpt(obj)}"
                 )
 
         if not ("id" in obj.keys()):
-            raise ETUMRuntimeError("The JSONRPC answer 'id' must be defined.")
+            raise ETUMRuntimeError(
+                "The JSONRPC answer 'id' must be defined. "
+                f"Received: {_frame_excerpt(obj)}"
+            )
         if obj["id"] != jrpc_id:
             raise ETUMRuntimeError(
-                "The JSONRPC answer ID does not correspond to the request"
+                "The JSONRPC answer id does not correspond to the request: "
+                f"expected {jrpc_id!r}, received {obj['id']!r}."
             )
 
     def _build_query(self, method: str, obj, jrpc_id: int):
@@ -181,6 +204,7 @@ class JrpcAdapter:
 
         """
         tmout = self._timeout if timeout is None else timeout
+        total_tmout = tmout
         deadline = time.monotonic() + max(float(tmout), 0.0)
         while True:
             obj = json.loads(self._receive(tmout))
@@ -195,8 +219,9 @@ class JrpcAdapter:
             tmout = deadline - time.monotonic()
             if tmout <= 0:
                 raise ETUMRuntimeError(
-                    "JSONRPC answer took too long (only request frames "
-                    "were received). Try to increase the timeout."
+                    "JSONRPC answer took too long: only request frames were "
+                    f"received within the {total_tmout}s timeout. Try to "
+                    "increase the timeout."
                 )
         self.check_answer(obj, jrpc_id)
 
@@ -290,7 +315,10 @@ class JrpcUdpAdapter(JrpcAdapter):
                 )
                 srv = addrinfo[0][4]
             except socket.gaierror as e:
-                raise ETUMRuntimeError("JSONRPC udp send unknown address.")
+                raise ETUMRuntimeError(
+                    f"JSONRPC udp send: cannot resolve server address "
+                    f"'{self._server}' ({e})."
+                )
 
         # Sends the message to the server
         self._opened_sock().sendto(message.encode(), srv)
@@ -316,13 +344,17 @@ class JrpcUdpAdapter(JrpcAdapter):
             except socket.timeout:
                 if time.monotonic() >= deadline:
                     raise ETUMRuntimeError(
-                        "JSONRPC udp answer took too long. Try to increase the timeout."
+                        "JSONRPC udp answer took too long: nothing received "
+                        f"from {self._server}:{self._snd_port} within the "
+                        f"{timeout}s timeout. Try to increase the timeout."
                     )
 
         # In case of buffer overload we chose to complain
         if len(data) >= self._bufsize:
             raise ETUMRuntimeError(
-                "JSONRPC udp answer size overflow. Try to increase the bufsize"
+                f"JSONRPC udp answer size overflow: received {len(data)} "
+                f"bytes with bufsize {self._bufsize}. Try to increase the "
+                "bufsize."
             )
 
         # Converts binary to string
@@ -414,7 +446,9 @@ class JrpcConsoleAdapter(JrpcAdapter):
         self._cons = tm.console(cons_name)
         if self._cons is None:
             raise ETUMRuntimeError(
-                f"The '{cons_name}' console can't be found in global directory."
+                f"No console named '{cons_name}' is open: no 'console' item "
+                f"opened a console with console_name '{cons_name}' before "
+                "this json_rpc item."
             )
 
     def _send(self, message: str):
@@ -433,11 +467,16 @@ class JrpcConsoleAdapter(JrpcAdapter):
                     f"JSONRPC console receive aborted on stop request."
                 )
             raise ETUMRuntimeError(
-                f"The '{self._cons.name}' console did not answer in the requested time."
+                f"The '{self._cons.name}' console did not answer within the "
+                f"{timeout}s timeout."
             )
 
         res = list(self._json_regexp.finditer(data))
         if len(res) <= 0:
-            raise ETUMRuntimeError("Not found JSON '^{'")
+            raise ETUMRuntimeError(
+                f"No JSON object found in the '{self._cons.name}' console "
+                f"output within the {timeout}s timeout. "
+                f"Received: {_frame_excerpt(data)}"
+            )
 
         return data[res[-1].start() : -len(self._endswith)]

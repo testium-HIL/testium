@@ -35,7 +35,7 @@ class TestItemQuestionDialog(TestItemDialogBase):
             if _is_interactive():
                 ans = input("Answer yes (y) or no (n) [default: y]: ").strip().lower()
                 if ans in ('n', 'no'):
-                    self.result.set(TestValue.FAILURE)
+                    self.result.set(TestValue.FAILURE, 'Answer was No')
                     print('Answer:    NO\n')
                 else:
                     self.result.set(TestValue.SUCCESS)
@@ -43,9 +43,9 @@ class TestItemQuestionDialog(TestItemDialogBase):
             else:
                 ar = self._prms.expanse(self._auto_result) if self._auto_result is not None else None
                 if ar is None:
-                    self.result.set(TestValue.FAILURE, 'Dialog not supported in batch mode')
+                    self.result.set(TestValue.FAILURE, "Dialog not supported in batch mode: set 'auto_result' to run this item headless")
                 elif ar in ('no', 'cancel'):
-                    self.result.set(TestValue.FAILURE)
+                    self.result.set(TestValue.FAILURE, f"Answer was No ('auto_result' = '{ar}')")
                     print('Answer:    NO\n')
                 else:
                     self.result.set(TestValue.SUCCESS)
@@ -63,5 +63,5 @@ class TestItemQuestionDialog(TestItemDialogBase):
             self.result.set(TestValue.SUCCESS)
             print('Answer:    YES\n')
         else:
-            self.result.set(TestValue.FAILURE)
+            self.result.set(TestValue.FAILURE, 'Answer was No')
             print('Answer:    NO\n')

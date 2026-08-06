@@ -11,6 +11,7 @@ import os
 ourPath = os.path.dirname(__file__)
 sys.path.append(ourPath)
 from api.console import (Console, BytesStore, TIMEOUT_NULL)
+from runtime.tum_except import ETUMRuntimeError
 
 class TermConsole(Console):
     TYPE = 'term'
@@ -90,8 +91,13 @@ class TermConsole(Console):
             # run); elsewhere it's the chosen command unchanged.
             from interpreter.utils import bins
             argv = bins.host_console_command(shell_cmd, self.ppath)
-            self.term = pexpect.spawn(argv[0], args=argv[1:],
-                                      echo=False, cwd=self.ppath)
+            try:
+                self.term = pexpect.spawn(argv[0], args=argv[1:],
+                                          echo=False, cwd=self.ppath)
+            except pexpect.ExceptionPexpect as e:
+                raise ETUMRuntimeError(
+                    "could not start shell {!r} in directory '{}' for console "
+                    "'{}': {}".format(shell_cmd, self.ppath, self.name, e)) from None
 
         self.q = BytesStore()
         self.t = threading.Thread(target=self.enqueue_output)

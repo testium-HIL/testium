@@ -141,4 +141,11 @@ class TestItemActions(TestItem):
             self.result.set(TestValue.SUCCESS, "")
             for res in results:
                 if not res.success:
-                    self.result.set(TestValue.FAILURE, "")
+                    failing = next(
+                        (self.child(j).name() for j in range(self.childCount())
+                         if self.child(j).result.test_result == TestValue.FAILURE),
+                        None)
+                    self.result.set(
+                        TestValue.FAILURE,
+                        "Action '{}' failed".format(failing) if failing
+                        else "A child action failed")
