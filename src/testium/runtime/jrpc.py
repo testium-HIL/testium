@@ -216,13 +216,17 @@ class JsonRpcConnection:
         if not event.wait(timeout):
             # Timeout: remove pending entry and raise
             self.pending.pop(req_id, None)
-            raise TimeoutError("Timeout JSON-RPC")
+            raise TimeoutError(
+                f"No answer to the '{method}' call after {timeout:g} s: "
+                "the subprocess stopped answering.")
 
         entry = self.pending.pop(req_id)
         if entry["response"] is None:
             # Woken by stop() (or by a malformed dispatch) rather than by a
             # real response — abort the call so callers don't block further.
-            raise ConnectionAbortedError("JSON-RPC client stopped")
+            raise ConnectionAbortedError(
+                f"'{method}' call aborted: the connection was closed "
+                "(stop requested or subprocess ended).")
         return entry["response"]
 
     def print_info(self, msg):
@@ -301,7 +305,9 @@ class JsonRpcBase(threading.Thread):
         if (self._rpc is not None) and self._rpc.running:
             return self._rpc.call(method, params)
         else:
-            raise ETUMRuntimeError(f"'{self.name}' JRPC Server not started.")
+            raise ETUMRuntimeError(
+                f"Cannot send the '{method}' call: the RPC link "
+                f"('{self.name}') is not connected.")
 
     def print_info(self, msg):
         if self.dbg_out is not None:
@@ -387,7 +393,10 @@ class JsonRpcSrv(JsonRpcBase):
                         conn, addr = sock.accept()
                         break
                     except socket.timeout:
-                            raise ETUMRuntimeError(f"{self.name}: Timeout")
+                            raise ETUMRuntimeError(
+                                f"{self.name}: no client connected on "
+                                f"{self._host}:{self._bound_port} within "
+                                f"{self._timeout} s.")
 
                 self.print_info("Client connected")
                 with conn:
@@ -431,7 +440,10 @@ class JsonRpcClient(JsonRpcBase):
             else:
                 self.run_lin()
         except Exception as e:
-            self.print_info(f"connection failed: {e}")
+            # Not gated by the verbose flag: a failed connection is the
+            # root cause of any later "subprocess is not running" error.
+            print(f"WARN  {self.name}: connection to "
+                  f"{self._host}:{self._port} failed: {e}")
         finally:
             self._event_ready.set()  # settle wait_ready() whatever the outcome
 
@@ -450,7 +462,9 @@ class JsonRpcClient(JsonRpcBase):
                     sock.close()
                     if monotonic() >= deadline:
                         raise ETUMRuntimeError(
-                            f"{self.name}: failed to connect : {e}"
+                            f"{self.name}: could not connect to "
+                            f"{self._host}:{self._port} within "
+                            f"{self._timeout} s: {e}"
                         )
                     sleep(0.1)
 
@@ -486,7 +500,9 @@ class JsonRpcClient(JsonRpcBase):
                     except Exception as e:
                         if (monotonic() - t0) > self._timeout:
                             raise ETUMRuntimeError(
-                                f"{self.name}: failed to connect : {e}"
+                                f"{self.name}: could not connect to "
+                                f"{self._host}:{self._port} within "
+                                f"{self._timeout} s: {e}"
                             )
 
                 self.print_info("Connected to server")

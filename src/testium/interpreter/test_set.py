@@ -654,18 +654,13 @@ class TestSet:
                         child = self.load_test_recursively(
                             item, body, seq_filename
                         )
-                except ETUMSyntaxError as e:
-                    # Already a syntax error: prepend the breadcrumb to its
-                    # location (unless it already carries one from a deeper level).
+                except ETUMError as e:
+                    # Any testium error raised while building the item gets the
+                    # location prefix (unless a deeper level already added it).
                     msg = e._message
                     if not msg.lstrip().startswith("In:"):
                         msg = f"In: {path} > {k}\n{msg}"
-                    raise ETUMSyntaxError(msg, e._file or seq_filename) from e
-                except ETUMError:
-                    # Other testium errors (missing parameter, runtime, I/O)
-                    # already carry structured context (item type, name,
-                    # parameter, ...): let them through unchanged.
-                    raise
+                    raise type(e)(msg, e._file or seq_filename) from e
                 except Exception as e:
                     # Anything unexpected: never let a raw Python error reach the
                     # user as 'crashed for any reason' — locate it precisely.

@@ -34,7 +34,9 @@ class PyFuncExecEngine(PyProcessBase):
                     return TestValue.SUCCESS, (res, reported_values)
                 else:
                     raise ETUMRuntimeError(
-                        "Unexepected py_func jrpc result. To be reported to testium support team."
+                        f"Malformed py_func answer for '{func_name}' "
+                        f"({file}): {answer}. Internal error, please "
+                        "report it."
                     )
 
             # In case an error was encountered in the called function
@@ -44,9 +46,13 @@ class PyFuncExecEngine(PyProcessBase):
 
             else:
                 raise ETUMRuntimeError(
-                    "Unexepected py_func call failure to be reported to testium support team."
+                    f"Malformed py_func answer for '{func_name}' "
+                    f"({file}): {answer}. Internal error, please report it."
                 )
         else:
             raise ETUMRuntimeError(
-                "No function execution process active. To be reported to testium support team."
+                f"The py_func subprocess is not running (function "
+                f"'{func_name}', file '{file}'). It crashed, was stopped, "
+                f"or could not be started — check the log above and the "
+                f"python_bin interpreter '{self._pbin}'."
             )

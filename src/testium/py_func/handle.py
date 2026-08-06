@@ -82,7 +82,8 @@ class FuncHandler(JsonRpcSrv):
                 except Exception as e:
                     tb = traceback.format_exc()
                     return {
-                        "error": "bad jrpc req handler 'func_call' arguments (" + "\n".join(tb.splitlines()) + "). To be reported to testium support team."
+                        "error": "Malformed 'func_call' request arguments.\n"
+                        + tb + "Internal error, please report it."
                     }
             if method == "eval":
                 try:
@@ -98,14 +99,18 @@ class FuncHandler(JsonRpcSrv):
                 except Exception as e:
                     tb = traceback.format_exc()
                     return {
-                        "error": "bad jrpc req handler 'eval' arguments (" + "\n".join(tb.splitlines()) + "). To be reported to testium support team."
+                        "error": "Malformed 'eval' request arguments.\n"
+                        + tb + "Internal error, please report it."
                     }
             else:
                 return {
-                    "error": f"unknown RPC request ({method}). To be reported to testium support team."
+                    "error": f"Unknown RPC request '{method}'. Internal "
+                    "error, please report it."
                 }
         except:
-            print_exception(str(*sys.exc_info()))
+            tb = traceback.format_exc()
+            print_exception(tb)
             raise ETUMRuntimeError(
-                "python Function item execution error. To be reported to testium support team."
+                "Unhandled error in the py_func request handler.\n" + tb
+                + "Internal error, please report it."
             )

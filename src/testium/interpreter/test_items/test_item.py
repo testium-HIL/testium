@@ -192,7 +192,7 @@ class TestItem:
 
         if dict_item is not None:
             # creation of the params object
-            self._prms = TestItemParams(dict_item, parent)
+            self._prms = TestItemParams(dict_item, parent, owner=self)
 
             # Declarative-params validation. Only kicks in when the concrete
             # subclass declares ``PARAMS`` — items not yet migrated stay
@@ -268,11 +268,10 @@ class TestItem:
         """
         if not self.PARAMS:
             return
-        # ``self._type`` is the parent root type at this point (subclasses set
-        # it after super().__init__), so use the class name as a stable label
-        # in diagnostics. ``self._name`` was preset to the type name by every
-        # subclass before super() ran, which gives a useful prefix.
-        label = f"{type(self).__name__} '{self._name}'"
+        # ``self._type``/``self._name`` are not set yet at this point (the
+        # subclass completes them after super().__init__). The loader prefixes
+        # errors with the item keyword and path; name the instance here.
+        label = f"item '{dict_item.get('name', '')}'"
         declared = COMMON_PARAMS + self.PARAMS
         unknown = unknown_keys(declared, dict_item)
         if unknown:

@@ -26,14 +26,18 @@ class EvalExecEngine(PyProcessBase):
                 return answer["result"]
                 # In case an error was encountered in the called function
             elif "error" in answer:
-                raise ETUMRuntimeError(answer["result"])
+                raise ETUMRuntimeError(answer["error"])
             else:
                 raise ETUMRuntimeError(
-                    "Unexepected eval call failure to be reported to testium support team."
+                    f"Malformed eval answer for '{value}': {answer}. "
+                    "Internal error, please report it."
                 )
         else:
             raise ETUMRuntimeError(
-                "No function execution process active. To be reported to testium support team."
+                f"The evaluation subprocess is not running (expression "
+                f"'{value}'). It crashed, was stopped, or could not be "
+                f"started — check the log above and the python_bin "
+                f"interpreter '{self._pbin}'."
             )
 
 
@@ -43,7 +47,9 @@ def eval_exec(value):
         result = eval_process.eval(value)
     else:
         raise ETUMRuntimeError(
-            "No function execution process active. To be reported to testium support team."
+            f"The evaluation subprocess is not running (expression "
+            f"'{value}'). It crashed, was stopped, or could not be "
+            f"started — check the log above and the python_bin setting."
         )
 
     return result

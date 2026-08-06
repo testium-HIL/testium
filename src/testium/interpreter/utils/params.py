@@ -5,9 +5,23 @@ glob_eval_func = None
 
 class TestItemParams:
 
-    def __init__(self, dict_item={}, parent=None):
+    def __init__(self, dict_item={}, parent=None, owner=None):
         self._dicoparam = dict_item
         self._parent = parent
+        # Owning test item, used to locate parameter errors (item type,
+        # name, .tum file).
+        self._owner = owner
+
+    def _ctx(self):
+        """Return (" in '<cmd>' item '<name>'", filename) for error
+        messages, or ("", "") when no owner is known."""
+        o = self._owner
+        if o is None:
+            return "", ""
+        try:
+            return f" in '{o.cmd()}' item '{o.name()}'", o.seqFilename()
+        except Exception:
+            return "", ""
 
     def expanse(self, param_value):
         return expanse(param_value, parent=self._parent)
@@ -29,7 +43,9 @@ class TestItemParams:
 
         if not isinstance(parameter, (tuple, list)):
             if not isinstance(parameter, str):
-                raise ETUMSyntaxError('"%s" parameter syntax error' % (parameter))
+                ctx, fname = self._ctx()
+                raise ETUMSyntaxError(
+                    f'"{parameter}" parameter syntax error{ctx}', fname)
             parameter = [parameter]
 
         has_parameter = False
@@ -46,7 +62,9 @@ class TestItemParams:
                 break
 
         if (not has_parameter) and required:
-            raise ETUMSyntaxError('"%s" parameter must exist' % (parameter[0]))
+            ctx, fname = self._ctx()
+            raise ETUMSyntaxError(
+                f'Required parameter "{parameter[0]}" is missing{ctx}', fname)
         return result
 
     def getParamAll(self, parameter, default=[], required=False, processed=False):
@@ -66,7 +84,9 @@ class TestItemParams:
 
         if not isinstance(parameter, (tuple, list)):
             if not isinstance(parameter, str):
-                raise ETUMSyntaxError('"%s" parameter syntax error' % (parameter))
+                ctx, fname = self._ctx()
+                raise ETUMSyntaxError(
+                    f'"{parameter}" parameter syntax error{ctx}', fname)
             parameter = [parameter]
 
         has_parameter = False
@@ -85,7 +105,9 @@ class TestItemParams:
                     results.append(p)
 
         if (not has_parameter) and required:
-            raise ETUMSyntaxError('"%s" parameter must exist' % (parameter[0]))
+            ctx, fname = self._ctx()
+            raise ETUMSyntaxError(
+                f'Required parameter "{parameter[0]}" is missing{ctx}', fname)
 
         return results
 
@@ -96,11 +118,17 @@ class TestItemParams:
             if "$(loop_param)" == param:
                 result = getLoopParam(self._parent)
                 if result is None:
-                    raise ETUMSyntaxError("parent sequence is not a loop")
+                    ctx, fname = self._ctx()
+                    raise ETUMSyntaxError(
+                        f"$(loop_param) used{ctx} but no enclosing item "
+                        "is a loop", fname)
             elif "$(loop_index)" == param:
                 result = getLoopIndex(self._parent)
                 if result is None:
-                    raise ETUMSyntaxError("parent sequence is not a loop")
+                    ctx, fname = self._ctx()
+                    raise ETUMSyntaxError(
+                        f"$(loop_index) used{ctx} but no enclosing item "
+                        "is a loop", fname)
             else:
                 # If not in global, try in local
                 result = param
@@ -274,6 +302,27 @@ def _parse_and_process(left_patt, right_patt, value, func, *fparam):
     return result
 
 
+# Unknown $(...) names already reported, one WARN each per test load.
+_warned_globals = set()
+
+
+def reset_expansion_warnings():
+    _warned_globals.clear()
+
+
+def _warn_unknown_global(glob):
+    # Loop variables resolve only inside a loop; NUL bytes mark internal
+    # placeholders. Neither is a user typo.
+    if glob in ("loop_param", "loop_index", "loop_index_inverse",
+                "loop_count") or "\x00" in glob:
+        return
+    if glob in _warned_globals:
+        return
+    _warned_globals.add(glob)
+    import api.testium as tm
+    tm.print_warn(f"$({glob}) is not a defined global variable — left as-is.")
+
+
 def _operate_param(glob, parent):
     """This function checks if glog exists in the global dict or
     if it is a loop variable.
@@ -292,6 +341,7 @@ def _operate_param(glob, parent):
     if g is None:
         treated = False
         g = glob
+        _warn_unknown_global(glob)
     return treated, g
 
 

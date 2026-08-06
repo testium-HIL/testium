@@ -14,7 +14,8 @@ from interpreter.utils.paths import testium_path
 from interpreter.utils.yaml_load import yaml_load, YAML_BASE_LOADER
 from interpreter.utils import clear_recursively
 from runtime.tum_except import ETUMSyntaxError
-from interpreter.utils.params import expanse, eval_func_init
+from interpreter.utils.params import expanse, eval_func_init, \
+    reset_expansion_warnings
 from interpreter.utils.eval import evaluate
 from interpreter.utils.version import (
     get_version,
@@ -228,6 +229,7 @@ def update_global(config_files, defines, gui_defaults, silent=False):
 def prepare_global():
     # Global dict setup
     globdict.cleargd()
+    reset_expansion_warnings()
 
 
 def backup_gd():
