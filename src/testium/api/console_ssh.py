@@ -292,10 +292,9 @@ class pxssh(spawn):
         if port is not None:
             ssh_options = ssh_options + " -p %s" % (str(port))
         if ssh_key is not None:
-            try:
-                os.path.isfile(ssh_key)
-            except:
-                raise ExceptionPxssh("private ssh key does not exist")
+            if not os.path.isfile(ssh_key):
+                raise ExceptionPxssh(
+                    "private ssh key '%s' does not exist" % (ssh_key))
             ssh_options = ssh_options + " -i %s" % (ssh_key)
         cmd = "ssh %s -l %s %s" % (ssh_options, username, server)
 

@@ -99,7 +99,7 @@ class JrpcAdapter:
 
             if not (is_error ^ is_result):
                 raise ETUMRuntimeError(
-                    "Malformed JSONRPC 2.0 answer. 'result' and 'result' can't exist together."
+                    "Malformed JSONRPC 2.0 answer. 'result' and 'error' can't exist together."
                 )
 
         if not ("id" in obj.keys()):

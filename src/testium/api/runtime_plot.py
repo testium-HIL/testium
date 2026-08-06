@@ -289,7 +289,7 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
             res = post_evaluate(self.post_eval, res)
             self.msg_queue.put({"command": "add", "values": res})
         else:
-            print("Plot periodic timer function ({self.file}/{self.func_name}) failed: \"{ret}\"")
+            print(f"Plot periodic timer function ({self.file}/{self.func_name}) failed: \"{ret}\"")
 
     def stop(self):
         self.proc.stop()

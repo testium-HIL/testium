@@ -35,7 +35,10 @@ class TestItemReport(TestItem):
 
         dict_rep = self._prms.expanse(self.tum_report)
         if not isinstance(dict_rep, list):
-            self.result.set(TestValue.FAILURE, 'Report item needs a "report" section')
+            self.result.set(
+                TestValue.FAILURE,
+                f'"export" must be a list of export entries, '
+                f'got {dict_rep!r}')
             return
         rep_name = self._prms.expanse(self._name)
 

@@ -19,18 +19,23 @@ class RawTCPConsole(Console):
         #if trying to connect when already connected.
         _socket = None
         if self.sock is not None:
-            raise Exception('Already connected to the target')
+            raise ETUMRuntimeError(
+                f"Raw TCP console already connected to "
+                f"{self.address}:{self.port}.")
         else:
             try:
                 _socket = socket.create_connection((self.address, self.port))
+                _socket.settimeout(self.stimeout)
                 self.sock = _socket
                 self.isOpened = True
-                self.sock.settimeout(self.stimeout)
-            except:
+            except OSError as e:
                 if _socket is not None:
                     _socket.close()
-                traceback.print_exception(*sys.exc_info())
                 self.sock = None
+                self.isOpened = False
+                raise ETUMRuntimeError(
+                    f"Raw TCP connection to {self.address}:{self.port} "
+                    f"failed: {e}")
 
     def close(self):
         try:

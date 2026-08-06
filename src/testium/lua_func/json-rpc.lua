@@ -43,7 +43,7 @@ function JSONRPC:_handle_request(req)
     local method = self.methods[req.method]
     local ok, ret, err
     if not method then
-        if req.id then self:_send_error(req.id, string.format("Method '%s' not registered in lua server")) end
+        if req.id then self:_send_error(req.id, string.format("Method '%s' not registered in lua server", tostring(req.method))) end
         return
     end
     ok, ret, err = pcall(method, req.params)

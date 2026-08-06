@@ -129,7 +129,9 @@ class Export:
     def __init__(self, dict_export, con=None):
         if (not isinstance(dict_export, dict)) or (len(dict_export) != 1):
             raise ETUMSyntaxError(
-                    'Syntax error in the report export description')
+                'Invalid report export entry: expected one mapping with a '
+                f'single format key (e.g. "- junit: ..."), got {dict_export!r}.',
+                tm.gd('test_main_file', ''))
 
         self.con = con
         self.type = list(dict_export.keys())[0]
@@ -142,14 +144,18 @@ class Export:
         if len(self.tum_pattern) > 0:
             if not isinstance(self.tum_pattern, (list, str)):
                 raise ETUMSyntaxError(
-                    'pattern must be a string or a list of string')
+                    f'Report export "{self.type}": "pattern" must be a '
+                    f'string or a list of strings, got {self.tum_pattern!r}.',
+                    tm.gd('test_main_file', ''))
             if isinstance(self.tum_pattern, (str)):
                 self.tum_pattern = [self.tum_pattern]
 
         if len(self.tum_key) > 0:
             if not isinstance(self.tum_key, (list, str)):
                 raise ETUMSyntaxError(
-                    'pattern must be a string or a list of string')
+                    f'Report export "{self.type}": "key" must be a string '
+                    f'or a list of strings, got {self.tum_key!r}.',
+                    tm.gd('test_main_file', ''))
             if isinstance(self.tum_key, (str)):
                 self.tum_key = [self.tum_key]
 
