@@ -1,0 +1,8 @@
+main:
+    name: py_func attach fixture
+    steps:
+        - py_func:
+            name: plain
+            file: attach.py
+            func_name: ping
+            expected_result: True

@@ -49,6 +49,10 @@ class TestControllerService:
     def del_breakpoint(self, item_id) -> None:
         self._ctrl.control("del_breakpoint", item_id=item_id)
 
+    def set_debug_attach(self, item_id, enabled: bool) -> None:
+        self._ctrl.control("set_debug_attach", item_id=item_id,
+                           enabled=enabled)
+
     # --- Tree data ---
 
     def tree(self) -> dict:

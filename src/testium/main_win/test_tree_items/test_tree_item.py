@@ -98,6 +98,33 @@ def _breakpoint_icon():
     return _breakpoint_icon_cache
 
 
+_attach_icon_cache = {}
+
+
+def _attach_icon(with_breakpoint):
+    """Blue dot marking a py_func item waiting for a debugger; drawn beside
+    the red dot when the item also has a breakpoint."""
+    icon = _attach_icon_cache.get(with_breakpoint)
+    if icon is None:
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        if with_breakpoint:
+            painter.setBrush(QColor(220, 0, 0))
+            painter.drawEllipse(2, 16, 32, 32)
+            painter.setBrush(QColor(0, 90, 220))
+            painter.drawEllipse(30, 16, 32, 32)
+        else:
+            painter.setBrush(QColor(0, 90, 220))
+            painter.drawEllipse(12, 12, 40, 40)
+        painter.end()
+        icon = QIcon(pixmap)
+        _attach_icon_cache[with_breakpoint] = icon
+    return icon
+
+
 def pretty_print_html(text):
     if text.strip(" \t\n") == "":
         return ""
@@ -129,6 +156,7 @@ class QTestTreeItem(QTreeWidgetItem):
         parent.addChild(self)
         self._has_failed = False
         self._display_pause = False
+        self._debug_attach = False
         self.icon_pause = _breakpoint_icon()
         self.icon_fake = QIcon()
         self.nfailure = 0
@@ -183,11 +211,25 @@ class QTestTreeItem(QTreeWidgetItem):
         if self._no_breakpoint:
             return False
         self._display_pause = bool(on)
-        if self._display_pause:
-            self.setIcon(self._cols["pause"]["index"], self.icon_pause)
-        else:
-            self.setIcon(self._cols["pause"]["index"], self.icon_fake)
+        self._refresh_gutter()
         return self._display_pause
+
+    def setDebugAttachState(self, on):
+        self._debug_attach = bool(on)
+        self._refresh_gutter()
+        return self._debug_attach
+
+    def isDebugAttach(self):
+        return getattr(self, "_debug_attach", False)
+
+    def _refresh_gutter(self):
+        col = self._cols["pause"]["index"]
+        if self.isDebugAttach():
+            self.setIcon(col, _attach_icon(self._display_pause))
+        elif self._display_pause:
+            self.setIcon(col, self.icon_pause)
+        else:
+            self.setIcon(col, self.icon_fake)
 
     def setBreakpoint(self):
         return self.setBreakpointState(not self._display_pause)

@@ -353,6 +353,7 @@ class TestProcess(Process):
             "execute": self.execute,
             "add_breakpoint": test_set.addBreakpoint,
             "del_breakpoint": test_set.delBreakpoint,
+            "set_debug_attach": test_set.setDebugAttach,
             "step_into": test_set.step_into,
             "step_over": test_set.step_over,
             "step_out": test_set.step_out,

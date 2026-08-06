@@ -269,6 +269,16 @@ class TestSet:
         item = self.__findItemById(item_id)
         item.delBreakpoint()
 
+    def setDebugAttach(self, item_id, enabled):
+        """Request (or cancel) a debugger attach on a py_func item, without
+        the 'debug' attribute. Session only: not saved with the test."""
+        item = self.__findItemById(item_id)
+        if item.type() != cst_type.TYPE_PY_FUNCTION.item_name:
+            raise ETUMRuntimeError(
+                f"Debugger attach only applies to 'py_func' items, "
+                f"'{item.name()}' is a '{item.type()}' item.")
+        item.setDebugAttach(bool(enabled))
+
     def __continueTestsRecursively(self, parent):
         for i in range(parent.childCount()):
             if parent.child(i).isRunning():

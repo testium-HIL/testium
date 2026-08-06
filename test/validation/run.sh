@@ -211,6 +211,17 @@ if [ "$MODE" = "source" ]; then
     "$DBG_PY" "$SCRIPT_DIR/debug_output_check.py"
 fi
 
+# ---------- py_func attach check (source only) --------------------------------
+# The GUI attach request (set_debug_attach) must reach a py_func item
+# without a 'debug' attribute, and stop applying once cancelled. Imports
+# the interpreter directly, so source mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- py_func attach check ($MODE)"
+    ATT_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$ATT_PY" ] || ATT_PY="$VENV_PYTHON"
+    "$ATT_PY" "$SCRIPT_DIR/py_func_attach_check.py"
+fi
+
 # ---------- GUI reload check (source only) ------------------------------------
 # Repeated GUI reloads must not leak fds/threads/sys.path. Imports main_win, so
 # source mode only; the script skips itself if PySide6 is unavailable.

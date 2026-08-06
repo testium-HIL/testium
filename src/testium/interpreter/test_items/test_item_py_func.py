@@ -52,7 +52,12 @@ class TestItemPyFunc(TestItem):
             self.params = self._prms.getParamAll("param")
             self._context_id = self._prms.getParam("context_id", default=None, processed=False)
             self._debug = self._prms.getParam("debug", default=False, processed=False)
+        # Set from the GUI for this session only (no .tum change).
+        self._debug_attach = False
         self._py_func_proc = PyFuncExecEngine(api_request, 10)
+
+    def setDebugAttach(self, enabled):
+        self._debug_attach = enabled
 
     def _get_engine(self):
         """Return (engine, persistent). If context_id is set, use a shared persistent engine."""
@@ -103,7 +108,7 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                     )
 
             try:
-                dbg = bool(self._prms.expanse(self._debug))
+                dbg = bool(self._prms.expanse(self._debug)) or self._debug_attach
                 success, ret = engine.func_call(self.file_name, self.func_name,
                                                 pl, debug=dbg)
             finally:

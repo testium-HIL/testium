@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QToolButton,
     QToolBar,
+    QMenu,
 )
 
 ourPath = os.path.dirname(__file__)
@@ -49,6 +50,7 @@ from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
 from main_win import file_dialog
 import interpreter.utils.settings as prefs
+from interpreter.utils.constants import TestItemType as cst
 from runtime.stdout_redirect import stdio_redir
 import api.testium as tm
 from interpreter.utils.test_init import (
@@ -213,6 +215,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.treeTests.itemDoubleClicked.connect(self.on_testItemDblClicked)
         else:
             self.treeTests.setExpandsOnDoubleClick(True)
+        self.treeTests.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.treeTests.customContextMenuRequested.connect(
+            self.on_testTreeContextMenu)
         QApplication.instance().lastWindowClosed.connect(self.on_exiting)
 
         self.prefs_apply_font()
@@ -683,6 +688,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.prefs_apply_font()
             if self.pref_win.isChanged(prefs.settings.SettingsLogFontSize):
                 self.prefs_apply_font_size()
+
+    def on_testTreeContextMenu(self, pos):
+        """Debugger attach on a py_func item, for this session only."""
+        item = self.treeTests.itemAt(pos)
+        if item is None or self.test_service is None:
+            return
+        if item.test_type != cst.TYPE_PY_FUNCTION.item_name:
+            return
+        menu = QMenu(self.treeTests)
+        action = menu.addAction("Wait for IDE debugger")
+        action.setCheckable(True)
+        action.setChecked(item.isDebugAttach())
+        if menu.exec(self.treeTests.viewport().mapToGlobal(pos)) is action:
+            enabled = action.isChecked()
+            self.test_service.set_debug_attach(item.id, enabled)
+            item.setDebugAttachState(enabled)
 
     @Slot(bool)
     def on_actionDebugOutput_toggled(self, checked):
