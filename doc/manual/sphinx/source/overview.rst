@@ -11,6 +11,16 @@ Its function is to automate the execution of tests. It can be invoked either as 
 Sources and pre-built releases are hosted at
 `github.com/testium-HIL/testium <https://github.com/testium-HIL/testium>`_.
 
+The quickest installation is from PyPI:
+
+.. code-block:: sh
+
+   pip install testium-hil
+
+The PyPI project is named ``testium-hil``; the installed command is
+``testium``. Self-contained binaries (Linux binary, AppImage, Flatpak,
+Windows installer) are published on the GitHub releases page.
+
 The tool also generates test reports and lets you customize them.
 
 Its main features are:
