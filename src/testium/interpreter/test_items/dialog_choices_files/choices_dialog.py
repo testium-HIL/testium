@@ -220,7 +220,10 @@ def main(args, conn=None):
     result = d.checked_state()
 
     if conn:
-        settings.setValue(SettingsLastChoices, result)
+        if result:
+            # An empty tree yields [] — keep the previous selection instead
+            # of locking every next dialog to its all-checked default.
+            settings.setValue(SettingsLastChoices, result)
         # Flush before sending: the parent terminates this subprocess as soon
         # as it reads the result, so the QSettings destructor never runs and
         # the write would race the kill (lost under Flatpak — see the

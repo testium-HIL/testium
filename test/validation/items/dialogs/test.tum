@@ -70,3 +70,27 @@
     key: $(test)_FAIL
     question: click no
     auto_result: "no"
+
+- dialog_choices:
+    name: dialog_choices PASS
+    condition: $(validation_dialogs)
+    key: $(test)_PASS
+    question: check choices and click ok
+    auto_result: "ok"
+    choices: $(dlg_menu)
+
+- dialog_choices:
+    name: dialog_choices canceled FAIL
+    condition: $(validation_dialogs)
+    key: $(test)_FAIL
+    question: click cancel
+    auto_result: "cancel"
+    choices: $(dlg_menu)
+
+- dialog_choices:
+    name: dialog_choices unresolved FAIL
+    condition: $(validation_dialogs)
+    key: $(test)_FAIL
+    question: never shown
+    auto_result: "ok"
+    choices: $(dlg_menu_undefined)

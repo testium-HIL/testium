@@ -254,7 +254,9 @@ def restore_gd(dict):
     sticky = {k: globdict.global_dict[k]
               for k in STICKY_GD if k in globdict.global_dict}
     clear_recursively(globdict.global_dict)
-    globdict.global_dict.update(dict)
+    # Restore a copy: the backup is reused for every run, and the next
+    # clear_recursively would empty its nested objects in place.
+    globdict.global_dict.update(copy.deepcopy(dict))
     globdict.global_dict.update(sticky)
 
 

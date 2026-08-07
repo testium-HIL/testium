@@ -187,6 +187,9 @@ if ($mode.ToLower() -eq 'source') {
     Write-Host "-- step check ($mode)"
     Invoke-Checked "step check ($mode)" $devPython @((Join-Path $scriptDir 'step_check.py'))
 
+    Write-Host "-- gd restore check ($mode)"
+    Invoke-Checked "gd restore check ($mode)" $devPython @((Join-Path $scriptDir 'gd_restore_check.py'))
+
     Write-Host "-- GUI reload check ($mode)"
     Invoke-Checked "GUI reload check ($mode)" $devPython @((Join-Path $scriptDir 'gui_reload_check.py'))
 

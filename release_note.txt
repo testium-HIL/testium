@@ -1,3 +1,8 @@
+version 0.4.3
+==============
+- Fixed: dict/list global variables were emptied from the third run on
+  (e.g. empty ``dialog_choices`` list).
+
 version 0.4.2
 ==============
 - testium is on PyPI as ``testium-hil``: ``pip install testium-hil``

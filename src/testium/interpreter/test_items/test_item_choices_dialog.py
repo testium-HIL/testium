@@ -63,6 +63,14 @@ class TestItemChoicesDialog(TestItemDialogBase):
         q = self._prms.expanse(self._question)
         choices = self._prms.expanse(self._choices)
         icon = self._prms.expanse(self._default_icon)
+        if (not isinstance(choices, list)
+                or not any(isinstance(c, dict) and c.get("name")
+                           for c in choices)):
+            self.result.set(
+                TestValue.FAILURE,
+                f"'choices' has no usable entry (expanded to: {choices!r}) "
+                "— expected a list of {name: ...} mappings.")
+            return
         if _is_text_mode():
             print(f"Choices: {q}")
             self._print_choices(choices)

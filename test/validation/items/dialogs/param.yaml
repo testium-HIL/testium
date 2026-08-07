@@ -1,1 +1,11 @@
 no_param: Null
+
+# Menu handed to dialog_choices through the global dict (config-defined
+# structures must survive the end-of-run restore, see gd_restore_check.py).
+dlg_menu:
+    - name: choice 1
+      description: first choice
+      choices:
+          - name: "1.1"
+          - name: "1.2"
+    - name: choice 2

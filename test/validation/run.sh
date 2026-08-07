@@ -211,6 +211,17 @@ if [ "$MODE" = "source" ]; then
     "$DBG_PY" "$SCRIPT_DIR/debug_output_check.py"
 fi
 
+# ---------- gd restore check (source only) ------------------------------------
+# The single load-time backup is restored after every run; nested globals
+# must survive repeated cycles without aliasing the backup. Imports the
+# interpreter directly, so source mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- gd restore check ($MODE)"
+    GDR_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$GDR_PY" ] || GDR_PY="$VENV_PYTHON"
+    "$GDR_PY" "$SCRIPT_DIR/gd_restore_check.py"
+fi
+
 # ---------- py_func attach check (source only) --------------------------------
 # The GUI attach request (set_debug_attach) must reach a py_func item
 # without a 'debug' attribute, and stop applying once cancelled. Imports
