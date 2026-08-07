@@ -4,17 +4,14 @@ Five minutes from zero to a passing test.
 
 ## Install
 
-From a checkout of the repository:
-
 ```sh
-git clone https://github.com/testium-HIL/testium.git
-cd testium
-./run.sh --version    # Linux
-run.bat               # Windows cmd
+pip install testium-hil
+testium --version
 ```
 
-The wrapper creates a Python virtual environment on first run and verifies
-testium starts. If you prefer a manual install, see the README.
+The PyPI project is named `testium-hil`; the installed command is
+`testium`. For other installation methods (pre-built binaries, source
+checkout), see the README.
 
 ## Your first test
 
@@ -33,7 +30,7 @@ main:
 Run it in batch mode:
 
 ```sh
-./run.sh -b -- hello.tum
+testium -b hello.tum
 ```
 
 You should see something like:
@@ -51,7 +48,7 @@ the process exits with code 1.
 ## Open it in the GUI
 
 ```sh
-./run.sh hello.tum
+testium hello.tum
 ```
 
 The test tree appears in the left panel; click *Run test* in the toolbar.

@@ -29,9 +29,9 @@ testium              # GUI mode
 testium -b test.tum  # batch mode
 ```
 
-The PyPI project is named `testium-hil` (`testium` was already taken); the
-command and the Python package are named `testium`. Add the language server
-for editor support with `pip install 'testium-hil[lsp]'`.
+The PyPI project is named `testium-hil`, after its hardware-in-the-loop
+focus; the command and the Python package are named `testium`. Add the
+language server for editor support with `pip install 'testium-hil[lsp]'`.
 
 ## Pre-built releases
 

@@ -37,7 +37,7 @@ The `<| ... |>` markers turn the body into a Python expression evaluated
 at run time. Run it:
 
 ```sh
-./run.sh -b -- tutorial.tum
+testium -b tutorial.tum
 ```
 
 ## Step 2 — call your code with `py_func`
