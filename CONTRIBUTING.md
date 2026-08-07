@@ -69,6 +69,24 @@ non-obvious choice was made, in as few lines as possible.
 
 ## Development
 
+### Developer debugging
+
+Two switches help debugging testium itself. They are development tools:
+they are not part of the user documentation.
+
+- `-g` / `--dev-debug` — imports `debugpy` in the GUI status thread so a
+  Python debugger can attach to the running testium.
+- `debug_rpc` — traces the JSON-RPC frames exchanged with the py_func /
+  lua_func subprocesses. It requires the user debug output too, and is
+  read when an engine starts, so set both before loading:
+
+  ```sh
+  testium -d test_debug -d debug_rpc mytest.tum
+  ```
+
+  The eval engine starts at load time; py_func / lua_func engines start
+  per item (or once per `context_id`).
+
 ### Debugging in VSCode
 
 The recommended workflow:

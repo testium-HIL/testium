@@ -114,7 +114,9 @@ Additional Python paths. These paths are appended to the
 variable.
 
 
-``-g, --debug``
----------------
+``-g, --dev-debug``
+-------------------
 
-This option is only useful when debugging *testium* in ``vscode`` in :ref:`graphical mode<sec_graphical_mode>`.
+Development option: attaches a debugger to *testium* itself. See
+``CONTRIBUTING.md`` of the source repository. Not used for debugging
+tests — see the :ref:`Debugging your tests<sec_debugging>` chapter.

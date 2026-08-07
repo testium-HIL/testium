@@ -82,8 +82,10 @@ def main():
                         help="Python modules search path",
                         nargs='+',
                         default=[])
-    parser.add_argument("-g", "--debug", action='store_true',
-                        help="GUI debug mode",
+    parser.add_argument("-g", "--dev-debug", "--debug", action='store_true',
+                        dest="debug",
+                        help="attach a debugger to testium itself "
+                             "(development, see CONTRIBUTING.md)",
                         required=False)
 
     parser.add_argument(
