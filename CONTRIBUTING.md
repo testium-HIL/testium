@@ -49,6 +49,31 @@ For existing files, keep the header that is already there.
    ```
 5. Open a pull request against `main`.
 
+## Code organization
+
+`src/testium/` is split along the **process boundary**, not by theme:
+
+| Package | Runs in | Role |
+|---|---|---|
+| `interpreter/` | main process | test engine (load, items, reports) |
+| `main_win/` | main process | PySide6 GUI |
+| `api/` | main process | runtime API implementation; subprocesses reach it only through the JSON-RPC bridge |
+| `lsp/` | main process | `testium lsp` / `testium schema` |
+| `runtime/` | **both sides** | shared floor: RPC link, exceptions, report helper, export worker — loaded by the main process *and* by the host-Python subprocesses |
+| `py_func/`, `lua_func/` | host interpreter | subprocess-side bridges |
+
+Rules:
+
+- `py_func/` and `lua_func/` import only `runtime/` and themselves — never
+  `interpreter`, `main_win` or `api`. Enforced by
+  `test/validation/items/isolation/`.
+- `runtime/` stays standard-library only: the host interpreter does not
+  have testium's dependencies.
+- Repo roots: code in `src/`, tests and fixtures in `test/`, documentation
+  in `doc/`, per-channel packaging in `package/`. `schema/tum.json` is the
+  only tracked generated artifact (public schema reference, see
+  `schema/README.md`).
+
 ## Coding conventions
 
 - Python ≥ 3.11
