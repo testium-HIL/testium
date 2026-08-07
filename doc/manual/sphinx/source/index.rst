@@ -10,3 +10,4 @@ testium User Manual
    modes.rst
    tum_syntax.rst
    helper_lib.rst
+   debugging.rst

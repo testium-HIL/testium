@@ -1,7 +1,7 @@
 .. _sec_debugging:
 
 Debugging your tests
---------------------
+====================
 
 testium provides four complementary tools to debug a test campaign:
 breakpoints and step-by-step execution to control the flow, the

@@ -266,6 +266,4 @@ step-list attributes.
 
 .. include:: reports.rst
 
-.. include:: debugging.rst
-
 .. include:: other_features.rst

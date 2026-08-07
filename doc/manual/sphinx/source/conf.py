@@ -51,7 +51,7 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 
-exclude_patterns = ["includes.rst", "templates.rst", "other_features.rst", "reports.rst", "debugging.rst"]
+exclude_patterns = ["includes.rst", "templates.rst", "other_features.rst", "reports.rst"]
 
 
 # -- Options for HTML output -------------------------------------------------
