@@ -1,10 +1,12 @@
 # testium
 
+[![PyPI](https://img.shields.io/pypi/v/testium-hil)](https://pypi.org/project/testium-hil/)
+
 testium is a YAML-driven test sequencer for hardware-in-the-loop and
 integration testing. A test campaign is described in a `.tum` file as a tree
 of items (checks, console interactions, Python/Lua functions, parallel blocks,
 dialogs, …); testium executes the tree, captures results, and produces
-reports in several formats.
+reports in several formats. It runs on Linux and Windows.
 
 ![testium running a test session](doc/testium_session.gif)
 
@@ -75,6 +77,11 @@ Pre-built artifacts are published at
   # Install the bundle
   flatpak install --user testium.flatpak
   ```
+* **Windows installer** (`testium-<version>-setup.exe`) — per-user install,
+  no administrator rights required; adds a Start Menu entry. Several
+  versions can be installed side by side.
+* **Windows binary** (`testium-<version>-win64.zip`) — self-contained
+  folder, no installation: unzip and run `testium.exe`.
 
   After installation testium appears in the desktop application menu and the
   `testium` command is available in the terminal (requires `~/.local/bin` in
