@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="testium"
+name="testium-hil"
 description = "YAML-driven test sequencer for hardware-in-the-loop and integration testing"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -37,7 +37,7 @@ Homepage = "https://github.com/testium-HIL/testium"
 Repository = "https://github.com/testium-HIL/testium"
 
 [project.optional-dependencies]
-# `pip install testium[lsp]` adds the language-server dependencies. The
+# `pip install "testium-hil[lsp]"` adds the language-server dependencies. The
 # stdio-only LSP server (`testium lsp`) reuses the schema export from the
 # core install; pygls is the only marginal cost.
 lsp = ["pygls>=1.3"]
@@ -52,7 +52,7 @@ exclude=["build", "build.*"]
 
 # Top-level alias of testium/runtime/testium_report.py so plugin authors can
 # `from testium_report import Exporter` in their dev venv with a plain
-# `pip install testium`. At run time under testium the copy shipped in
+# `pip install testium-hil`. At run time under testium the copy shipped in
 # runtime/ wins (the export worker's directory precedes site-packages).
 [tool.setuptools]
 py-modules = ["testium_report"]

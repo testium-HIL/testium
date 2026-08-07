@@ -130,7 +130,7 @@ switch ($mode.ToLower()) {
         $cmd = @((Join-Path $testiumVenv 'Scripts\python.exe'), (Join-Path $projectDir 'src\testium'))
     }
     'wheel' {
-        $wheel = Join-Path $projectDir "dist\testium-$version-py3-none-any.whl"
+        $wheel = Join-Path $projectDir "dist\testium_hil-$version-py3-none-any.whl"
         if (-not (Test-Path $wheel)) { Fail "wheel not found at $wheel - run .\build_all.ps1 first." }
         $wheelVenv = Join-Path $env:TEMP "testium-wheel-venv-$version"
         if ($clean -and (Test-Path $wheelVenv)) { Remove-Item -Recurse -Force $wheelVenv }

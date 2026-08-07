@@ -15,7 +15,7 @@
 #
 #   --mode MODE     which testium build to validate. One of:
 #                       source       (default) src/testium via project run.sh
-#                       wheel        dist/testium-<v>-py3-none-any.whl
+#                       wheel        dist/testium_hil-<v>-py3-none-any.whl
 #                       pyinstaller  dist/testium-<v>
 #                       flatpak      installed org.testium.Testium
 #                       appimage     dist/Testium-<v>-*.AppImage
@@ -113,7 +113,7 @@ case "$MODE" in
         CMD=("$PROJECT_DIR/run.sh")
         ;;
     wheel)
-        WHEEL="$PROJECT_DIR/dist/testium-${VERSION}-py3-none-any.whl"
+        WHEEL="$PROJECT_DIR/dist/testium_hil-${VERSION}-py3-none-any.whl"
         if [ ! -f "$WHEEL" ]; then
             echo "ERROR: wheel not found at $WHEEL — run ./build_all.sh first." >&2
             exit 1
@@ -128,7 +128,7 @@ case "$MODE" in
             "$WHEEL_VENV/bin/pip" install --quiet --upgrade pip
             # Install with the [lsp] extra so the wheel channel is validated in
             # its language-server-capable form (pulls pygls), matching how a
-            # user enables `testium lsp` from a wheel: pip install testium[lsp].
+            # user enables `testium lsp` from a wheel: pip install "testium-hil[lsp]".
             "$WHEEL_VENV/bin/pip" install --quiet "${WHEEL}[lsp]"
         fi
         CMD=("$WHEEL_VENV/bin/python" -m testium)

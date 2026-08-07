@@ -31,11 +31,11 @@ echo "[host] Using $CTR"
 WHEEL_DIR="$ROOT/src/dist"
 PYTHON_HOST="$ROOT/test/tmp/.venv/bin/python3"
 [ -x "$PYTHON_HOST" ] || PYTHON_HOST=python3
-if ! ls "$WHEEL_DIR"/testium-*.whl >/dev/null 2>&1; then
+if ! ls "$WHEEL_DIR"/testium_hil-*.whl >/dev/null 2>&1; then
     echo "[host] Building wheel..."
     (cd "$ROOT/src" && "$PYTHON_HOST" -m build --wheel >/dev/null)
 fi
-WHEEL=$(ls "$WHEEL_DIR"/testium-*.whl | head -1)
+WHEEL=$(ls "$WHEEL_DIR"/testium_hil-*.whl | head -1)
 WHEEL_NAME=$(basename "$WHEEL")
 echo "[host] Using $WHEEL_NAME"
 

@@ -29,7 +29,7 @@ if [ ! -d "$PY_VENV_DIR" ]; then
     # Language-server deps (the pyproject [lsp] extra). Installed here so the
     # source run AND the PyInstaller build — both of which use this venv — can
     # start / collect the `testium lsp` server. pip-installed wheel users get
-    # them via `pip install testium[lsp]` instead.
+    # them via `pip install "testium-hil[lsp]"` instead.
     pip install --extra-index-url https://pypi.python.org/pypi "pygls>=1.3"
     # fake_exporter is no longer installed here: report exporter plugins run
     # on the host python, so test/validation/run.sh installs it into the

@@ -149,7 +149,7 @@ testium running), install testium itself: the wheel exposes the same
 helper as a regular top-level module.
 
 ```sh
-pip install testium-<version>-py3-none-any.whl
+pip install testium_hil-<version>-py3-none-any.whl
 python -c "from testium_report import Exporter"     # import succeeds
 ```
 

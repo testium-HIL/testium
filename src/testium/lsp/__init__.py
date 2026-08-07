@@ -12,5 +12,5 @@ Entry points (both surfaced through the ``testium`` CLI):
   YAML JSON Schema extension to get static completion immediately.
 
 - ``testium lsp`` — start the language server over stdio. Requires the
-  ``pygls`` optional dependency (``pip install testium[lsp]``).
+  ``pygls`` optional dependency (``pip install "testium-hil[lsp]"``).
 """

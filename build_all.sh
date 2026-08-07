@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build every distribution channel of testium:
 #   1. Manual PDF         -> dist/testium-manual-<v>.pdf
-#   2. Wheel              -> dist/testium-<v>-py3-none-any.whl   (PEP 427 name)
+#   2. Wheel              -> dist/testium_hil-<v>-py3-none-any.whl   (PEP 427 name)
 #   3. PyInstaller binary -> dist/testium-<v>
 #   4. Flatpak bundle     -> dist/testium-<v>.flatpak
 #   5. AppImage           -> dist/Testium-<v>-x86_64.AppImage    (original name)
@@ -60,7 +60,7 @@ mkdir -p "$DIST_DIR"
 if [ "$CLEAN" -eq 1 ]; then
     echo "-- clean: removing existing dist artifacts for version $VERSION"
     rm -f "$DIST_DIR/testium-manual-${VERSION}.pdf"
-    rm -f "$DIST_DIR"/testium-${VERSION}-*.whl
+    rm -f "$DIST_DIR"/testium_hil-${VERSION}-*.whl
     rm -f "$DIST_DIR/testium-${VERSION}"
     rm -f "$DIST_DIR/testium-${VERSION}.flatpak"
     rm -f "$DIST_DIR"/Testium-${VERSION}-*.AppImage
@@ -142,7 +142,7 @@ _interrupt() {
 MANUAL="$DIST_DIR/testium-manual-${VERSION}.pdf"
 PYI_BIN="$DIST_DIR/testium-${VERSION}"
 FLATPAK_BUNDLE="$DIST_DIR/testium-${VERSION}.flatpak"
-wheel_in_dist() { ls -1t "$DIST_DIR"/testium-${VERSION}-*.whl 2>/dev/null | head -1; }
+wheel_in_dist() { ls -1t "$DIST_DIR"/testium_hil-${VERSION}-*.whl 2>/dev/null | head -1; }
 appimage_in_dist() { ls -1t "$DIST_DIR"/Testium-${VERSION}-*.AppImage 2>/dev/null | head -1; }
 
 # ---------- per-step build functions (assume tools are installed) -------------

@@ -1,5 +1,7 @@
 version 0.4.2
 ==============
+- testium is on PyPI as ``testium-hil``: ``pip install testium-hil``
+  (the name ``testium`` was already taken).
 - New Debug button on the run toolbar (Ctrl+Shift+D): enables the
   verbose debug output, immediately, and keeps its state.
 - Right-click a ``py_func`` item to make it wait for your IDE debugger

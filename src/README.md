@@ -9,7 +9,7 @@ reports in several formats.
 ![testium running a test session](https://raw.githubusercontent.com/testium-HIL/testium/main/doc/testium_session.gif)
 
 ```sh
-pip install testium
+pip install testium-hil
 testium              # GUI mode
 testium -b test.tum  # batch mode
 ```

@@ -292,7 +292,7 @@ version always matches. Subclass ``Exporter`` and implement ``export()``:
 ``Report`` also accepts a database file path instead of a connection,
 which makes exporters easy to unit-test against a saved ``sqlite``
 report. For the development environment (IDE, tests),
-``pip install testium`` provides the same ``testium_report`` module as a
+``pip install testium-hil`` provides the same ``testium_report`` module as a
 regular top-level import; at execution under testium the shipped copy
 takes precedence.
 

@@ -26,8 +26,8 @@ reports in several formats.
 Pre-built artifacts are published at
 <https://github.com/testium-HIL/testium/releases>:
 
-* **Python wheel** (`testium-<version>-py3-none-any.whl`) — install with
-  `pip install testium-*.whl`. Smaller download than the binary; downloads
+* **Python wheel** (`testium_hil-<version>-py3-none-any.whl`) — install with
+  `pip install testium_hil-*.whl`. Smaller download than the binary; downloads
   Python dependencies from PyPI during installation.
 * **Self-contained Linux binary** (`testium-<version>`, built with PyInstaller) —
   runnable directly, no Python installation required on the host. Lua
@@ -135,7 +135,7 @@ AppImage). For a source / wheel install, install the language-server
 extra:
 
 ```sh
-pip install 'testium[lsp]'                 # from PyPI / a wheel
+pip install 'testium-hil[lsp]'             # from PyPI / a wheel
 pip install -e /path/to/testium/src[lsp]   # from a source checkout
 ```
 

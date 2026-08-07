@@ -1,5 +1,5 @@
 # Windows equivalent of build_all.sh. Builds every Windows channel into dist\:
-#   1. Wheel           -> dist\testium-<v>-py3-none-any.whl
+#   1. Wheel           -> dist\testium_hil-<v>-py3-none-any.whl
 #   2. PyInstaller exe -> dist\testium-<v>\  (one-folder) + testium-<v>-win64.zip
 #   3. Installer       -> dist\testium-<v>-setup.exe  (Inno Setup, per-user)
 #   4. Manual PDF      -> dist\testium-manual-<v>.pdf  (needs Git Bash + LaTeX;
@@ -38,7 +38,7 @@ function Step($msg) {
 }
 
 # ---------- artifact paths ----------
-$wheel = Join-Path $distDir "testium-$version-py3-none-any.whl"
+$wheel = Join-Path $distDir "testium_hil-$version-py3-none-any.whl"
 $onedir = Join-Path $root 'package\pyinstaller\dist\testium'
 $zip = Join-Path $distDir "testium-$version-win64.zip"
 $setup = Join-Path $distDir "testium-$version-setup.exe"
