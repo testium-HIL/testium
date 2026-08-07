@@ -11,7 +11,7 @@ authors = [
   {name = "François Dausseur", email = "francois.dausseur@gmail.com"},
 ]
 license = "EUPL-1.2"
-license-files = ["../LICENSE"]
+license-files = ["LICENSE"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python",

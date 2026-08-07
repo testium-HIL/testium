@@ -21,6 +21,18 @@ reports in several formats.
 * [User manual (PDF)](doc/manual/testium_manual.pdf) — full reference.
 * [`doc/examples/`](doc/examples/) — runnable `.tum` snippets.
 
+## Install from PyPI
+
+```sh
+pip install testium-hil
+testium              # GUI mode
+testium -b test.tum  # batch mode
+```
+
+The PyPI project is named `testium-hil` (`testium` was already taken); the
+command and the Python package are named `testium`. Add the language server
+for editor support with `pip install 'testium-hil[lsp]'`.
+
 ## Pre-built releases
 
 Pre-built artifacts are published at

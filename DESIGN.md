@@ -252,7 +252,7 @@ Four distribution channels coexist, all sharing the single `src/testium/` packag
 
 | Channel | Where | Build | Notes |
 |---------|-------|-------|-------|
-| Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. |
+| Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. Published on PyPI as **`testium-hil`** (`testium` taken); `src/README.md` is the PyPI page and `src/LICENSE` a copy of the root license — setuptools cannot reference files outside `src/`. |
 | PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). Built windowed (`console=False`) with `package/testium.ico` as the exe icon — see "Windows frozen build". |
 | Windows installer | `package/innosetup/` | `build.ps1` (Inno Setup 6) | Wraps a **one-folder** PyInstaller build (`TESTIUM_ONEDIR=1` — fast startup, no per-launch re-extract). Per-user, **no admin** (`PrivilegesRequired=lowest`, installs under `%LOCALAPPDATA%`). Version-scoped `AppId` + install dir so versions coexist side-by-side; one Start Menu entry per version; an optional "remove other versions" task appears when one is present. |
 | Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |

@@ -232,7 +232,22 @@ the validation suite end-to-end. Currently green on `debian:bookworm`,
    ./test/validation/run.sh --mode appimage
    ```
 5. Confirm all validation results are green before publishing.
-6. Push and tag the commit with the new version.
+6. Publish on PyPI (project name `testium-hil`):
+   ```sh
+   cd src
+   python -m build
+   python -m twine upload dist/*
+   ```
+   `twine` reads the credentials from `~/.pypirc`. Create an API token on
+   <https://pypi.org/manage/account/token/> (scope it to the `testium-hil`
+   project) and store it as:
+   ```ini
+   [pypi]
+   username = __token__
+   password = pypi-...
+   ```
+   Restrict the file to yourself: `chmod 600 ~/.pypirc`.
+7. Push and tag the commit with the new version.
 
 ## Reporting security issues
 
