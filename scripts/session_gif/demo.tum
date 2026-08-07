@@ -1,0 +1,40 @@
+main:
+    name: Acquisition demo
+    steps:
+        - let:
+            name: Set the temperature threshold
+            values:
+                - threshold: 30
+
+        - py_func:
+            name: Read the sensor temperature
+            file: $(test_directory)/sensor.py
+            func_name: read_temperature
+            store_result: temp
+
+        - check:
+            name: Temperature under threshold
+            values:
+                - <| $(temp) < $(threshold) |>
+
+        - loop:
+            name: Acquire three samples
+            iterator: [1, 2, 3]
+            steps:
+                - sleep:
+                    name: Sampling delay
+                    timeout: 0.7
+                    dialog: false
+                - py_func:
+                    name: Acquire sample
+                    file: $(test_directory)/sensor.py
+                    func_name: acquire_sample
+                    param:
+                        - $(loop_param)
+                    process_result: $(result)['value']
+                    store_result: last_value
+
+        - check:
+            name: Acquisition complete
+            values:
+                - <| $(last_value) == 23.0 |>

@@ -147,6 +147,12 @@ scripts/qt_generate.sh
 
 Icons come from <https://github.com/free-icons/free-icons>.
 
+The README session capture `doc/testium_session.gif` is regenerated with:
+
+```sh
+test/tmp/.venv/bin/python3 scripts/make_session_gif.py
+```
+
 ### Sphinx documentation
 
 ```sh
