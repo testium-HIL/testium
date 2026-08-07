@@ -4,7 +4,7 @@
 #define MyAppName "Testium"
 #define MyAppExeName "testium.exe"
 #define MyAppPublisher "Testium"
-#define MyAppURL "https://github.com/"
+#define MyAppURL "https://github.com/testium-HIL/testium"
 
 ; Read version from src/VERSION so the installer never drifts from the build.
 #define VerFile FileOpen("..\..\src\VERSION")
