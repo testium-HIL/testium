@@ -21,7 +21,8 @@ loaded.
 Step-by-step execution
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The Run toolbar (also the Test menu) drives the execution:
+The Run toolbar (also the Test menu) drives the execution. The step
+buttons and their shortcuts appear when the **Debug** button is enabled:
 
 * **F5** — start, pause or resume; **Shift+F5** — stop;
 * **F10** — step over: run to the next item at the same level;

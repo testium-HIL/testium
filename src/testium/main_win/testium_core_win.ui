@@ -282,10 +282,10 @@
     <addaction name="actionStart_test"/>
     <addaction name="actionStop_test"/>
     <addaction name="separator"/>
+    <addaction name="actionDebugOutput"/>
     <addaction name="actionStep_over"/>
     <addaction name="actionStep_into"/>
     <addaction name="actionStep_out"/>
-    <addaction name="actionDebugOutput"/>
     <addaction name="separator"/>
     <addaction name="actionTestInformation"/>
     <addaction name="actionSave_report"/>

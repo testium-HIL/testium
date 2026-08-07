@@ -395,6 +395,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stepBar.addAction(self.actionStart_test)
         self.stepBar.addAction(self.actionStop_test)
         self.stepBar.addSeparator()
+        self.actionDebugOutput.setChecked(prefs.settings.debug_output)
+        self.stepBar.addAction(self.actionDebugOutput)
         for action, tip in (
             (self.actionStep_over, "Step over (F10)"),
             (self.actionStep_into, "Step into (F11)"),
@@ -402,10 +404,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ):
             action.setToolTip(tip)
             self.stepBar.addAction(action)
-
-        self.actionDebugOutput.setChecked(prefs.settings.debug_output)
-        self.stepBar.addSeparator()
-        self.stepBar.addAction(self.actionDebugOutput)
+        # The step actions belong to the debug mode: shown (and their
+        # shortcuts active) only when Debug is checked.
+        self._set_step_actions_visible(self.actionDebugOutput.isChecked())
 
         self.addToolBar(Qt.TopToolBarArea, self.stepBar)
         # Fires on undock and on re-dock after a drag, so every move ends
@@ -690,24 +691,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.prefs_apply_font_size()
 
     def on_testTreeContextMenu(self, pos):
-        """Debugger attach on a py_func item, for this session only."""
+        """Debugger attach on a py_func item, for this session only. Shown
+        disabled on other item types so the option stays discoverable."""
         item = self.treeTests.itemAt(pos)
         if item is None or self.test_service is None:
             return
-        if item.test_type != cst.TYPE_PY_FUNCTION.item_name:
-            return
+        is_py_func = item.test_type == cst.TYPE_PY_FUNCTION.item_name
         menu = QMenu(self.treeTests)
-        action = menu.addAction("Wait for IDE debugger")
+        action = menu.addAction("Wait for IDE debugger (py_func)")
         action.setCheckable(True)
-        action.setChecked(item.isDebugAttach())
+        action.setChecked(is_py_func and item.isDebugAttach())
+        action.setEnabled(is_py_func)
         if menu.exec(self.treeTests.viewport().mapToGlobal(pos)) is action:
             enabled = action.isChecked()
             self.test_service.set_debug_attach(item.id, enabled)
             item.setDebugAttachState(enabled)
 
+    def _set_step_actions_visible(self, visible):
+        for action in (self.actionStep_over, self.actionStep_into,
+                       self.actionStep_out):
+            action.setVisible(visible)
+
     @Slot(bool)
     def on_actionDebugOutput_toggled(self, checked):
         prefs.settings.debug_output = checked
+        self._set_step_actions_visible(checked)
         if self.test_service is not None:
             self.test_service.set_gd_var("test_debug", bool(checked))
 
@@ -718,6 +726,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.actionDebugOutput.blockSignals(True)
             self.actionDebugOutput.setChecked(effective)
             self.actionDebugOutput.blockSignals(False)
+            self._set_step_actions_visible(effective)
 
     @Slot()
     def on_actionRefresh_test_triggered(self):
