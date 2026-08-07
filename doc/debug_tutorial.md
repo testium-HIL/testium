@@ -10,8 +10,8 @@ Flatpak, AppImage): the function always runs on the host Python
 
 ## How it works
 
-With `debug: true` on a `py_func` item, the subprocess running your
-function starts a [debugpy](https://github.com/microsoft/debugpy)
+When a `py_func` item is marked for debugging, the subprocess running
+your function starts a [debugpy](https://github.com/microsoft/debugpy)
 listener on `localhost:5678` and **waits** for a debugger to attach
 before calling the function. The test log shows:
 
@@ -36,6 +36,15 @@ command on the machine; nothing changes inside testium.
 
 ## Step 2 — mark the item
 
+Two ways:
+
+* **From the GUI** (quickest): right-click the `py_func` item in the
+  test tree → **Wait for IDE debugger**. A blue dot marks the item. The
+  request lasts for the session only — a Refresh clears it, and nothing
+  is written to the test file.
+* **In the `.tum` file**: add `debug: true` to the item — for scripted
+  or repeated sessions.
+
 Take a test with a function to inspect:
 
 `process.py`:
@@ -47,7 +56,7 @@ def process(raw):
     return total / len(values)
 ```
 
-`test.tum` — add `debug: true` to the item:
+`test.tum` — with the attribute form:
 
 ```yaml
 main:
@@ -64,8 +73,9 @@ main:
 
 ## Step 3 — configure the IDE
 
-VSCode: add an *attach* configuration to `.vscode/launch.json` (create
-the file if needed):
+VSCode or VSCodium (the Python and Python Debugger extensions are on
+both marketplaces — Open VSX for VSCodium): add an *attach*
+configuration to `.vscode/launch.json` (create the file if needed):
 
 ```json
 {
@@ -103,11 +113,11 @@ path. An item left waiting fails by itself after one hour.
 ## Debugging several items
 
 Each `py_func` item without `context_id` runs in a fresh subprocess:
-every `debug: true` item waits for its own attach (the IDE reconnects
+every marked item waits for its own attach (the IDE reconnects
 each time — in VSCode just press F5 again).
 
 With `context_id`, the shared subprocess opens the listener once and
-the debugger **stays attached** across the items: the next `debug: true`
+the debugger **stays attached** across the items: the next marked
 items log "debugger already attached." and run without pausing. If the
 IDE disconnects in between, the next one waits again.
 
@@ -123,7 +133,7 @@ and align `launch.json`:
 testium -b test.tum -d py_func_debug_port=5679
 ```
 
-With `context_id`, the first `debug: true` item fixes the port for the
+With `context_id`, the first marked item fixes the port for the
 whole life of the shared subprocess; a later change is ignored with a
 warning.
 
@@ -159,6 +169,8 @@ ssh -L 5678:localhost:5678 bench-host
 
 ## Where to go next
 
+* Manual, "Debugging your tests" chapter — breakpoints, step-by-step
+  execution, variables window and debug output.
 * Manual, `py_func` chapter — the `debug` attribute reference, the
   `context_id` execution model and the interpreter environment
   variables.

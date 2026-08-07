@@ -1,5 +1,11 @@
 version 0.4.2
 ==============
+- New Debug button on the run toolbar (Ctrl+Shift+D): enables the
+  verbose debug output, immediately, and keeps its state.
+- Right-click a ``py_func`` item to make it wait for your IDE debugger
+  at the next run — no test file change, cleared on Refresh.
+- New manual chapter "Debugging your tests": breakpoints, step-by-step,
+  variables window, debug output, IDE attach.
 - Error messages name the file, the item and the value in cause.
 - An unresolved ``$(variable)`` or a failing ``<| ... |>`` evaluation
   prints a WARN naming it.

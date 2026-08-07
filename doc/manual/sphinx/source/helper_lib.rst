@@ -57,4 +57,5 @@ Debug mode
 ------------------------
 
 The ``test_debug`` global variable controls debug-only output. Read or write
-it via ``tm.gd("test_debug")`` / ``tm.setgd("test_debug", True)``.
+it via ``tm.gd("test_debug")`` / ``tm.setgd("test_debug", True)``. See
+:ref:`Debugging your tests<sec_debugging>`.

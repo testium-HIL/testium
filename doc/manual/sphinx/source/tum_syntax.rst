@@ -151,24 +151,10 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 Debug mode
 ^^^^^^^^^^^^^^^^^^^
 
-Debug mode can be enabled by defining the global variable `test_debug`.
-
-For example, it can be defined in the configuration file as:
-
-.. code-block:: yaml
-    :caption: example of configuration file: param.yaml
-
-    [...]
-    test_debug: True
-    [...]
-
-It can also be defined from the command line with the option
-``-d test_debug``.
-
-When debug mode is enabled, additional information is displayed in the log window.
-
-Some :ref:`helper library functions<sec_python_helper_library>` are available
-to query the state of the debug mode.
+The ``test_debug`` global variable enables the verbose debug output. It
+can be set from the Debug button of the Run toolbar, a configuration
+file (``test_debug: True``) or the command line (``-d test_debug``).
+See :ref:`Debugging your tests<sec_debugging>`.
 
 Test items entries
 ^^^^^^^^^^^^^^^^^^^^
@@ -279,5 +265,7 @@ step-list attributes.
 .. include:: templates.rst
 
 .. include:: reports.rst
+
+.. include:: debugging.rst
 
 .. include:: other_features.rst
