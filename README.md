@@ -6,6 +6,8 @@ of items (checks, console interactions, Python/Lua functions, parallel blocks,
 dialogs, …); testium executes the tree, captures results, and produces
 reports in several formats.
 
+![testium running a test session](doc/testium_session.gif)
+
 ## Documentation
 
 * [Quick start](doc/quick_start.md) — install and run your first test in
