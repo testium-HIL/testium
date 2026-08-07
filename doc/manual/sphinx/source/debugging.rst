@@ -13,7 +13,8 @@ Breakpoints
 ^^^^^^^^^^^
 
 Double-click in the first column of the test tree (left of the
-checkboxes) to set or remove a breakpoint — a red dot. The run pauses
+checkboxes), or select the item and press **Space**, to set or remove a
+breakpoint — a red dot. The run pauses
 before executing a marked item. Breakpoints follow the item across
 Refresh and testium restarts, and are dropped when a different file is
 loaded.
