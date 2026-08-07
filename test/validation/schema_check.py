@@ -10,7 +10,7 @@ binary, or ``./run.sh``), verify three things end-to-end:
   2. The versioned ``schema/tum.json`` in the repo matches the live
      output of ``<cmd> schema``. Drift means someone forgot to
      regenerate the file after touching ``PARAMS``/``ACTIONS``.
-  3. Each ``.tum`` template under ``schema/test_schema/`` validates
+  3. Each ``.tum`` template under ``test/validation/schema/`` validates
      against the schema. These are the positive fixtures shipped with
      the repo to exercise every item type.
 
@@ -46,11 +46,12 @@ def main():
     if not cmd:
         fail("usage: schema_check.py <testium-invocation...>")
 
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))))
-    schema_dir = os.path.join(repo_root, "schema")
-    versioned_path = os.path.join(schema_dir, "tum.json")
-    fixtures_dir = os.path.join(schema_dir, "test_schema")
+    here = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(os.path.dirname(here))
+    # Public reference snapshot at the repo root; fixtures live with the
+    # validation suite.
+    versioned_path = os.path.join(repo_root, "schema", "tum.json")
+    fixtures_dir = os.path.join(here, "schema", "test_schema")
 
     # 1. testium schema output is valid JSON Schema.
     try:
@@ -79,10 +80,10 @@ def main():
              f"schema` - regenerate with `testium schema > schema/tum.json`")
     print("SCHEMA CHECK: versioned schema matches live output")
 
-    # 3. Each fixture .tum validates. schema/test.tum is the canonical
-    # top-level example; schema/test_schema/*.tum exercise one item type each.
+    # 3. Each fixture .tum validates. test.tum is the canonical top-level
+    # example; test_schema/*.tum exercise one item type each.
     validator = jsonschema.Draft202012Validator(live)
-    fixtures = [("test.tum", schema_dir)]
+    fixtures = [("test.tum", os.path.join(here, "schema"))]
     fixtures += [(f, fixtures_dir)
                  for f in sorted(os.listdir(fixtures_dir))
                  if f.endswith(".tum")]

@@ -123,6 +123,11 @@ testium lsp        # LSP over stdio, controlled by the editor LSP client
 testium schema     # dumps the item/parameter schema as JSON (what the LSP serves)
 ```
 
+Without the LSP, [`schema/tum.json`](schema/tum.json) is the committed
+JSON Schema of `.tum` files: point yaml-language-server at it
+(`yaml.schemas` setting, local path or the raw GitHub URL) for
+completion and validation in any YAML-capable editor.
+
 The server is bundled in every pre-built release (wheel, binary, Flatpak,
 AppImage). For a source / wheel install, install the language-server
 extra:

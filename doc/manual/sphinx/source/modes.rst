@@ -59,6 +59,10 @@ Because the schema is built from *testium* itself, every new item type or
 parameter becomes available in the editor on the next *testium* upgrade, with
 no change to the client.
 
+A committed copy of this schema, ``schema/tum.json``, is kept at the root of
+the source repository for tools that read a file instead of running the
+command (yaml-language-server, external linters, AI assistants).
+
 The language server is included in the pre-built binary, Flatpak and AppImage
 releases. For a source or wheel installation, pull the optional ``lsp``
 dependencies:
