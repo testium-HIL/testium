@@ -133,6 +133,54 @@ python3 src/testium               # GUI
 python3 src/testium -b mytest.tum # batch
 ```
 
+## Comparison with other test sequencers
+
+testium sits in a small niche: sequencing validation campaigns on hardware
+benches. The table below situates it against the tools most often used for
+that job.
+
+| | Licence | Test description | Scripting | Platform |
+|---|---|---|---|---|
+| **TestStand** (NI) | Proprietary, per-seat | Binary sequence files, GUI-authored | LabVIEW, C#, Python | Windows |
+| **VeriStand** (NI) | Proprietary | GUI configuration | Python, C, .NET, ASAM XIL | Windows |
+| **OpenTAP** (Keysight) | Open source | C# test steps, compiled plugins | C# / .NET | Windows, Linux |
+| **Robot Framework** | Apache-2.0 | Keyword tables | Python | Any |
+| **testium** | EUPL-1.2 | `.tum` YAML files | Python, Lua | Linux, Windows |
+
+### Where testium is a good fit
+
+- **Tests belong in git.** A `.tum` campaign is a plain YAML tree: it diffs,
+  it reviews, it merges. Sequence files authored in a GUI generally do not.
+- **No licence cost, no per-seat counting.** Every bench, every CI runner,
+  every engineer's laptop can run it. EUPL-1.2 is an OSI-approved copyleft
+  licence, compatible with the usual European procurement constraints.
+- **Python and Lua are first-class**, not an extension point bolted onto a
+  proprietary core. Test logic is ordinary code your team already writes.
+- **Runs headless.** The same campaign runs in the GUI on a bench and in
+  batch mode in CI, producing JUnit XML among other report formats.
+- **Linux is a supported target**, not an afterthought.
+
+### Where the alternatives are stronger
+
+- **testium is not a real-time HIL platform.** It sequences tests and talks
+  to equipment; it does not execute simulation models under real-time
+  constraints. If you need model-in-the-loop execution on deterministic
+  hardware, VeriStand or dSPACE solve a different problem than this one.
+- **No instrument driver ecosystem.** TestStand and OpenTAP inherit large
+  catalogues of vendor drivers. testium gives you Python and Lua, and you
+  write the glue.
+- **No built-in requirements traceability or test-management back end.**
+  If your process mandates a qualified toolchain with requirement linking,
+  the commercial suites are built for that and testium is not.
+- **Maturity.** TestStand has decades of production use and commercial
+  support behind it. testium is young, and support is best-effort through
+  the issue tracker.
+
+If you are evaluating a move away from a licensed sequencer, the honest
+summary is: testium suits teams that want their test campaigns to live in
+version control and be written in ordinary code, and that can accept
+writing their own equipment layer.
+
 ## Editor support
 
 testium ships a Language Server Protocol (LSP) server that gives `.tum` files
