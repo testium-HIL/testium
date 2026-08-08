@@ -79,7 +79,7 @@ Rules:
 - Python ≥ 3.11
 - Follow existing style in the file you are modifying
 - Add or update tests in `test/validation/` for new test items or behaviours
-- Update `CLAUDE.md` and the Sphinx manual for user-visible changes
+- Update `DESIGN.md` and the Sphinx manual for user-visible changes
 
 ### Comments
 
