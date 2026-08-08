@@ -5,8 +5,8 @@
    version="1.1"
    id="svg1"
    width="477.04684"
-   height="449.76755"
-   viewBox="0 0 477.04684 449.76755"
+   height="477.04684"
+   viewBox="0 0 477.04684 477.04684"
    sodipodi:docname="testium_logo.svg"
    inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -37,7 +37,7 @@
        x="0"
        y="0"
        width="477.04684"
-       height="449.76755"
+       height="477.04684"
        id="page2"
        margin="0"
        bleed="0" />
@@ -46,7 +46,7 @@
      inkscape:groupmode="layer"
      inkscape:label="Image"
      id="g1"
-     transform="translate(-452.00522,-236.6526)">
+     transform="translate(-452.00522,-223.01296)">
     <g
        id="g2"
        inkscape:export-filename="g2.svg"
