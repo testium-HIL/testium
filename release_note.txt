@@ -1,5 +1,6 @@
 version 0.4.3
 ==============
+- Fixed: pref window appearance
 - Fixed: dict/list global variables were emptied from the third run on
   (e.g. empty ``dialog_choices`` list).
 
