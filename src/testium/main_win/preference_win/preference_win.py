@@ -72,6 +72,13 @@ class PrefWindow(QDialog):
         ]
         self._changed = set()
         self.restore_prefs()
+        # Open sized to the content of the largest tab (a row is added in
+        # code above, so the .ui geometry cannot know it); stays resizable.
+        for sa in (self.ui.scrollArea, self.ui.scrollArea_2, self.ui.scrollArea_3):
+            hint = sa.widget().sizeHint()
+            sa.setMinimumHeight(hint.height() + 4)
+            sa.setMinimumWidth(hint.width() + 4)
+        self.adjustSize()
 
     def store_prefs(self):
         self._changed = set()
