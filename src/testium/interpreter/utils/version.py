@@ -84,7 +84,7 @@ def get_testium_release_version():
     2. ``sys._MEIPASS/VERSION`` (PyInstaller frozen).
     3. ``VERSION`` at the source tree root (matches pyproject's dynamic
        version).
-    4. ``importlib.metadata.version("testium")`` (pip-installed wheel).
+    4. ``importlib.metadata.version("testium-hil")`` (pip-installed wheel).
 
     Safe to call before ``prefs.settings`` is initialised.
     """
@@ -124,7 +124,7 @@ def get_testium_release_version():
         from importlib.metadata import version as _pkg_version
         from importlib.metadata import PackageNotFoundError
         try:
-            return _pkg_version("testium")
+            return _pkg_version("testium-hil")
         except PackageNotFoundError:
             pass
     except ImportError:
