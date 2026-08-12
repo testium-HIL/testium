@@ -40,6 +40,11 @@ Inspecting variables
 **F1** opens the variables window: the global dictionary, filterable,
 editable while the test is paused or between runs.
 
+The expression field below the table evaluates a ``$(var)`` /
+``<| ... |>`` expression against the current variables — also while
+paused on a breakpoint — and shows the result, or the error when the
+expression is invalid. The text is taken as-is (no YAML quoting rules).
+
 Debug output
 ^^^^^^^^^^^^
 

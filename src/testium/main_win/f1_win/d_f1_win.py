@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt, QUrl, Slot
 
 from main_win.f1_win.f1_win_core import Ui_F1Dialog
 from interpreter.utils import bins
+from runtime.tum_except import ETUMRuntimeError
 
 
 class YamlHighlighter(QSyntaxHighlighter):
@@ -135,6 +136,36 @@ class DialogF1(QDialog):
         filter_row.addWidget(self._filter_values_cb)
         self.ui.verticalLayout_tab1.insertLayout(0, filter_row)
 
+        # Expression tester below the table: evaluated by the interpreter
+        # process against the live global dict (also while paused).
+        self._expr_edit = QLineEdit(self.ui.tabVariables)
+        self._expr_edit.setPlaceholderText("Try an expression: <| $(var) ... |>")
+        self._expr_edit.setClearButtonEnabled(True)
+        self._expr_edit.setFont(self._mono_font)
+        self._expr_edit.returnPressed.connect(self._on_expr_entered)
+        self._expr_edit.setEnabled(False)
+        self._expr_result = QLineEdit(self.ui.tabVariables)
+        self._expr_result.setReadOnly(True)
+        self._expr_result.setFont(self._mono_font)
+        self._expr_result.setPlaceholderText("Result")
+        expr_row = QHBoxLayout()
+        expr_row.addWidget(self._expr_edit, 3)
+        expr_row.addWidget(self._expr_result, 2)
+        self.ui.verticalLayout_tab1.addLayout(expr_row)
+
+    def _on_expr_entered(self):
+        expr = self._expr_edit.text()
+        if not expr or self._service is None:
+            return
+        try:
+            result = self._service.eval_expr(expr)
+        except ETUMRuntimeError as e:
+            self._expr_result.setStyleSheet("color: #b71c1c;")
+            self._expr_result.setText(str(e))
+            return
+        self._expr_result.setStyleSheet("")
+        self._expr_result.setText(repr(result))
+
     def _on_filter_changed(self, text):
         self._filter_text = text.strip().lower()
         self._apply_filter()
@@ -166,6 +197,10 @@ class DialogF1(QDialog):
         enabled = service is not None
         self.ui.varsTable.setEnabled(enabled)
         self.ui.addVarButton.setEnabled(enabled)
+        self._expr_edit.setEnabled(enabled)
+        if not enabled:
+            self._expr_result.clear()
+            self._expr_result.setStyleSheet("")
         if not enabled:
             self._updating = True
             try:

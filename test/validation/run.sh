@@ -211,6 +211,17 @@ if [ "$MODE" = "source" ]; then
     "$DBG_PY" "$SCRIPT_DIR/debug_output_check.py"
 fi
 
+# ---------- eval expr check (source only) -------------------------------------
+# The F1 expression tester evaluates through the control queue; errors
+# must reach the caller. Imports the interpreter directly, so source
+# mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- eval expr check ($MODE)"
+    EEX_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$EEX_PY" ] || EEX_PY="$VENV_PYTHON"
+    "$EEX_PY" "$SCRIPT_DIR/eval_expr_check.py"
+fi
+
 # ---------- gd restore check (source only) ------------------------------------
 # The single load-time backup is restored after every run; nested globals
 # must survive repeated cycles without aliasing the backup. Imports the

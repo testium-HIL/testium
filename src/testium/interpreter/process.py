@@ -10,7 +10,8 @@ from runtime.string_queue import StringQueue
 from runtime.tum_except import print_exception, ETUMRuntimeError, ETUMSyntaxError
 import api.testium as tm
 import interpreter.utils.globdict as globdict
-from interpreter.utils.params import expanse
+from interpreter.utils.params import expanse, unresolved_names
+from interpreter.utils.py_eval import eval_exec
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.test_init import (
     env_init,
@@ -360,6 +361,7 @@ class TestProcess(Process):
             "skipped_state": test_set.getSkippedState,
             "enabled_state": test_set.getEnabledState,
             "process_param": self.process_param,
+            "eval_expr": self.eval_expr,
             "set_test_outputs": self.set_test_outputs,
             "get_gd_vars": self.get_gd_vars,
             "set_gd_var": self.set_gd_var,
@@ -395,6 +397,22 @@ class TestProcess(Process):
 
     def process_param(self, param):
         return expanse(param)
+
+    def eval_expr(self, expr: str):
+        """Strict variant of process_param for the F1 expression tester:
+        an unresolved $(...) or a failing evaluation raises with the cause
+        instead of returning the value as-is."""
+        result = expanse(expr)
+        if isinstance(result, str):
+            unres = unresolved_names(result)
+            if unres:
+                raise ETUMRuntimeError(
+                    "unresolved " + ", ".join(f"$({n})" for n in unres))
+            i = result.find("<|")
+            j = result.rfind("|>")
+            if i != -1 and j > i:
+                return eval_exec(result[i + 2:j])
+        return result
 
     def set_test_outputs(self, outputs: list):
         tm.setgd("test_outputs", outputs)

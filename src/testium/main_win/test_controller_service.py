@@ -77,6 +77,9 @@ class TestControllerService:
     def process_param(self, param: str) -> str:
         return self._ctrl.control("process_param", param=param)
 
+    def eval_expr(self, expr: str):
+        return self._ctrl.control("eval_expr", expr=expr)
+
     def set_report(self, rep_path: str, rep_type: str, pattern: list) -> None:
         self._ctrl.control("report", rep_path=rep_path, rep_type=rep_type, pattern=pattern)
 

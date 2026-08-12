@@ -3,6 +3,10 @@ version 0.4.3
 - Fixed: pref window appearance
 - Fixed: dict/list global variables were emptied from the third run on
   (e.g. empty ``dialog_choices`` list).
+- ``re`` is available in ``<| ... |>`` evaluations (multiline recipe in
+  the manual).
+- The F1 variables window has an expression tester: evaluates against
+  the current variables, also while paused.
 
 version 0.4.2
 ==============
