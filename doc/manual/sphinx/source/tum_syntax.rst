@@ -210,6 +210,17 @@ To search a multiline value with a regular expression:
   then pass through unchanged and the pattern is written as in Python.
 * ``re.M`` makes ``^`` and ``$`` match at each line.
 
+A variable holding a Windows path needs the same ``r`` prefix. The
+substitution is textual, so ``"$(test_path)"`` becomes
+``"C:\Users\..."`` and Python reads ``\U`` as an escape sequence:
+
+.. code-block:: yaml
+
+    - check:
+        name: Path contains Lib
+        values:
+            - <| "Lib" in r"$(test_path)" |>
+
 Below are illustrated simple and more complicated cases of expansion and evaluation depending on
 their pattern.
 
