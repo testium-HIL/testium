@@ -26,3 +26,14 @@
     key: $(test)_FAIL
     values:
         - <| "tailor" in "$(pfn_Dummy_str)" |>
+- let:
+    name: Multiline sample
+    key: $(test)_PASS
+    values:
+        - ml_text: "line1\nversion: 1.2.3\nline3"
+
+- check:
+    name: Check regex on a multiline variable (PASS)
+    key: $(test)_PASS
+    values:
+        - <| re.search(r"^version:\s+\d+\.\d+\.\d+$", r'''$(ml_text)''', re.M) is not None |>

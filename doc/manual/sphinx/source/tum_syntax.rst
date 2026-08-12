@@ -192,7 +192,20 @@ The variable substitution is recursive and checks all the occurrences of the
 
 It is also possible to evaluate embedded Python expressions when parameters are passed.
 It is done by using the ``<| expr |>`` pattern in a string.
-`expr` must be a valid Python expression.
+`expr` must be a valid Python expression. The modules ``os``, ``re``,
+``sys``, ``time``, ``math``, ``json``, ``random`` and ``platform`` are
+available in the expression.
+
+To match a multiline value, protect the substitution with a raw
+triple-quoted string and keep the whole line an unquoted YAML scalar —
+regex escapes are then written exactly as in Python:
+
+.. code-block:: yaml
+
+    - check:
+        name: Version line present
+        values:
+            - <| re.search(r"version:\s+\d+\.\d+", r'''$(out)''', re.M) is not None |>
 
 Below are illustrated simple and more complicated cases of expansion and evaluation depending on
 their pattern.

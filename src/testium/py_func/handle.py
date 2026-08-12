@@ -1,5 +1,6 @@
 import random
 import os
+import re
 import sys
 import time
 import platform
