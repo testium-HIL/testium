@@ -119,4 +119,4 @@ variable.
 
 Development option: attaches a debugger to *testium* itself. See
 ``CONTRIBUTING.md`` of the source repository. Not used for debugging
-tests — see the :ref:`Debugging your tests<sec_debugging>` chapter.
+tests; see the :ref:`Debugging your tests<sec_debugging>` chapter.

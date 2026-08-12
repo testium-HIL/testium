@@ -31,9 +31,9 @@ Language server (editor support)
 
 *testium* ships a `Language Server Protocol
 <https://microsoft.github.io/language-server-protocol/>`_ server so that
-``.tum`` files get editor assistance — completion of test item types, hover
-documentation of their parameters, and an outline view — in any LSP-capable
-editor.
+``.tum`` files get editor assistance in any LSP-capable editor:
+completion of test item types, hover documentation of their parameters,
+and an outline view.
 
 The server speaks LSP over standard input/output and is started with:
 
@@ -97,8 +97,8 @@ Open VSX page linked above, then either choose *Extensions* → *⋯* →
     code --install-extension testium-assist-0.1.0.vsix
 
 The extension launches ``testium lsp``, so the ``testium`` command must be on
-the ``PATH``. If *testium* is installed elsewhere — a specific binary or an
-AppImage — point the ``testium.serverPath`` setting at it instead.
+the ``PATH``. If *testium* is installed elsewhere (a specific binary or
+an AppImage), point the ``testium.serverPath`` setting at it instead.
 
 Once installed, open a ``.tum`` file: completion of item types, hover
 documentation and the outline view become available. If nothing happens, check

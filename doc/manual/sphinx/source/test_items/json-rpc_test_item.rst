@@ -160,7 +160,7 @@ configuration is needed, both are received transparently on ``udp.rcv_port``:
 
 Use ``udp.multicast_if`` to pin the exchanges to a given local interface
 (e.g. ``127.0.0.1`` for a same-host test bench); otherwise the kernel routing
-decides which interface carries the multicast traffic — on a multi-homed
+decides which interface carries the multicast traffic; on a multi-homed
 host the request may leave through the wrong network.
 
 .. warning::

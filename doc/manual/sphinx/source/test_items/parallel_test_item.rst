@@ -89,7 +89,7 @@ Notes
 * A ``sleep`` item inside a branch is interruptible: if another branch
   finishes first under ``sync: any``, slow ``sleep`` items are aborted
   within ~50 ms.
-* A ``py_func`` or ``console`` item inside a branch is **not**
+* A ``py_func`` or ``console`` item inside a branch is not
   interruptible: a ``sync: any`` stop will only take effect after the
   current item returns. The branch will then skip its remaining steps.
 * When a user disables a branch in the GUI tree, the branch returns

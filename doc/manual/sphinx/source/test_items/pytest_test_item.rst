@@ -34,12 +34,12 @@ Host execution
 ------------------
 
 Unlike ``unittest`` (which runs in *testium*'s own interpreter), the
-``pytest`` item runs pytest in a **subprocess on the host interpreter** — the
+``pytest`` item runs pytest in a subprocess on the host interpreter, the
 same one used by ``py_func`` / ``lua_func`` (overridable with the
 ``python_bin`` global variable). As a consequence:
 
 * ``pytest`` (and the test's own dependencies) must be installed on that host
-  interpreter — e.g. ``pip install pytest``. It is not bundled with *testium*.
+  interpreter, e.g. ``pip install pytest``. It is not bundled with *testium*.
 * the tests run isolated from *testium*'s in-process API; they are meant to be
   self-contained (they exercise the device/software under test, not the
   *testium* tree).

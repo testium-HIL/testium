@@ -143,8 +143,9 @@ item, including other ``py_func`` items, without requiring a shared subprocess.
         return tm.gd("my_shared_value", None)
 
 When ``context_id`` is set, all ``py_func`` items that share the same identifier
-reuse the same persistent subprocess. This allows sharing any Python object across
-calls — including objects that cannot be transmitted to other processes.
+reuse the same persistent subprocess. This allows sharing any Python
+object across calls, including objects that cannot be transmitted to
+other processes.
 
 .. code-block:: python
     :caption: sharing an object via ``context_id``
@@ -192,7 +193,7 @@ starts a `debugpy <https://github.com/microsoft/debugpy>`_ listener on
 
     py_func waiting for the debugger on localhost:5678 — attach from your IDE, or Stop to cancel
 
-Requirements: install debugpy with the host Python — the ``python_bin``
+Requirements: install debugpy with the host Python, the ``python_bin``
 interpreter, the same one running your functions:
 
 .. code-block:: sh

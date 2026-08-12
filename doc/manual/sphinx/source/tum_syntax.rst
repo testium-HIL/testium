@@ -196,9 +196,7 @@ It is done by using the ``<| expr |>`` pattern in a string.
 ``sys``, ``time``, ``math``, ``json``, ``random`` and ``platform`` are
 available in the expression.
 
-To match a multiline value, protect the substitution with a raw
-triple-quoted string and keep the whole line an unquoted YAML scalar —
-regex escapes are then written exactly as in Python:
+To search a multiline value with a regular expression:
 
 .. code-block:: yaml
 
@@ -206,6 +204,11 @@ regex escapes are then written exactly as in Python:
         name: Version line present
         values:
             - <| re.search(r"version:\s+\d+\.\d+", r'''$(out)''', re.M) is not None |>
+
+* ``r'''$(var)'''`` keeps the line breaks of the substituted value.
+* Do not put YAML quotes around the line. Backslashes (``\d``, ``\s``)
+  then pass through unchanged and the pattern is written as in Python.
+* ``re.M`` makes ``^`` and ``$`` match at each line.
 
 Below are illustrated simple and more complicated cases of expansion and evaluation depending on
 their pattern.
@@ -236,7 +239,7 @@ step-list attributes.
    Each test item declares the parameters it accepts. When a ``.tum`` file
    uses a key the item does not know, *testium* emits a warning listing the
    accepted parameter names (catching typos such as ``param_filee`` for
-   ``param_file``); a missing **required** parameter aborts loading with an
+   ``param_file``); a missing required parameter aborts loading with an
    error pointing at the source ``.tum`` file. Valid existing tests are
    unaffected.
 

@@ -12,16 +12,16 @@ reports in several formats. It runs on Linux and Windows.
 
 ## Documentation
 
-* [Quick start](doc/quick_start.md) — install and run your first test in
+* [Quick start](doc/quick_start.md): install and run your first test in
   five minutes.
-* [Tutorial](doc/tutorial.md) — step-by-step tutorial covering the most
+* [Tutorial](doc/tutorial.md): step-by-step tutorial covering the most
   common test items with a runnable example.
-* [Exporter tutorial](doc/exporter_tutorial.md) — write and use a custom
+* [Exporter tutorial](doc/exporter_tutorial.md): write and use a custom
   report export format.
-* [Debug tutorial](doc/debug_tutorial.md) — debug the Python code of
+* [Debug tutorial](doc/debug_tutorial.md): debug the Python code of
   your `py_func` items from your IDE.
-* [User manual (PDF)](doc/manual/testium_manual.pdf) — full reference.
-* [`doc/examples/`](doc/examples/) — runnable `.tum` snippets.
+* [User manual (PDF)](doc/manual/testium_manual.pdf): full reference.
+* [`doc/examples/`](doc/examples/): runnable `.tum` snippets.
 
 ## Install from PyPI
 
@@ -40,14 +40,14 @@ language server for editor support with `pip install 'testium-hil[lsp]'`.
 Pre-built artifacts are published at
 <https://github.com/testium-HIL/testium/releases>:
 
-* **Python wheel** (`testium_hil-<version>-py3-none-any.whl`) — install with
+* **Python wheel** (`testium_hil-<version>-py3-none-any.whl`): install with
   `pip install testium_hil-*.whl`. Smaller download than the binary; downloads
   Python dependencies from PyPI during installation.
-* **Self-contained Linux binary** (`testium-<version>`, built with PyInstaller) —
+* **Self-contained Linux binary** (`testium-<version>`, built with PyInstaller):
   runnable directly, no Python installation required on the host. Lua
   support still needs a system `lua` interpreter and the `lua-socket` /
   `lua-cjson` modules.
-* **AppImage** (`Testium-<version>-x86_64.AppImage`) — single-file
+* **AppImage** (`Testium-<version>-x86_64.AppImage`): single-file
   Linux binary, runnable directly:
 
   ```sh
@@ -55,7 +55,7 @@ Pre-built artifacts are published at
   ./Testium-*-x86_64.AppImage
   ```
 
-  Requires `libfuse2` on the host (FUSE 2 — distinct from `fuse3`, which
+  Requires `libfuse2` on the host (FUSE 2, distinct from `fuse3`, which
   most distros now ship by default):
 
   | Distro | Package |
@@ -66,9 +66,9 @@ Pre-built artifacts are published at
   | Fedora | `fuse-libs` |
 
   If you can't install libfuse2 (e.g. minimal container), prefix the
-  invocation with `APPIMAGE_EXTRACT_AND_RUN=1` — the AppImage will
+  invocation with `APPIMAGE_EXTRACT_AND_RUN=1`: the AppImage will
   self-extract to `/tmp` on each run instead of FUSE-mounting.
-* **Flatpak bundle** (`testium.flatpak`) — install with:
+* **Flatpak bundle** (`testium.flatpak`): install with:
 
   ```sh
   # Add Flathub (once, to fetch the KDE/PySide runtimes)
@@ -77,10 +77,10 @@ Pre-built artifacts are published at
   # Install the bundle
   flatpak install --user testium.flatpak
   ```
-* **Windows installer** (`testium-<version>-setup.exe`) — per-user install,
+* **Windows installer** (`testium-<version>-setup.exe`): per-user install,
   no administrator rights required; adds a Start Menu entry. Several
   versions can be installed side by side.
-* **Windows binary** (`testium-<version>-win64.zip`) — self-contained
+* **Windows binary** (`testium-<version>-win64.zip`): self-contained
   folder, no installation: unzip and run `testium.exe`.
 
   After installation testium appears in the desktop application menu and the
@@ -216,7 +216,7 @@ Extensions view (search `testium-assist`) or with
 `codium --install-extension testium.testium-assist`.
 
 **Microsoft VSCode** does not list Open VSX extensions, so install the `.vsix`
-by hand — download it from the Open VSX page above, then *Extensions → ⋯ →
+by hand: download it from the Open VSX page above, then *Extensions → ⋯ →
 Install from VSIX…* or:
 
 ```sh
@@ -234,7 +234,7 @@ point the `testium.serverPath` setting at the binary/AppImage).
 'pytest' item ... could not be loaded: pytest is not installed on the host interpreter
 ```
 
-Install pytest with the host Python — the `python_bin` interpreter, the
+Install pytest with the host Python, the `python_bin` interpreter, the
 same one running `py_func` steps: `<python_bin> -m pip install pytest`.
 The same rule applies to the dependencies of `py_func` scripts and to
 report exporter plugins: they are installed beside testium, never inside
@@ -268,7 +268,7 @@ sudo apt install libxcb-cursor0
 Copyright © 2025-2026 François Dausseur.
 
 testium is distributed under the **European Union Public Licence v. 1.2
-(EUPL-1.2)** — see [`LICENSE`](LICENSE) for the full text. SPDX:
+(EUPL-1.2)**; see [`LICENSE`](LICENSE) for the full text. SPDX:
 `EUPL-1.2`.
 
 Contributions are accepted under the same licence as the project.

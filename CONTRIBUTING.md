@@ -4,8 +4,8 @@ Thank you for your interest in contributing to testium.
 
 ## License of contributions
 
-testium is licensed under the **European Union Public Licence v. 1.2 (EUPL-1.2)** —
-see the [LICENSE](LICENSE) file at the repository root.
+testium is licensed under the **European Union Public Licence v. 1.2
+(EUPL-1.2)**; see the [LICENSE](LICENSE) file at the repository root.
 
 By submitting a contribution to this project (pull request, patch, issue
 attachment, or any other form of code, documentation or media), you agree
@@ -59,12 +59,12 @@ For existing files, keep the header that is already there.
 | `main_win/` | main process | PySide6 GUI |
 | `api/` | main process | runtime API implementation; subprocesses reach it only through the JSON-RPC bridge |
 | `lsp/` | main process | `testium lsp` / `testium schema` |
-| `runtime/` | **both sides** | shared floor: RPC link, exceptions, report helper, export worker — loaded by the main process *and* by the host-Python subprocesses |
+| `runtime/` | **both sides** | shared floor: RPC link, exceptions, report helper, export worker; loaded by the main process *and* by the host-Python subprocesses |
 | `py_func/`, `lua_func/` | host interpreter | subprocess-side bridges |
 
 Rules:
 
-- `py_func/` and `lua_func/` import only `runtime/` and themselves — never
+- `py_func/` and `lua_func/` import only `runtime/` and themselves, never
   `interpreter`, `main_win` or `api`. Enforced by
   `test/validation/items/isolation/`.
 - `runtime/` stays standard-library only: the host interpreter does not
@@ -92,6 +92,18 @@ non-obvious choice was made, in as few lines as possible.
 - No humour, no slang, no jargon of the "funcky", "smoke test", "flaky",
   "magic", "hack" kind. Plain, neutral wording only.
 
+### Documentation
+
+Manual, tutorials, README and release notes are written in plain
+international engineering English.
+
+- Short declarative sentences, one idea per sentence.
+- Example first, then one bullet per rule.
+- No em-dash asides ("text — aside — text"); use a second sentence or a
+  colon.
+- Bold only for interface labels (buttons, keys), never for emphasis.
+- Release notes: one line per change, user point of view.
+
 ## Development
 
 ### Developer debugging
@@ -99,9 +111,9 @@ non-obvious choice was made, in as few lines as possible.
 Two switches help debugging testium itself. They are development tools:
 they are not part of the user documentation.
 
-- `-g` / `--dev-debug` — imports `debugpy` in the GUI status thread so a
+- `-g` / `--dev-debug`: imports `debugpy` in the GUI status thread so a
   Python debugger can attach to the running testium.
-- `debug_rpc` — traces the JSON-RPC frames exchanged with the py_func /
+- `debug_rpc`: traces the JSON-RPC frames exchanged with the py_func /
   lua_func subprocesses. It requires the user debug output too, and is
   read when an engine starts, so set both before loading:
 
@@ -170,10 +182,10 @@ sudo apt install texlive-full
 
 The single entry point is `test/validation/run.sh` (`run.ps1` on Windows).
 It prepares a dedicated venv under `/tmp/testium-validation-venv`
-(junit-xml, pytest, jsonschema, pyyaml), runs the pre-checks — language
-server (`lsp_check.py`), JSON Schema dump (`schema_check.py`), load-error
-messages (`load_errors_check.py`), GUI reload leaks (`gui_reload_check.py`,
-source mode only) — then executes the full suite headless. Pass `--gui` to
+(junit-xml, pytest, jsonschema, pyyaml), runs the pre-checks (the
+`*_check.py` scripts: language server, JSON Schema, load-error messages,
+and the source-only interpreter and GUI checks), then executes the full
+suite headless. Pass `--gui` to
 run it through the GUI instead (`-r`: opens, runs, closes).
 
 ```sh

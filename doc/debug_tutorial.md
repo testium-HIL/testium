@@ -1,7 +1,7 @@
-# Tutorial — debugging a `py_func` step by step
+# Tutorial: debugging a `py_func` step by step
 
 This tutorial shows how to debug the Python code of a `py_func` test
-item from your IDE: breakpoints, stepping, variable inspection — while
+item from your IDE (breakpoints, stepping, variable inspection) while
 the test runs normally in testium.
 
 It works with every install channel (source, wheel, PyInstaller,
@@ -12,7 +12,7 @@ Flatpak, AppImage): the function always runs on the host Python
 
 When a `py_func` item is marked for debugging, the subprocess running
 your function starts a [debugpy](https://github.com/microsoft/debugpy)
-listener on `localhost:5678` and **waits** for a debugger to attach
+listener on `localhost:5678` and waits for a debugger to attach
 before calling the function. The test log shows:
 
 ```
@@ -22,9 +22,9 @@ py_func waiting for the debugger on localhost:5678 — attach from your IDE, or 
 You attach from the IDE, the function starts, and execution stops on
 the breakpoints you set in your `.py` file.
 
-## Step 1 — install debugpy
+## Step 1: install debugpy
 
-Install debugpy with the host Python — the `python_bin` interpreter,
+Install debugpy with the host Python, the `python_bin` interpreter,
 the same one running your functions:
 
 ```sh
@@ -34,15 +34,15 @@ the same one running your functions:
 As for `py_func` dependencies and pytest, this is a plain terminal
 command on the machine; nothing changes inside testium.
 
-## Step 2 — mark the item
+## Step 2: mark the item
 
 Two ways:
 
 * **From the GUI** (quickest): right-click the `py_func` item in the
   test tree → **Wait for IDE debugger**. A blue dot marks the item. The
-  request lasts for the session only — a Refresh clears it, and nothing
+  request lasts for the session only: a Refresh clears it, and nothing
   is written to the test file.
-* **In the `.tum` file**: add `debug: true` to the item — for scripted
+* **In the `.tum` file**: add `debug: true` to the item, for scripted
   or repeated sessions.
 
 Take a test with a function to inspect:
@@ -56,7 +56,7 @@ def process(raw):
     return total / len(values)
 ```
 
-`test.tum` — with the attribute form:
+`test.tum`, with the attribute form:
 
 ```yaml
 main:
@@ -71,10 +71,10 @@ main:
             expected_result: 6.0
 ```
 
-## Step 3 — configure the IDE
+## Step 3: configure the IDE
 
 VSCode or VSCodium (the Python and Python Debugger extensions are on
-both marketplaces — Open VSX for VSCodium): add an *attach*
+both marketplaces, Open VSX for VSCodium): add an *attach*
 configuration to `.vscode/launch.json` (create the file if needed):
 
 ```json
@@ -92,10 +92,10 @@ configuration to `.vscode/launch.json` (create the file if needed):
 }
 ```
 
-Any DAP-capable editor works the same way — the target is a debugpy
+Any DAP-capable editor works the same way; the target is a debugpy
 server on `localhost:5678`.
 
-## Step 4 — debug
+## Step 4: debug
 
 1. Open `process.py` in the IDE and set a breakpoint (e.g. on the
    `total = sum(values)` line).
@@ -114,14 +114,14 @@ path. An item left waiting fails by itself after one hour.
 
 Each `py_func` item without `context_id` runs in a fresh subprocess:
 every marked item waits for its own attach (the IDE reconnects
-each time — in VSCode just press F5 again).
+each time; in VSCode just press F5 again).
 
 With `context_id`, the shared subprocess opens the listener once and
-the debugger **stays attached** across the items: the next marked
+the debugger stays attached across the items: the next marked
 items log "debugger already attached." and run without pausing. If the
 IDE disconnects in between, the next one waits again.
 
-Only mark the items you want to inspect — the others run normally.
+Only mark the items you want to inspect; the others run normally.
 
 ## Changing the port
 
@@ -148,18 +148,18 @@ ssh -L 5678:localhost:5678 bench-host
 
 ## Troubleshooting
 
-* The run does not pause and continues — look for a `WARN py_func debug
+* The run does not pause and continues: look for a `WARN py_func debug
   setup failed` line in the log: the item failed instead of waiting
   (debugpy missing or port busy) and the run went on.
 * `debugpy is not installed on the host interpreter used by testium
-  (python_bin)...` — install debugpy as in step 1, with the exact
+  (python_bin)...`: install debugpy as in step 1, with the exact
   interpreter used by testium (check the `python_bin` global in the
   variables window (F1); if it points to a venv, install into that
   venv).
 * `debugpy could not listen on localhost:5678 (...). Is the port
-  free?` — another program (or another testium run) holds the port; set
+  free?`: another program (or another testium run) holds the port; set
   `py_func_debug_port` to a free one.
-* The IDE attaches but no breakpoint is hit — check the breakpoints are
+* The IDE attaches but no breakpoint is hit: check the breakpoints are
   in the file actually referenced by `file:` (paths are resolved
   relative to the test directory), and that `justMyCode` is not hiding
   the frames you expect.
@@ -169,8 +169,8 @@ ssh -L 5678:localhost:5678 bench-host
 
 ## Where to go next
 
-* Manual, "Debugging your tests" chapter — breakpoints, step-by-step
+* Manual, "Debugging your tests" chapter: breakpoints, step-by-step
   execution, variables window and debug output.
-* Manual, `py_func` chapter — the `debug` attribute reference, the
+* Manual, `py_func` chapter: the `debug` attribute reference, the
   `context_id` execution model and the interpreter environment
   variables.

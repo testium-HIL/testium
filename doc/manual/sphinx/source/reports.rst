@@ -3,11 +3,12 @@
 Reports
 ---------
 
-During a test run, testium records one row per executed test item — name,
-type, result, message, duration, reported values — into a SQLite database,
-together with a header describing the run (test file, date, global result,
-…). A report **export** turns that database into an output file: JUnit XML,
-HTML, JSON, plain text, the raw database itself, or any custom format.
+During a test run, testium records one row per executed test item (name,
+type, result, message, duration, reported values) into a SQLite database,
+together with a header describing the run: test file, date, global
+result. A report export turns that database into an output file: JUnit
+XML, HTML, JSON, plain text, the raw database itself, or any custom
+format.
 
 This chapter describes:
 
@@ -34,7 +35,7 @@ recording and lists the exports. The ``export`` key takes one entry or a
 list of entries; each entry uses the format name as its key:
 
 .. code-block:: yaml
-    :caption: report declaration — multiple exports
+    :caption: report declaration with multiple exports
 
     report:
         enabled: True
@@ -72,16 +73,16 @@ list of entries; each entry uses the format name as its key:
 
 When the exports run:
 
-* **at the end of the run** — each entry of the ``export`` list above
-  produces one output file, in declaration order. This is the normal case.
-* **during the run** — the :ref:`report test item<sec_report_test_item>`
-  placed in the test sequence runs its own ``export`` list against the data
-  collected so far. Useful to snapshot partial results in a long campaign.
+* At the end of the run: each entry of the ``export`` list produces one
+  output file, in declaration order. This is the normal case.
+* During the run: a :ref:`report test item<sec_report_test_item>` in the
+  test sequence runs its own ``export`` list on the data collected so
+  far. It snapshots partial results in a long campaign.
 * ``sqlite`` is the exception: it is not converted at the end but written
   live during the run (see :ref:`sec_reports_builtin`).
 
 In :ref:`batch mode<sec_batch_mode>`, the ``-p``, ``-t`` and ``-n``
-command-line options (see :ref:`-p<sec_p_param>`) **replace** the ``export``
+command-line options (see :ref:`-p<sec_p_param>`) replace the ``export``
 list of the test file with a single export built from the given path, type
 and patterns.
 
@@ -115,17 +116,18 @@ Every export entry accepts the following sub-attributes:
     +-----------------+-----------------------+-------------------------------------------+
 
 ``path`` and ``file_name`` are joined to build the output file; you can
-also put the full path in just one of the two attributes. All attributes accept ``$(...)``
-:ref:`global variable expansions<sec_variable_expansion>`, resolved at
-export time — ``file_name: $(test_name).xml`` produces one report file per
-test file, for example. If the output file already exists, it is renamed to
+also put the full path in just one of the two attributes. All attributes
+accept ``$(...)`` :ref:`global variable
+expansions<sec_variable_expansion>`, resolved at export time. For
+example ``file_name: $(test_name).xml`` produces one report file per
+test file. If the output file already exists, it is renamed to
 ``<name>-<N>.saved`` first, never overwritten.
 
 ``pattern`` and ``key`` select which test items appear in the output.
 Without them, every executed item is exported. Both use the SQL ``LIKE``
-syntax — ``%`` matches any text, ``_`` one character — and accept a single
-string or a list; an item is kept when it matches **any** of the given
-patterns.
+syntax: ``%`` matches any text, ``_`` matches one character. They accept
+a single string or a list; an item is kept when it matches any of the
+given patterns.
 
 * ``pattern`` matches on the item ``name``;
 * ``key`` matches on the item ``key`` attribute, one of the
@@ -153,20 +155,20 @@ patterns.
 Built-in formats
 ^^^^^^^^^^^^^^^^
 
-* ``sqlite`` — the report database itself (see below).
-* ``text``   — indented text dump of the test tree.
-* ``json``   — full report as JSON: ``{"header": {...}, "tests": [...]}``.
-* ``junit``  — JUnit XML, for CI systems (requires the ``junit_xml``
+* ``sqlite``: the report database itself (see below).
+* ``text``: indented text dump of the test tree.
+* ``json``: full report as JSON: ``{"header": {...}, "tests": [...]}``.
+* ``junit``: JUnit XML, for CI systems (requires the ``junit_xml``
   Python package).
-* ``html``   — single HTML page with header, results table and per-item
+* ``html``: single HTML page with header, results table and per-item
   logs (requires ``lxml``).
 
 ``sqlite`` has a special role: it is not a conversion but the storage
 layer itself. With a ``sqlite`` entry, the internal database is written
-**live** to the given file during the run; the file remains afterwards for
+live to the given file during the run; the file remains afterwards for
 any external analysis (schema in :ref:`sec_reports_schema`). Without it,
 the database only lives in memory and disappears once the other exports
-have run. Declaring several ``sqlite`` entries is pointless — only the
+have run. Declaring several ``sqlite`` entries is pointless: only the
 last ``path`` is used.
 
 The ``html`` and ``json`` exports can embed the captured stdout of each
@@ -175,12 +177,12 @@ test item; this requires ``log_stored: True`` in the ``report`` block (see
 
 If a format is unknown, or an optional dependency is missing, the export
 is skipped with an ``[report] Export skipped: ...`` line on stdout and the
-test run **continues**. The line lists the available formats: built-ins,
+test run continues. The line lists the available formats: built-ins,
 ``command``, plus every installed plugin.
 
 .. _sec_reports_command:
 
-``command`` export — external tool
+``command`` export: external tool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``command`` export post-processes the report with any external
@@ -202,18 +204,18 @@ Two placeholders, following the usual ``$(...)`` syntax, are reserved in
 ``cmd`` (they are resolved by the export itself, not from the global
 variables):
 
-* ``$(db)``  — path of the temporary SQLite copy of the report
+* ``$(db)``: path of the temporary SQLite copy of the report
   (schema in :ref:`sec_reports_schema`);
-* ``$(out)`` — the output path built from ``path`` / ``file_name``.
+* ``$(out)``: the output path built from ``path`` / ``file_name``.
 
-``cmd`` is split shell-style (quotes group words) but **not** run through
-a shell: no pipes, redirections or globbing — wrap them in a script if
+``cmd`` is split shell-style (quotes group words) but not run through
+a shell: no pipes, redirections or globbing. Wrap them in a script if
 needed. Other ``$(...)`` :ref:`expansions<sec_variable_expansion>` work as
 usual, so ``$(python_bin) myscript.py $(db) $(out)`` runs a script with
 the same interpreter as :ref:`py_func<sec_py_func_item>`. The command runs
 with the test directory as working directory, so relative paths behave as
 elsewhere in the ``.tum`` file. The temporary ``$(db)`` copy is deleted
-after the command returns — the command must not rely on it afterwards.
+after the command returns; the command must not rely on it afterwards.
 
 The command output (stdout) is forwarded to the test log. A command that
 cannot be started or exits with a non-zero code produces an
@@ -231,12 +233,11 @@ tutorial (package layout, install, use) is provided in
 ``doc/exporter_tutorial.md`` of the source repository; this section is the
 reference.
 
-The plugin must be installed with the **host** Python interpreter — the
-one resolved as ``python_bin`` and used by
-:ref:`py_func<sec_py_func_item>`. A plain ``pip install`` with that
-interpreter is enough; no testium configuration change is needed. The
-format is then usable in any ``.tum``
-by its declared name, in **every** install channel: source, wheel,
+The plugin must be installed with the host Python interpreter, the one
+resolved as ``python_bin`` and used by :ref:`py_func<sec_py_func_item>`.
+A plain ``pip install`` with that interpreter is enough; no testium
+configuration change is needed. The format is then usable in any
+``.tum`` by its declared name, in every install channel: source, wheel,
 PyInstaller, Flatpak and AppImage.
 
 Execution model: any format name that is not a built-in is looked up on
@@ -246,9 +247,9 @@ points there, loads the matching class and instantiates it with the
 database copy. Consequences:
 
 * the plugin (and any dependency it imports) must be installed with
-  ``python_bin``'s ``pip`` — not inside the testium bundle, which is
-  read-only in the frozen channels;
-* the plugin cannot use testium internals — it only sees the SQLite
+  ``python_bin``'s ``pip``, not inside the testium bundle (read-only in
+  the frozen channels);
+* the plugin cannot use testium internals: it only sees the SQLite
   database (:ref:`sec_reports_schema`) and its constructor arguments;
 * a crash in the plugin (or a missing plugin dependency) skips that
   export with an ``[report] Export skipped: ...`` line and the run
@@ -267,8 +268,7 @@ The ``testium_report`` helper
 
 The recommended way to write an exporter is the ``testium_report`` helper
 module shipped with testium (the built-in formats are implemented with
-it). It
-is importable by the plugin with **no installation step**: the process
+it). The plugin imports it with no installation step: the process
 loading the plugin class resolves it from the running testium, so its
 version always matches. Subclass ``Exporter`` and implement ``export()``:
 
@@ -300,7 +300,7 @@ Writing an exporter without the helper
 """"""""""""""""""""""""""""""""""""""
 
 The helper is optional. To run an export, testium only instantiates the
-plugin class with the arguments below — a class with this constructor can
+plugin class with the arguments below. A class with this constructor can
 read the SQLite tables (:ref:`sec_reports_schema`) directly, without
 ``testium_report``:
 
@@ -323,15 +323,15 @@ read the SQLite tables (:ref:`sec_reports_schema`) directly, without
 Report database schema
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The SQLite database produced by the ``sqlite`` export — and passed to
-``command`` exports and plugins as a temporary copy — holds two tables.
+The ``sqlite`` export produces this database; ``command`` exports and
+plugins receive a temporary copy. It holds two tables.
 
-``header`` — one ``(key TEXT, value TEXT)`` row per run property:
+``header``: one ``(key TEXT, value TEXT)`` row per run property:
 ``report_version``, ``test_file``, ``test_name``, ``test_result``,
 ``test_revision``, ``testium_version``, ``testrun_date``,
 ``testrun_time``, ``test_duration``.
 
-``tests`` — one row per executed test item, 12 columns:
+``tests``: one row per executed test item, 12 columns:
 
 .. table:: ``tests`` table columns
     :widths: 25, 75
@@ -364,7 +364,7 @@ The SQLite database produced by the ``sqlite`` export — and passed to
     | ``log``             | Captured stdout of the item, when                 |
     |                     | ``log_stored: True``.                             |
     +---------------------+---------------------------------------------------+
-    | ``data``            | JSON of the values reported by the item — e.g.    |
+    | ``data``            | JSON of the values reported by the item, e.g.     |
     |                     | ``reportValue(...)`` in a                         |
     |                     | :ref:`py_func<sec_py_func_item>`.                 |
     +---------------------+---------------------------------------------------+

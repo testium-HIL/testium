@@ -4,7 +4,7 @@
 ============================================================
 
 This test item exports report files **during** the test run, from the data
-collected so far — useful to snapshot partial results in a long campaign.
+collected so far. It snapshots partial results in a long campaign.
 
 It requires a ``report`` element at the root of the main test file (see the
 :ref:`Reports chapter<sec_reports>`).
@@ -34,7 +34,7 @@ item has one specific attribute:
 
 * ``export``: required. One export entry or a list of them, with exactly the
   same syntax and attributes (``path``, ``file_name``, ``pattern``, ``key``,
-  ``cmd``) as the root-level ``export`` — see
+  ``cmd``) as the root-level ``export``; see
   :ref:`export attributes<sec_reports_attributes>`. All formats are
   available: :ref:`built-ins<sec_reports_builtin>`, the
   :ref:`command export<sec_reports_command>` and installed
@@ -44,6 +44,6 @@ Notes:
 
 * a ``sqlite`` entry is ignored here: the database storage is configured
   once, in the root ``report`` element;
-* exports run with ``no_header`` set — the produced files carry the test
+* exports run with ``no_header`` set: the produced files carry the test
   rows without the run header (the run is not finished, so the global
   result and duration do not exist yet).

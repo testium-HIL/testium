@@ -120,13 +120,11 @@ writeln function is similar to the write function except that a '\n' (newline) c
 The ``read_until`` action waits for a string pattern from the console.
 Its parameters are listed below:
 
-* ``expected``: the pattern(s) to wait for. It accepts either a **single
-  value** or a **list of values**; when a list is given the action succeeds
-  as soon as **any** of the values is seen.
-* ``regex``: Boolean value (``True`` or ``False``, default ``False``). When
-  ``True`` every ``expected`` entry is interpreted as a Python regular
-  expression (searched in the incoming stream, not anchored) instead of a
-  literal string.
+* ``expected``: the value to wait for. A list is also accepted; the
+  action succeeds when any entry of the list is seen.
+* ``regex``: Boolean value (default ``False``). When ``True``, each
+  ``expected`` entry is a Python regular expression searched in the
+  received text.
 * ``timeout``: Timeout setting for the action (in seconds)
 * ``no_fail``: Boolean value (``True`` or ``False``). If ``True``, no error is
   reported when the expected input is not read
@@ -154,10 +152,8 @@ When a list of values is given, the report also records, under the
 
 .. note::
 
-    ``regex`` matching scans a bounded tail of the received stream
-    (``Console.REGEX_WINDOW`` characters), so a pattern that could only match
-    after a very large amount of output — or across more than that window —
-    may not be detected. Literal matching (the default) has no such limit.
+    With ``regex: True``, only the last 64 KiB of received text are
+    searched. Older text is not searched again.
 
 In the example above, the global variable ``$(cn_test name in GUI)``
 would be created at the end of the step. It contains the data that was read.

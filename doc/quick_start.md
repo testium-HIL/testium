@@ -42,7 +42,7 @@ Check passed
 Test run success.
 ```
 
-Replace `==` with `!=` and re-run — the step now ends with **FAIL** and
+Replace `==` with `!=` and re-run: the step now ends with FAIL and
 the process exits with code 1.
 
 ## Open it in the GUI
@@ -57,9 +57,9 @@ item to open its detail panel.
 
 ## Where to go next
 
-* [`doc/tutorial.md`](tutorial.md) — a guided walk-through of the most
+* [`doc/tutorial.md`](tutorial.md): a guided walk-through of the most
   common test items (`py_func`, `let`, `group`, `condition`, `report`).
-* [`doc/examples/`](examples/) — runnable `.tum` snippets covering one
+* [`doc/examples/`](examples/): runnable `.tum` snippets covering one
   feature each.
-* [`doc/manual/testium_manual.pdf`](manual/testium_manual.pdf) —
+* [`doc/manual/testium_manual.pdf`](manual/testium_manual.pdf):
   full reference manual.

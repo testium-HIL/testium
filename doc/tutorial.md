@@ -1,4 +1,4 @@
-# Tutorial — testing a small Python utility
+# Tutorial: testing a small Python utility
 
 This walk-through builds, step by step, a testium campaign that exercises
 a small Python module. Each section adds one feature; you can follow
@@ -18,7 +18,7 @@ def divide(a, b):
     return a / b
 ```
 
-## Step 1 — a static check
+## Step 1: a static check
 
 The simplest item is `check`: it evaluates an expression and the test
 passes iff the expression is truthy. Create `tutorial.tum`:
@@ -40,7 +40,7 @@ at run time. Run it:
 testium -b tutorial.tum
 ```
 
-## Step 2 — call your code with `py_func`
+## Step 2: call your code with `py_func`
 
 `check` only sees Python literals; to exercise `calc.py` we need a
 `py_func` item. Replace the step:
@@ -71,7 +71,7 @@ result back with `$(pfn_<name>)`:
                 - <| $(pfn_add 2 and 3) == 5 |>
 ```
 
-## Step 3 — group several checks
+## Step 3: group several checks
 
 Wrap the steps in a `group` to keep them visually together and let
 testium report a per-group status:
@@ -109,7 +109,7 @@ main:
 A group fails as soon as one of its steps fails (set
 `stop_on_failure: false` to keep going).
 
-## Step 4 — define a variable with `let`
+## Step 4: define a variable with `let`
 
 Avoid hard-coding the same number twice with a variable:
 
@@ -128,10 +128,10 @@ Avoid hard-coding the same number twice with a variable:
             expected_result: 3.0
 ```
 
-`$(num)` expands to the global dict entry — when the stored value is a
+`$(num)` expands to the global dict entry; when the stored value is a
 number it is substituted as a number, no need to wrap it in `<| ... |>`.
 
-## Step 5 — conditional execution
+## Step 5: conditional execution
 
 Skip a step when a condition is false:
 
@@ -147,7 +147,7 @@ Skip a step when a condition is false:
 Items skipped this way report `SKIP` and do not affect the overall
 result.
 
-## Step 6 — generate a report
+## Step 6: generate a report
 
 Add a `report` block at the root of the file:
 
@@ -169,18 +169,18 @@ report:
             file_name: calc.html
 ```
 
-The `path` directory must exist before the test runs — testium does not
+The `path` directory must exist before the test runs; testium does not
 create it. Create it once:
 
 ```sh
 mkdir -p reports
 ```
 
-Re-run the test — `./reports/calc.xml` (CI-friendly) and
+Re-run the test: `./reports/calc.xml` (CI-friendly) and
 `./reports/calc.html` (human-friendly) are produced. Set
 `log_stored: true` to include each item's captured stdout.
 
-## Step 7 — share state between calls
+## Step 7: share state between calls
 
 By default each `py_func` runs in its own short-lived subprocess.
 To keep state across calls, use `context_id`:
@@ -216,8 +216,8 @@ def consumer():
 
 ## Where to go next
 
-* [`doc/examples/`](examples/) — one runnable `.tum` per feature
+* [`doc/examples/`](examples/): one runnable `.tum` per feature
   (cycles, dialogs, console, plots, parallel, run-of-tum, …).
-* [`doc/manual/testium_manual.pdf`](manual/testium_manual.pdf) — full
+* [`doc/manual/testium_manual.pdf`](manual/testium_manual.pdf): full
   reference manual covering every test item, every attribute and the
   YAML syntax extensions.

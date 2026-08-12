@@ -1,9 +1,9 @@
-# Tutorial — writing a report exporter
+# Tutorial: writing a report exporter
 
 This tutorial shows how to create a custom report export format,
 `csv_summary`, and use it from a `.tum` file like any built-in format (`text`, `json`,
 `junit`, `html`). An exporter is a small pip package installed beside
-testium — it works with every install channel (source, wheel,
+testium. It works with every install channel (source, wheel,
 PyInstaller, Flatpak, AppImage).
 
 If you only need the conversion once, the `command` export (see the
@@ -14,18 +14,18 @@ exporter plugin is the right tool for a reusable, named format.
 
 At the end of a run (or at an inline `report` test item), testium copies
 the report database to a temporary SQLite file and calls your exporter
-class **on the host Python** — the interpreter resolved as `python_bin`,
+class on the host Python, the interpreter resolved as `python_bin`,
 the same one running your `py_func` steps. Any error skips the export
 with an `[report] Export skipped: ...` log line; the test run is never
 interrupted.
 
 You do not need SQL: testium ships a helper module, `testium_report`,
 importable by your plugin with no installation step (the process that
-loads your class resolves it from the running testium — same version,
+loads your class resolves it from the running testium: same version,
 every channel). The built-in formats are implemented with the same
 helper.
 
-## Step 1 — the package
+## Step 1: the package
 
 Two files:
 
@@ -35,7 +35,7 @@ csv-summary/
 └── csv_summary.py
 ```
 
-`csv_summary.py` — subclass `Exporter` and implement `export()`:
+`csv_summary.py`: subclass `Exporter` and implement `export()`:
 
 ```python
 """testium report exporter producing a one-line-per-test CSV summary."""
@@ -60,21 +60,21 @@ class CsvSummary(Exporter):
 
 The base class provides everything ready to use:
 
-* `self.rows` — the test items, `pattern`/`key` filters of the export
+* `self.rows`: the test items, `pattern`/`key` filters of the export
   entry already applied. Each row has `name`, `type`, `key`, `result`
-  (`PASS`/`FAIL`/`SKIP` — or the `passed`/`failed`/`skipped` booleans),
+  (`PASS`/`FAIL`/`SKIP`, or the `passed`/`failed`/`skipped` booleans),
   `message`, `duration_s`, `level`, `log`, `data` (values reported by the
   item, JSON-decoded), `timestamp_start`.
-* `self.report` — the whole report: `report.header` (dict: `test_file`,
+* `self.report`: the whole report: `report.header` (dict: `test_file`,
   `test_name`, `test_result`, `testrun_date`, …), `report.rows(...)` for
   other filters, `report.tree()` for the item hierarchy (rows linked
   through `children`).
-* `self.out_path` — the output file path; a pre-existing file has been
+* `self.out_path`: the output file path; a pre-existing file has been
   renamed to `-N.saved`, never overwritten.
-* `self.name`, `self.no_header` — the report name, and whether the call
+* `self.name`, `self.no_header`: the report name, and whether the call
   comes from an inline `report` test item (mid-run partial report).
 
-`pyproject.toml` — the entry-point line binds the format name (the key
+`pyproject.toml`: the entry-point line binds the format name (the key
 you will write in the `.tum`) to the class:
 
 ```toml
@@ -94,7 +94,7 @@ csv_summary = "csv_summary:CsvSummary"
 py-modules = ["csv_summary"]
 ```
 
-## Step 2 — install
+## Step 2: install
 
 Install with the host Python (`python_bin`). No testium configuration
 change is needed:
@@ -104,10 +104,10 @@ pip install ./csv-summary       # or: pip install -e ./csv-summary
 ```
 
 This step is identical for the Flatpak / AppImage / Windows channels:
-this is a plain terminal command on the machine — the plugin lives beside testium,
+this is a plain terminal command on the machine; the plugin lives beside testium,
 never inside it. If `python_bin` points to a venv, install into that venv.
 
-## Step 3 — use it
+## Step 3: use it
 
 Reference the format by its entry-point name, in the top-level `report`
 block:
@@ -183,7 +183,7 @@ class MyExporter:
 ## Troubleshooting
 
 * `[report] Export skipped: format "csv_summary" not found. Available:
-  ...` — the package is not visible from `python_bin`. Check with
+  ...`: the package is not visible from `python_bin`. Check with
   `<python_bin> -m pip show testium-csv-summary`. The `Available:` list
   shows every format actually found (built-ins + installed plugins).
 * An exception in the class is reported as an `[report] Export skipped:`
@@ -193,7 +193,7 @@ class MyExporter:
 
 ## Where to go next
 
-* `test/validation/fake_exporter/` — the exporter used by the testium
+* `test/validation/fake_exporter/`: the exporter used by the testium
   validation suite, same shape as this tutorial.
-* Manual, Reports chapter — export attributes (`pattern`, `key`, paths),
+* Manual, Reports chapter: export attributes (`pattern`, `key`, paths),
   the `command` export and the report database description.

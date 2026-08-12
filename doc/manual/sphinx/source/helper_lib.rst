@@ -7,7 +7,7 @@ A Python library of helper functions for Python modules called from
 testium ``py_func`` items.
 
 User scripts run inside the ``py_func`` subprocess and interact with testium
-through a JSON-RPC bridge — the ``py_func.tm`` module. They must **not**
+through a JSON-RPC bridge, the ``py_func.tm`` module. They must not
 import ``api.testium`` or ``interpreter.*`` directly: those are main-process
 modules and may not even be reachable in a packaged build (PyInstaller, .deb).
 
@@ -42,7 +42,7 @@ Add values to a running plot or read the last value from it:
 
 Console and plot **lifecycle** management (``add_console``, ``remove_console``,
 ``console``, ``add_plot``, ``remove_plot``, ``plot``) is performed by the
-``console`` and ``plot`` test items themselves — not from user ``py_func``
+``console`` and ``plot`` test items themselves, not from user ``py_func``
 scripts. Use those test items to open/close consoles and plots.
 
 Other helper functions

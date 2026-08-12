@@ -199,7 +199,7 @@ If ``process_result`` is also specified, the stored value is the post-processed 
 
 If the test item produces no value (result is ``None``), the stored value is the
 test status string: ``"PASS"`` or ``"FAIL"``, evaluated after ``expected_result``
-but **before** ``no_fail``. This ensures the real outcome is captured even when
+but before ``no_fail``. This ensures the real outcome is captured even when
 ``no_fail: True`` would otherwise mask a failure.
 
 .. code-block:: yaml
