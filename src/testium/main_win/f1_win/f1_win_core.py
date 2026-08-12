@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'f1_win_core.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.0
+## Created by: Qt User Interface Compiler version 6.11.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -26,7 +26,7 @@ class Ui_F1Dialog(object):
     def setupUi(self, F1Dialog):
         if not F1Dialog.objectName():
             F1Dialog.setObjectName(u"F1Dialog")
-        F1Dialog.resize(550, 450)
+        F1Dialog.resize(760, 560)
         icon = QIcon()
         if QIcon.hasThemeIcon(QIcon.ThemeIcon.HelpAbout):
             icon = QIcon.fromTheme(QIcon.ThemeIcon.HelpAbout)

@@ -6,10 +6,14 @@ import subprocess
 import sys
 
 from PySide6.QtWidgets import (
-    QCheckBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLineEdit,
-    QMenu, QMessageBox, QPushButton, QTextEdit, QVBoxLayout,
+    QCheckBox, QDialog, QDialogButtonBox, QGroupBox, QHBoxLayout, QHeaderView,
+    QLineEdit, QMenu, QMessageBox, QPlainTextEdit, QPushButton, QSizePolicy,
+    QTextEdit, QVBoxLayout,
 )
-from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QDesktopServices
+from PySide6.QtGui import (
+    QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QFontMetrics,
+    QDesktopServices,
+)
 from PySide6.QtCore import Qt, QUrl, Slot
 
 from main_win.f1_win.f1_win_core import Ui_F1Dialog
@@ -85,6 +89,21 @@ class GdVarEditDialog(QDialog):
             QMessageBox.warning(self, "Invalid JSON", str(e))
 
 
+class _ExprEdit(QPlainTextEdit):
+    """Enter evaluates, Shift+Enter inserts a newline."""
+
+    def __init__(self, on_enter, parent=None):
+        super().__init__(parent)
+        self._on_enter = on_enter
+
+    def keyPressEvent(self, event):
+        if (event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+                and not event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
+            self._on_enter()
+            return
+        super().keyPressEvent(event)
+
+
 class DialogF1(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -99,11 +118,14 @@ class DialogF1(QDialog):
         self._service = None
         self._key_rows = {}
         self._updating = False
+        small = max(7.0, self.font().pointSizeF() - 1)
         self._mono_font = QFont("Monospace")
         self._mono_font.setStyleHint(QFont.StyleHint.TypeWriter)
+        self._mono_font.setPointSizeF(small)
         self._mono_bold_font = QFont("Monospace")
         self._mono_bold_font.setStyleHint(QFont.StyleHint.TypeWriter)
         self._mono_bold_font.setBold(True)
+        self._mono_bold_font.setPointSizeF(small)
 
         self._setup_vars_tab()
 
@@ -137,34 +159,62 @@ class DialogF1(QDialog):
         self.ui.verticalLayout_tab1.insertLayout(0, filter_row)
 
         # Expression tester below the table: evaluated by the interpreter
-        # process against the live global dict (also while paused).
-        self._expr_edit = QLineEdit(self.ui.tabVariables)
-        self._expr_edit.setPlaceholderText("Try an expression: <| $(var) ... |>")
-        self._expr_edit.setClearButtonEnabled(True)
-        self._expr_edit.setFont(self._mono_font)
-        self._expr_edit.returnPressed.connect(self._on_expr_entered)
+        # process against the live global dict (also while paused). Grouped
+        # to stand apart from the add-variable row; wrapping multi-line
+        # fields, the expressions and the error messages are long.
+        expr_font = QFont(self._mono_font)
+        metrics = QFontMetrics(expr_font)
+        self._expr_edit = _ExprEdit(self._on_expr_entered)
+        self._expr_edit.setPlaceholderText(
+            "<| $(var) ... |>   (Enter evaluates, Shift+Enter for a new line)")
+        self._expr_edit.setFont(expr_font)
+        self._expr_edit.setFixedHeight(metrics.lineSpacing() * 3 + 12)
         self._expr_edit.setEnabled(False)
-        self._expr_result = QLineEdit(self.ui.tabVariables)
+        self._expr_button = QPushButton("Evaluate")
+        self._expr_button.clicked.connect(self._on_expr_entered)
+        self._expr_button.setEnabled(False)
+        self._expr_result = QPlainTextEdit()
         self._expr_result.setReadOnly(True)
-        self._expr_result.setFont(self._mono_font)
+        self._expr_result.setFont(expr_font)
         self._expr_result.setPlaceholderText("Result")
+        self._expr_result.setFixedHeight(metrics.lineSpacing() * 4 + 12)
+        box = QGroupBox("Expression tester", self.ui.tabVariables)
+        box_layout = QVBoxLayout(box)
         expr_row = QHBoxLayout()
-        expr_row.addWidget(self._expr_edit, 3)
-        expr_row.addWidget(self._expr_result, 2)
-        self.ui.verticalLayout_tab1.addLayout(expr_row)
+        expr_row.addWidget(self._expr_edit, 1)
+        expr_row.addWidget(self._expr_button, 0, Qt.AlignmentFlag.AlignTop)
+        box_layout.addLayout(expr_row)
+        box_layout.addWidget(self._expr_result)
+        # Fixed-height box pinned at the bottom: the extra vertical space
+        # goes to the variables table.
+        box.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.ui.verticalLayout_tab1.addWidget(box)
+        self.ui.verticalLayout_tab1.setStretchFactor(self.ui.varsTable, 1)
+
+    @staticmethod
+    def _error_text(e):
+        """Keep the cause only: drop the control-command wrapper and the
+        ETUM banner line."""
+        text = str(e)
+        m = re.search(r"failed: '(.*)'$", text, re.S)
+        if m:
+            text = m.group(1)
+        lines = [l for l in text.splitlines()
+                 if l.strip() != "TUM runtime error:"]
+        return "\n".join(lines).strip()
 
     def _on_expr_entered(self):
-        expr = self._expr_edit.text()
+        expr = self._expr_edit.toPlainText().strip()
         if not expr or self._service is None:
             return
         try:
             result = self._service.eval_expr(expr)
         except ETUMRuntimeError as e:
             self._expr_result.setStyleSheet("color: #b71c1c;")
-            self._expr_result.setText(str(e))
+            self._expr_result.setPlainText(self._error_text(e))
             return
         self._expr_result.setStyleSheet("")
-        self._expr_result.setText(repr(result))
+        self._expr_result.setPlainText(repr(result))
 
     def _on_filter_changed(self, text):
         self._filter_text = text.strip().lower()
@@ -198,6 +248,7 @@ class DialogF1(QDialog):
         self.ui.varsTable.setEnabled(enabled)
         self.ui.addVarButton.setEnabled(enabled)
         self._expr_edit.setEnabled(enabled)
+        self._expr_button.setEnabled(enabled)
         if not enabled:
             self._expr_result.clear()
             self._expr_result.setStyleSheet("")
