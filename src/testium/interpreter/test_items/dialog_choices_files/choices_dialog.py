@@ -181,8 +181,10 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
 
 
 def main(args, conn=None):
+    from interpreter.utils.settings import host_id
     SettingsCompagny = "Testium"
-    SettingsApplication = "testium_choices_dlg_" + args[0]
+    # Per-host storage, like TestiumSettings (network home shared by PCs).
+    SettingsApplication = "testium_choices_dlg_" + args[0] + "." + host_id()
     SettingsLastChoices = "last_choice"
     success = True
     from interpreter.test_items import dialog_env

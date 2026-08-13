@@ -8,6 +8,13 @@ SettingsCompany = 'Testium'
 SettingsApplication = 'testium'
 
 
+def host_id():
+    """Short host name usable in a file name ('localhost' if unknown)."""
+    node = platform.node().split('.')[0]
+    node = ''.join(c for c in node if c.isalnum() or c in '-_')
+    return node or 'localhost'
+
+
 def init():
     global settings
     settings = TestiumSettings()
@@ -75,20 +82,23 @@ class TestiumSettings():
         else:
             user_path = os.path.join(os.getenv('HOME'), '.config')
 
-        self.settings_fname = os.path.join(user_path, SettingsCompany,
-                                           SettingsApplication,
-                                           SettingsApplication + '.conf')
+        settings_dir = os.path.join(user_path, SettingsCompany,
+                                    SettingsApplication)
+        # One file per machine: with a network home shared by several PCs,
+        # each machine keeps its own paths, geometry and recent files.
+        self.settings_fname = os.path.join(
+            settings_dir, SettingsApplication + '.' + host_id() + '.conf')
 
         if not os.path.isfile(self.settings_fname):
             try:
-                if not os.path.isdir(os.path.dirname(os.path.dirname(self.settings_fname))):
-                    os.mkdir(os.path.dirname(os.path.dirname(self.settings_fname)))
-                if not os.path.isdir(os.path.dirname(self.settings_fname)):
-                    os.mkdir(os.path.dirname(self.settings_fname))
+                if not os.path.isdir(os.path.dirname(settings_dir)):
+                    os.mkdir(os.path.dirname(settings_dir))
+                if not os.path.isdir(settings_dir):
+                    os.mkdir(settings_dir)
             except FileNotFoundError:
                 pass
 
-            if os.path.exists(os.path.dirname(self.settings_fname)):
+            if os.path.isdir(settings_dir):
                 with open(self.settings_fname, "x") as fd:
                     pass
 

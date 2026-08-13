@@ -137,6 +137,15 @@ Engines (`PyProcessBase`, `LuaProcessBase`, `EvalExecEngine`) call `bins.python_
 | GUI `python_bin` preference | ✅ | ✅ |
 | `python_bin: …` in `param.yaml` | ❌ (eval_proc already started) | ✅ (cache re-resolves on key change) |
 
+### Per-host settings
+
+`interpreter/utils/settings.py` writes one file per machine:
+`Testium/testium/testium.<host>.conf`, with `host_id()` = short sanitized
+hostname. A network home shared by several PCs thus keeps separate paths,
+geometry and recent files. The `dialog_choices` and `tested_references`
+QSettings (last selection) carry the same host suffix in their
+application name.
+
 ## Key files
 
 | Path | Role |
