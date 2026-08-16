@@ -1,6 +1,8 @@
 version 0.4.4
 ==============
 - Settings are stored separately per machine.
+- Several testium instances can run in parallel on the same machine.
+- Tree state and log file are remembered per test file.
 
 version 0.4.3
 ==============

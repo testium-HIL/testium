@@ -3,6 +3,8 @@ import os
 import shlex
 import subprocess
 import webbrowser
+import hashlib
+import time
 from multiprocessing import Queue
 from threading import Thread
 import shutil
@@ -139,6 +141,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pref_win = PrefWindow(self)
 
         lastLog = prefs.settings.log_file
+        self._cli_log_file = self.logFileName != ""
         if self.logFileName == "":
             self.editLogFilePath.setText(lastLog)
             self.logFileName = lastLog
@@ -270,7 +273,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             ret = self.file_manager.load(last_files[0])
 
         if ret:
-            self.file_loaded_at_startup()
+            self.restore_file_state()
 
         self.threadTestStatus.testSetIsFinished.connect(self.runner.on_run_finished)
         self.threadTestStatus.statusToBeUpdated.connect(self.treeTests.updateStatus)
@@ -503,19 +506,53 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.searchBar.setVisible(False)
             self.searchCount.setText("")
 
-    def file_loaded_at_startup(self):
-        # States are keyed by item path and tied to the file they were saved
-        # for: item additions/removals are tolerated, another file is not.
-        states = prefs.settings.value(prefs.SettingsItem("itemStateList", list), [])
-        state_file = prefs.settings.value(prefs.SettingsItem("itemStateFile", str), "")
-        if not states or not state_file or self.testFile is None:
+    # Tree states and log-file choice are stored per test file, one settings
+    # key per file: two instances on different files never clobber each other.
+    FileStatesMax = 20
+
+    def _file_state_key(self, path):
+        digest = hashlib.sha1(
+            os.path.normcase(os.path.abspath(path)).encode()).hexdigest()
+        return "itemstates." + digest[:12]
+
+    def stash_file_state(self, test_file):
+        entry = [os.path.normcase(os.path.abspath(test_file)), time.time(),
+                 self.treeTests.getItemStates(),
+                 self.editLogFilePath.text(),
+                 self.buttLogFileSaved.isChecked()]
+        prefs.settings.set_value(
+            prefs.SettingsItem(self._file_state_key(test_file), list), entry)
+        self._trim_file_states()
+
+    def _trim_file_states(self):
+        names = prefs.settings.option_names("itemstates.")
+        if len(names) <= self.FileStatesMax:
             return
-        if os.path.normcase(os.path.abspath(state_file)) != os.path.normcase(self.testFile):
+
+        def saved_at(name):
+            entry = prefs.settings.value(prefs.SettingsItem(name, list), [])
+            return entry[1] if len(entry) >= 2 else 0
+
+        for name in sorted(names, key=saved_at)[:len(names) - self.FileStatesMax]:
+            prefs.settings.remove_value(name)
+
+    def restore_file_state(self):
+        if self.testFile is None:
             return
-        self.checkFold.setCheckState(Qt.PartiallyChecked)
-        self.treeTests.restoreItemStates(
-            states, self.test_service,
-            apply_check=prefs.settings.show_checkboxes)
+        entry = prefs.settings.value(
+            prefs.SettingsItem(self._file_state_key(self.testFile), list), [])
+        if len(entry) < 5:
+            return
+        states, log_file, log_saved = entry[2], entry[3], entry[4]
+        if not self._cli_log_file:
+            self.editLogFilePath.setText(log_file)
+            self.logFileName = log_file
+            self.buttLogFileSaved.setChecked(bool(log_saved))
+        if states:
+            self.checkFold.setCheckState(Qt.PartiallyChecked)
+            self.treeTests.restoreItemStates(
+                states, self.test_service,
+                apply_check=prefs.settings.show_checkboxes)
 
     def disconnect_signals(self):
         if self._signals_connected:
@@ -552,12 +589,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         prefs.settings.set_value(
             prefs.SettingsItem("state", bytearray), bytearray(self.saveState())
         )
-        prefs.settings.set_value(
-            prefs.SettingsItem("itemStateList", list), self.treeTests.getItemStates()
-        )
-        prefs.settings.set_value(
-            prefs.SettingsItem("itemStateFile", str), self.testFile or ""
-        )
+        if self.testFile:
+            self.stash_file_state(self.testFile)
         self.treeTests.saveSizes()
         prefs.settings.sync()
 

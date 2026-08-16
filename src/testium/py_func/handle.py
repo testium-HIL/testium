@@ -1,6 +1,7 @@
 import random
 import os
 import re
+import socket
 import sys
 import time
 import platform
@@ -18,6 +19,23 @@ from py_func.func_call import func_exec, format_user_traceback
 # only be called once; the subprocess is shared when context_id is used).
 _debug_bound_port = None
 
+# Ports scanned above the requested one when it is busy (e.g. another
+# testium instance is already debugging a py_func).
+_DEBUG_PORT_SCAN = 20
+
+
+def _pick_debug_port(first):
+    """First free port in [first, first + _DEBUG_PORT_SCAN), None if all busy."""
+    for p in range(first, first + _DEBUG_PORT_SCAN):
+        try:
+            s = socket.socket()
+            s.bind(("localhost", p))
+            s.close()
+            return p
+        except OSError:
+            continue
+    return None
+
 
 def _debug_attach(port):
     """Start the debugpy listener (once) and block until an IDE attaches.
@@ -32,14 +50,24 @@ def _debug_attach(port):
             f"'{sys.executable} -m pip install debugpy'.")
 
     if _debug_bound_port is None:
+        chosen = _pick_debug_port(port)
+        if chosen is None:
+            raise ETUMRuntimeError(
+                f"debugpy could not listen: ports {port} to "
+                f"{port + _DEBUG_PORT_SCAN - 1} are all busy. Change the "
+                "'py_func_debug_port' global.")
+        if chosen != port:
+            print(f"py_func: port {port} is busy — debugpy will listen on "
+                  f"localhost:{chosen}; point your IDE attach configuration "
+                  "at this port")
         try:
-            debugpy.listen(("localhost", port))
+            debugpy.listen(("localhost", chosen))
         except Exception as e:
             raise ETUMRuntimeError(
-                f"debugpy could not listen on localhost:{port} ({e}). "
+                f"debugpy could not listen on localhost:{chosen} ({e}). "
                 "Is the port free? Change it with the 'py_func_debug_port' "
                 "global.")
-        _debug_bound_port = port
+        _debug_bound_port = chosen
     elif port != _debug_bound_port:
         print(f"py_func: debug port already bound on localhost:"
               f"{_debug_bound_port} in this persistent process — ignoring "

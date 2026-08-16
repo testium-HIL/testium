@@ -89,27 +89,33 @@ class TestiumSettings():
         self.settings_fname = os.path.join(
             settings_dir, SettingsApplication + '.' + host_id() + '.conf')
 
-        if not os.path.isfile(self.settings_fname):
+        # Create the directory but never the user config root itself.
+        if not os.path.isfile(self.settings_fname) and os.path.isdir(user_path):
+            os.makedirs(settings_dir, exist_ok=True)
             try:
-                if not os.path.isdir(os.path.dirname(settings_dir)):
-                    os.mkdir(os.path.dirname(settings_dir))
-                if not os.path.isdir(settings_dir):
-                    os.mkdir(settings_dir)
-            except FileNotFoundError:
+                with open(self.settings_fname, "x"):
+                    pass
+            except FileExistsError:
                 pass
 
-            if os.path.isdir(settings_dir):
-                with open(self.settings_fname, "x") as fd:
-                    pass
+        # Keys written or removed by this process; sync() merges only these
+        # into the file, so concurrent instances keep each other's keys.
+        self._dirty = set()
+        self._removed = set()
+        self._dirty_all = False
 
         self.conf = configparser.ConfigParser()
-        if os.path.isfile(self.settings_fname):
+        try:
             self.conf.read(self.settings_fname)
-        if not 'Default' in self.conf:
-            self.clear()
+        except (configparser.Error, UnicodeDecodeError):
+            # Corrupt file: run on defaults, do not touch the file here.
+            self.conf = configparser.ConfigParser()
+        if 'Default' not in self.conf:
+            self.conf['Default'] = {}
 
     def clear(self):
         self.conf['Default'] = {}
+        self._dirty_all = True
         self.sync()
 
     def value(self, key: SettingsItem, default=_UNSET):
@@ -164,12 +170,54 @@ class TestiumSettings():
             self.conf.set('Default', key.name, json.dumps(ba))
         else:
             self.conf.set('Default', key.name, json.dumps(value))
+        self._dirty.add(key.name.lower())
+        self._removed.discard(key.name.lower())
+
+    def remove_value(self, name: str):
+        name = name.lower()
+        self.conf.remove_option('Default', name)
+        self._removed.add(name)
+        self._dirty.discard(name)
+
+    def option_names(self, prefix: str = ''):
+        return [n for n in self.conf['Default'] if n.startswith(prefix)]
 
     def sync(self):
-        if os.path.isfile(self.settings_fname):
-            with open(self.settings_fname, 'w') as configfile:
-                if configfile.writable():
-                    self.conf.write(configfile)
+        # No file lock: os.replace() keeps every write atomic and the
+        # per-key merge bounds what a concurrent sync can lose.
+        if not os.path.isdir(os.path.dirname(self.settings_fname)):
+            return
+        merged = self.conf
+        if not self._dirty_all:
+            disk = configparser.ConfigParser()
+            try:
+                disk.read(self.settings_fname)
+            except (configparser.Error, UnicodeDecodeError):
+                disk = None
+            if disk is not None:
+                if 'Default' not in disk:
+                    disk['Default'] = {}
+                for name in self._dirty:
+                    if self.conf.has_option('Default', name):
+                        disk.set('Default', name,
+                                 self.conf.get('Default', name, raw=True))
+                for name in self._removed:
+                    disk.remove_option('Default', name)
+                merged = disk
+        tmp = self.settings_fname + '.tmp.' + str(os.getpid())
+        try:
+            with open(tmp, 'w') as configfile:
+                merged.write(configfile)
+            os.replace(tmp, self.settings_fname)
+        except OSError:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            return
+        self._dirty.clear()
+        self._removed.clear()
+        self._dirty_all = False
 
     # log_font_size keeps a custom getter: clamp non-positive sizes to 8.
     @property

@@ -2,10 +2,11 @@
 """Source-mode check: fold/check/breakpoint states survive a reload.
 
 States are keyed by item path, so a reload of the same file must keep them
-even when items were added (item count changed), a different file must drop
-them, and they must come back after a restart (settings persistence).
-Runs a headless MainWindow against a throwaway HOME. Run by run.sh in
-source mode.
+even when items were added (item count changed). States and the log-file
+choice are stored per test file: another file must not inherit them and
+each file must restore its own on return and after a restart. The stored
+entries are capped (LRU). Runs a headless MainWindow against a throwaway
+HOME. Run by run.sh in source mode.
 """
 import os
 import platform
@@ -148,17 +149,28 @@ def main():
         fail("item count did not change after fixture edit")
     assert_marks("reload with added item")
 
-    # 3. Different file: states dropped.
+    # 3. Different file: the first file's marks must not leak into it.
+    win.editLogFilePath.setText("log_a.log")
     win.file_manager.reload(other_file)
     if any(v[2] for v in states().values()):
         fail(f"breakpoint leaked to another file ({states()})")
     if not all(v[1] for v in states().values()):
         fail(f"unchecked state leaked to another file ({states()})")
+    win.editLogFilePath.setText("log_b.log")
 
-    # 4. Restart persistence: back to the fixture, set marks, close (saves
-    # settings), reopen: all restored.
+    # 4. Back to the first file: marks and log choice restored; the other
+    # file keeps its own log choice too.
     win.file_manager.reload(test_file)
-    set_marks()
+    assert_marks("switch back")
+    if win.editLogFilePath.text() != "log_a.log":
+        fail(f"log choice not restored ({win.editLogFilePath.text()!r})")
+    win.file_manager.reload(other_file)
+    if win.editLogFilePath.text() != "log_b.log":
+        fail(f"other file log choice lost ({win.editLogFilePath.text()!r})")
+
+    # 5. Restart persistence: close on the fixture (saves settings), reopen:
+    # all restored.
+    win.file_manager.reload(test_file)
     win.close()
     QCoreApplication.processEvents()
 
@@ -167,6 +179,23 @@ def main():
     if win.testFile is None:
         fail("fixture did not load on restart")
     assert_marks("restart")
+    if win.editLogFilePath.text() != "log_a.log":
+        fail(f"log choice not restored on restart "
+             f"({win.editLogFilePath.text()!r})")
+
+    # 6. LRU cap: flood with fake entries, trim must keep the newest.
+    key_kept = win._file_state_key(test_file)
+    win.stash_file_state(test_file)
+    for i in range(win.FileStatesMax + 5):
+        prefs.settings.set_value(
+            prefs.SettingsItem(f"itemstates.fake{i:03d}", list, []),
+            [f"/fake/{i}.tum", float(i), [], "", False])
+    win._trim_file_states()
+    names = prefs.settings.option_names("itemstates.")
+    if len(names) != win.FileStatesMax:
+        fail(f"LRU cap not enforced ({len(names)} entries)")
+    if key_kept not in names:
+        fail("LRU trim dropped the most recent entry")
 
     win.file_manager.clear_process()
     _emit("GUI STATE CHECK: PASS")

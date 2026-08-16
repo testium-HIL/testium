@@ -64,6 +64,18 @@ def run_once(ctrl, queue):
 
 
 def main():
+    # Debug-port fallback: with the first port busy, the scan must pick
+    # another one in the range.
+    import socket
+    from py_func import handle
+    s = socket.socket()
+    s.bind(("localhost", 0))
+    busy = s.getsockname()[1]
+    chosen = handle._pick_debug_port(busy)
+    s.close()
+    if chosen is None or chosen == busy:
+        fail(f"port scan returned {chosen} while {busy} was busy")
+
     # Hold the port so the attach cannot block waiting for a client.
     # Interpreter without debugpy: the attach fails fast instead of
     # waiting for an IDE.

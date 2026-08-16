@@ -1,3 +1,4 @@
+import errno
 import json
 import socket
 import re
@@ -398,7 +399,15 @@ class JrpcUdpAdapter(JrpcAdapter):
                 )
 
         self.sock.settimeout(self.timeout)
-        self.sock.bind(("", self._rcv_port))
+        try:
+            self.sock.bind(("", self._rcv_port))
+        except OSError as e:
+            if e.errno == errno.EADDRINUSE:
+                raise ETUMRuntimeError(
+                    f"UDP port {self._rcv_port} is already in use (another "
+                    "testium instance or another program). Use a different "
+                    "rcv_port for this instance.")
+            raise
 
         if self._multicast:
             # Join the group so replies addressed to the group (not only

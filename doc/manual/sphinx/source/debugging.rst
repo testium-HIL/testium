@@ -71,7 +71,8 @@ ways to arm it:
 * or set ``debug: true`` on the item in the ``.tum`` file.
 
 At the next run, the item waits for a debugger to attach on
-``localhost:5678`` (global ``py_func_debug_port``) before calling the
+``localhost:5678`` (global ``py_func_debug_port``; if busy, the next
+free port is used and announced in the log) before calling the
 function. Details and IDE configuration: the
 :ref:`py_func chapter<sec_py_func_debug>` and the step-by-step tutorial
 ``doc/debug_tutorial.md`` of the source repository.
