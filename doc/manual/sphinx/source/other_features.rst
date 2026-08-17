@@ -94,3 +94,18 @@ Unittest
 ^^^^^^^^^
 
 For ``unittest`` type test items, the python docstring of the test method is used as documentation.
+
+Running several testium instances
+---------------------------------
+
+Several testium instances can run at the same time on the same machine.
+
+* Settings are merged per key when an instance closes: each instance only
+  writes back what it changed.
+* The GUI keeps the tree state (folds, checkboxes, breakpoints) and the
+  log file choice per test file, for the last 20 files opened.
+* Output paths written in the ``.tum`` (reports, plot files, ``json_rpc``
+  UDP reception ports) are not made unique: tests run in parallel must
+  use distinct values.
+* If the ``py_func`` debug port is busy, the next free one is used and
+  announced in the test log.

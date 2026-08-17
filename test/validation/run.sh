@@ -256,12 +256,23 @@ fi
 
 # ---------- GUI state check (source only) -------------------------------------
 # Fold/check/breakpoint states must survive a reload (path-keyed, tolerant to
-# item additions/removals), be dropped for another file, and survive a restart.
+# item additions/removals), be stored per test file, and survive a restart.
 if [ "$MODE" = "source" ]; then
     echo "-- GUI state check ($MODE)"
     GUI_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
     [ -x "$GUI_PY" ] || GUI_PY="$VENV_PYTHON"
     "$GUI_PY" "$SCRIPT_DIR/gui_state_check.py"
+fi
+
+# ---------- settings check (source only) --------------------------------------
+# Settings written by two concurrent instances are merged per key; a corrupt
+# file falls back to defaults. Imports the settings module directly, so
+# source mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- settings check ($MODE)"
+    SET_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$SET_PY" ] || SET_PY="$VENV_PYTHON"
+    "$SET_PY" "$SCRIPT_DIR/settings_check.py"
 fi
 
 if [ "$GUI" -eq 1 ]; then

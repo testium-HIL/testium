@@ -15,8 +15,10 @@ class TestedRefsWindow(QDialog, tested_refs_win.Ui_Dialog):
         self.setupUi(self)
 
 def main(args, conn=None):
+    from interpreter.utils.settings import host_id
     SettingsCompagny = 'Testium'
-    SettingsApplication = 'testium_ref_item'
+    # Per-host storage, like TestiumSettings (network home shared by PCs).
+    SettingsApplication = 'testium_ref_item.' + host_id()
     SettingsLastReference = 'lastReference'
     success = True
     from interpreter.test_items import dialog_env

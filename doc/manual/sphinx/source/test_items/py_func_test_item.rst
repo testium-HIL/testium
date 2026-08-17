@@ -221,7 +221,9 @@ function runs and stops on your breakpoints. Notes:
   not run: the item fails with an explanatory message plus a ``WARN``
   line, and the test run continues;
 * the listening port can be changed with the ``py_func_debug_port``
-  global variable (configuration file or ``-d py_func_debug_port=<n>``);
+  global variable (configuration file or ``-d py_func_debug_port=<n>``).
+  If the port is busy, the next free one (up to 19 above) is used and
+  announced in the test log;
 * with ``context_id``, the shared subprocess opens the listener once: the
   first ``debug: true`` item fixes the port (a later change is ignored
   with a warning) and the debugger stays attached for the following

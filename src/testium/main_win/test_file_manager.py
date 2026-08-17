@@ -82,6 +82,8 @@ class TestFileManager:
         # removed. Taken before clear_process/load (load resets w.testFile).
         previous_states = w.treeTests.getItemStates()
         previous_file = w.testFile
+        if previous_file:
+            w.stash_file_state(previous_file)
         self.clear_process()
         if self.load(file_name) and w.test_service is not None:
             if previous_states and previous_file and \
@@ -89,6 +91,8 @@ class TestFileManager:
                 w.treeTests.restoreItemStates(
                     previous_states, w.test_service,
                     apply_check=prefs.settings.show_checkboxes)
+            else:
+                w.restore_file_state()
 
         w.reconnect_signals()
 
