@@ -174,9 +174,10 @@ def main():
     if reader.success is not True:
         fail(f"run 2 finished with success={reader.success!r}")
 
-    # --- Run 3: conditional breakpoints + checkbox while paused.
+    # --- Run 3: conditional breakpoints (bare and explicit-marker forms)
+    # + checkbox while paused.
     reader.new_run()
-    ctrl.control("add_breakpoint", item_id=ids["s3"], condition="<| False |>")
+    ctrl.control("add_breakpoint", item_id=ids["s3"], condition="False")
     ctrl.control("add_breakpoint", item_id=ids["s5"], condition="<| True |>")
     ctrl.control("execute")
     reader.expect("paused", "s5", "run 3: true condition pauses")

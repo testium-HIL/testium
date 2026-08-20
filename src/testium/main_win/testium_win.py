@@ -28,8 +28,10 @@ from PySide6.QtWidgets import (
     QToolButton,
     QToolBar,
     QMenu,
-    QInputDialog,
+    QVBoxLayout,
+    QDialogButtonBox,
 )
+from main_win.expression_info import expression_info_button
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(os.path.join(ourPath, "resources"))
@@ -775,13 +777,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return False
 
     def _edit_breakpoint_condition(self, item):
-        text, ok = QInputDialog.getText(
-            self, "Breakpoint condition",
-            "Pause only when this <| ... |> expression is true:",
-            text=getattr(item, "_bp_condition", None) or "")
-        if not ok:
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Breakpoint condition")
+        layout = QVBoxLayout(dlg)
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Pause only when true:"))
+        edit = QLineEdit(getattr(item, "_bp_condition", None) or "")
+        edit.setPlaceholderText("$(var) == 3")
+        edit.setMinimumWidth(280)
+        row.addWidget(edit, 1)
+        row.addWidget(expression_info_button(
+            dlg, extra="<br>The run pauses on the item only when the result "
+                       "is true. Empty: unconditional breakpoint."))
+        layout.addLayout(row)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+        edit.setFocus()
+        if dlg.exec() != QDialog.Accepted:
             return
-        text = text.strip()
+        text = edit.text().strip()
         if text:
             item.setBreakpointState(True, text)
             self.test_service.add_breakpoint(item.id, condition=text)

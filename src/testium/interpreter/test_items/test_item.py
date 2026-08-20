@@ -624,8 +624,12 @@ class TestItem:
         debug session, a spurious one costs an F5)."""
         if not self._bp_condition:
             return True
+        cond = self._bp_condition
+        if "<|" not in cond:
+            # Markers are implicit for breakpoint conditions.
+            cond = f"<| {cond} |>"
         try:
-            c = self._prms.expanse(self._bp_condition)
+            c = self._prms.expanse(cond)
         except Exception as e:
             tm.print_warn(f"Breakpoint condition failed on '{self._name}': "
                           f"{e} — pausing anyway.")

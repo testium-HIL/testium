@@ -17,6 +17,7 @@ from PySide6.QtGui import (
 from PySide6.QtCore import Qt, QUrl, Slot
 
 from main_win.f1_win.f1_win_core import Ui_F1Dialog
+from main_win.expression_info import expression_info_button
 from interpreter.utils import bins
 from runtime.tum_except import ETUMRuntimeError
 
@@ -165,8 +166,7 @@ class DialogF1(QDialog):
         expr_font = QFont(self._mono_font)
         metrics = QFontMetrics(expr_font)
         self._expr_edit = _ExprEdit(self._on_expr_entered)
-        self._expr_edit.setPlaceholderText(
-            "<| $(var) ... |>   (Enter evaluates, Shift+Enter for a new line)")
+        self._expr_edit.setPlaceholderText("$(var) == 3   (Enter evaluates)")
         self._expr_edit.setFont(expr_font)
         self._expr_edit.setFixedHeight(metrics.lineSpacing() * 3 + 12)
         self._expr_edit.setEnabled(False)
@@ -182,6 +182,11 @@ class DialogF1(QDialog):
         box_layout = QVBoxLayout(box)
         expr_row = QHBoxLayout()
         expr_row.addWidget(self._expr_edit, 1)
+        expr_row.addWidget(expression_info_button(
+            self, extra="<br>A lone <code>$(name)</code> shows the value "
+                        "without evaluating it.<br><b>Enter</b> evaluates, "
+                        "<b>Shift+Enter</b> inserts a new line."),
+            0, Qt.AlignmentFlag.AlignTop)
         expr_row.addWidget(self._expr_button, 0, Qt.AlignmentFlag.AlignTop)
         box_layout.addLayout(expr_row)
         box_layout.addWidget(self._expr_result)

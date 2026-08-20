@@ -9,6 +9,8 @@ version 0.4.4
 - Re-run the step that just executed (Shift+F10).
 - Breakpoints can carry a pause condition (right-click).
 - An unchecked or jumped-over top-level item no longer fails the run.
+- F1 expression tester and breakpoint conditions: the ``<| ... |>``
+  markers are implicit.
 
 version 0.4.3
 ==============

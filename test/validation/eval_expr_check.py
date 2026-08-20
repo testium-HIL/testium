@@ -68,6 +68,25 @@ def main():
     else:
         fail("invalid expression did not raise")
 
+    # Implicit markers: a bare expression is evaluated.
+    res = ctrl.control("eval_expr", expr="1 + 1")
+    if res != 2:
+        fail(f"'1 + 1' evaluated to {res!r}, expected 2 (implicit markers)")
+
+    # A lone $(name) inspects the value, no evaluation.
+    res = ctrl.control("eval_expr", expr="$(expr_check_text)")
+    if res != "line1\nversion: 1.2.3":
+        fail(f"lone $(name) returned {res!r}, expected the raw value")
+
+    # An implicit evaluation error names the cause too.
+    try:
+        ctrl.control("eval_expr", expr="1 // 0")
+    except ETUMRuntimeError as e:
+        if "ZeroDivisionError" not in str(e):
+            fail(f"implicit error message does not name the cause: {e}")
+    else:
+        fail("invalid implicit expression did not raise")
+
     if proc.is_alive():
         ctrl.control("close")
     proc.join(10)

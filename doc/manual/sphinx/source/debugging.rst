@@ -19,8 +19,9 @@ before executing a marked item. Breakpoints follow the item across
 Refresh and testium restarts, and are stored per test file.
 
 Right-click an item and pick **Breakpoint condition** to pause only when
-a ``<| ... |>`` expression is true. A conditional breakpoint is shown as
-a red ring; the expression appears in its tooltip. An expression that
+an expression is true. Plain Python with ``$(var)`` substitution; the
+``<| ... |>`` markers are not needed. A conditional breakpoint is shown
+as a red ring; the expression appears in its tooltip. An expression that
 fails to evaluate pauses anyway, with a WARN.
 
 Step-by-step execution
@@ -63,10 +64,11 @@ Inspecting variables
 **F1** opens the variables window: the global dictionary, filterable,
 editable while the test is paused or between runs.
 
-The expression field below the table evaluates a ``$(var)`` /
-``<| ... |>`` expression against the current variables, also while
-paused on a breakpoint. It shows the result, or the error when the
-expression is invalid. The text is taken
+The expression field below the table evaluates a Python expression
+against the current variables, also while paused on a breakpoint.
+``$(var)`` is substituted; the ``<| ... |>`` markers are not needed; a
+lone ``$(var)`` shows the value without evaluating it. It shows the
+result, or the error when the expression is invalid. The text is taken
 as-is (no YAML quoting rules).
 
 Debug output

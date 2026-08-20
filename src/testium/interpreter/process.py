@@ -1,4 +1,5 @@
 import os
+import re
 import signal
 from multiprocessing import Process, Queue, Pipe
 from queue import Empty
@@ -404,17 +405,22 @@ class TestProcess(Process):
     def eval_expr(self, expr: str):
         """Strict variant of process_param for the F1 expression tester:
         an unresolved $(...) or a failing evaluation raises with the cause
-        instead of returning the value as-is."""
+        instead of returning the value as-is. The <| ... |> markers are
+        implicit; a lone $(name) inspects the value without evaluating."""
+        lone_var = re.fullmatch(r"\s*\$\([^()]+\)\s*", expr) is not None
         result = expanse(expr)
         if isinstance(result, str):
             unres = unresolved_names(result)
             if unres:
                 raise ETUMRuntimeError(
                     "unresolved " + ", ".join(f"$({n})" for n in unres))
+            if lone_var:
+                return result
             i = result.find("<|")
             j = result.rfind("|>")
             if i != -1 and j > i:
                 return eval_exec(result[i + 2:j])
+            return eval_exec(result)
         return result
 
     def set_test_outputs(self, outputs: list):
