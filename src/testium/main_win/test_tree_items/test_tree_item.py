@@ -98,6 +98,28 @@ def _breakpoint_icon():
     return _breakpoint_icon_cache
 
 
+_conditional_bp_icon_cache = None
+
+
+def _conditional_bp_icon():
+    """Hollow red ring: breakpoint with a condition."""
+    global _conditional_bp_icon_cache
+    if _conditional_bp_icon_cache is None:
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        pen = painter.pen()
+        pen.setColor(QColor(220, 0, 0))
+        pen.setWidth(10)
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)
+        painter.drawEllipse(12, 12, 40, 40)
+        painter.end()
+        _conditional_bp_icon_cache = QIcon(pixmap)
+    return _conditional_bp_icon_cache
+
+
 _attach_icon_cache = {}
 
 
@@ -156,6 +178,7 @@ class QTestTreeItem(QTreeWidgetItem):
         parent.addChild(self)
         self._has_failed = False
         self._display_pause = False
+        self._bp_condition = None
         self._debug_attach = False
         self.icon_pause = _breakpoint_icon()
         self.icon_fake = QIcon()
@@ -207,10 +230,15 @@ class QTestTreeItem(QTreeWidgetItem):
 
         self.setIcon(self._cols["status"]["index"], icon)
 
-    def setBreakpointState(self, on):
+    def setBreakpointState(self, on, condition=None):
         if self._no_breakpoint:
             return False
         self._display_pause = bool(on)
+        self._bp_condition = condition if self._display_pause else None
+        tip = None
+        if self._bp_condition:
+            tip = "Breakpoint condition: " + self._bp_condition
+        self.setToolTip(self._cols["pause"]["index"], tip)
         self._refresh_gutter()
         return self._display_pause
 
@@ -226,6 +254,8 @@ class QTestTreeItem(QTreeWidgetItem):
         col = self._cols["pause"]["index"]
         if self.isDebugAttach():
             self.setIcon(col, _attach_icon(self._display_pause))
+        elif self._display_pause and self._bp_condition:
+            self.setIcon(col, _conditional_bp_icon())
         elif self._display_pause:
             self.setIcon(col, self.icon_pause)
         else:

@@ -16,8 +16,12 @@ Double-click in the first column of the test tree (left of the
 checkboxes), or select the item and press **Space**, to set or remove a
 breakpoint, shown as a red dot. The run pauses
 before executing a marked item. Breakpoints follow the item across
-Refresh and testium restarts, and are dropped when a different file is
-loaded.
+Refresh and testium restarts, and are stored per test file.
+
+Right-click an item and pick **Breakpoint condition** to pause only when
+a ``<| ... |>`` expression is true. A conditional breakpoint is shown as
+a red ring; the expression appears in its tooltip. An expression that
+fails to evaluate pauses anyway, with a WARN.
 
 Step-by-step execution
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -25,14 +29,33 @@ Step-by-step execution
 The Run toolbar (also the Test menu) drives the execution. The step
 buttons and their shortcuts appear when the **Debug** button is enabled:
 
-* **F5**: start, pause or resume; **Shift+F5**: stop;
+* **F5**: start, pause or resume. Pause lets the current step finish
+  and stops the run before the next one; **Shift+F5**: stop;
 * **F10**: step over, run to the next item at the same level;
 * **F11**: step into, run to the next item at any depth. From idle, it
   starts the run paused on the first item;
 * **Shift+F11**: step out, run to the end of the current level, pause
-  one level up.
+  one level up;
+* **Shift+F10**: re-run last step, re-execute the step that just ran
+  and pause on the next one. On an item holding actions (console, plot,
+  json_rpc), the whole item is re-executed.
 
 While paused, the green line marks the current item.
+
+Jump to a step
+^^^^^^^^^^^^^^
+
+While paused, right-click any item and pick **Jump to this item**:
+execution moves there, forward or backward, and pauses on it. Nothing
+in between is executed; on a backward jump the variables keep their
+current values. Jumping into or out of a ``parallel`` block is refused.
+
+Editing the run
+^^^^^^^^^^^^^^^
+
+The checkboxes stay operative while a test runs: unchecking an item
+skips it when its turn comes. The item currently executing is not
+affected.
 
 Inspecting variables
 ^^^^^^^^^^^^^^^^^^^^
@@ -43,7 +66,8 @@ editable while the test is paused or between runs.
 The expression field below the table evaluates a ``$(var)`` /
 ``<| ... |>`` expression against the current variables, also while
 paused on a breakpoint. It shows the result, or the error when the
-expression is invalid. The text is taken as-is (no YAML quoting rules).
+expression is invalid. The text is taken
+as-is (no YAML quoting rules).
 
 Debug output
 ^^^^^^^^^^^^

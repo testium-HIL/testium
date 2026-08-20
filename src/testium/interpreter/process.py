@@ -368,6 +368,9 @@ class TestProcess(Process):
             "del_gd_var": self.del_gd_var,
             "set_enabled_state": test_set.setEnabledState,
             "check_uncheck_all": test_set.checkUncheckAll,
+            "enabled_states": test_set.getEnabledStates,
+            "jump_to": test_set.jumpTo,
+            "jump_back": test_set.jumpBack,
             "get_folded": test_set.getFolded,
             "close": self.close,
         }

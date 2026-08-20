@@ -4,6 +4,7 @@ from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
 from interpreter.test_items.test_item import TestItem, test_run
+from interpreter.utils.step_ctrl import JumpRequested
 from interpreter.test_items.test_result import TestResult, TestValue
 import api.testium as tm
 from interpreter.utils.params import TestItemParams
@@ -43,6 +44,7 @@ class TestItemCycle(TestItem):
         super().__init__(dict_cycle, parent, status_queue, filename=filename)
         self._type = cst.TYPE_CYCLE
         self.is_container = True
+        self._is_step = False
         self._exit_file = None
         self._exit_func = None
         self._exit_time = None
@@ -270,6 +272,8 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                         if post_eval:
                             print(f"Evaluation: \"{post_eval}\"")
 
+            except JumpRequested:
+                raise
             except:
                 print(traceback.format_exc())
                 self.result.set(TestValue.FAILURE, "(Cycle {}/{})".format(i - 1, self._niter))

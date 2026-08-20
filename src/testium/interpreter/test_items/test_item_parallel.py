@@ -6,6 +6,7 @@ from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import eval_to_boolean
+from interpreter.utils.step_ctrl import JumpRequested
 from interpreter.utils.param_decl import Param, ParamSet, LIST, BLOCK, Enum
 from runtime.tum_except import ETUMSyntaxError
 from runtime.string_queue import StringQueue
@@ -170,6 +171,8 @@ class TestItemParallel(TestItemContainer):
                     branch.stop()
                 try:
                     result = branch.execute()
+                except JumpRequested:
+                    raise
                 except Exception as e:
                     import traceback
                     print(f"[parallel] Branch '{branch.name()}' crashed: {e}")

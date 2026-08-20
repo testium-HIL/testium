@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from interpreter.utils.icons import icon_prefix
 import interpreter.utils.settings as prefs
 import api.testium as tm
+from runtime.tum_except import ETUMRuntimeError
 
 
 class TestState(Enum):
@@ -148,6 +149,15 @@ class TestRunner:
         w.actionStep_over.setEnabled(enabled)
         w.actionStep_into.setEnabled(enabled)
         w.actionStep_out.setEnabled(enabled)
+        w.actionRerun_step.setEnabled(enabled)
+
+    def on_rerun_step(self):
+        if self.state != TestState.PAUSED:
+            return
+        try:
+            self._win.test_service.jump_back()
+        except ETUMRuntimeError as e:
+            self._win.statusBar().showMessage(str(e), 10000)
 
     def on_run_finished(self):
         w = self._win
@@ -169,7 +179,9 @@ class TestRunner:
         if w.runandclose:
             w.on_actionExit_triggered()
 
-    def on_breakpoint(self):
+    def on_paused(self):
+        # Engine reports an item paused (breakpoint, step, pause request,
+        # jump arrival). Idempotent when already PAUSED.
         self.state = TestState.PAUSED
         self.start_pause_timer()
         self._set_step_actions_enabled(True)
@@ -220,7 +232,8 @@ class TestRunner:
     def adapt_interface_during_test(self):
         w = self._win
         try:
-            w.disconnect_signals()
+            # Signals stay connected: checkboxes remain operative during the
+            # run (the engine reads enabled when each item starts).
             w.actionOpenTest.setDisabled(True)
             w.actionExit.setDisabled(True)
             icon = QtGui.QIcon()
@@ -235,9 +248,6 @@ class TestRunner:
             w.logSettingsBox.setDisabled(True)
             w.actionStop_test.setEnabled(True)
             self._set_step_actions_enabled(False)
-            if prefs.settings.show_checkboxes:
-                w._checklist = w.treeTests.getCheckList()
-                w.treeTests.removeCheckBoxes()
             w.checkSelect.setDisabled(True)
             w.checkFold.setDisabled(True)
             w.timerBlink.setSingleShot(False)
@@ -269,10 +279,7 @@ class TestRunner:
             w.logSettingsBox.setEnabled(True)
             if prefs.settings.show_checkboxes:
                 w.checkSelect.setEnabled(True)
-                w.treeTests.showCheckBoxes(w._checklist, w.test_service)
             w.checkFold.setEnabled(True)
-            w.treeTests.setChildrenEnabled()
-            w.reconnect_signals()
             if w.treeTests.getGlobalSuccess():
                 self.set_blink_green()
             else:

@@ -200,6 +200,17 @@ if [ "$MODE" = "source" ]; then
     "$STEP_PY" "$SCRIPT_DIR/step_check.py"
 fi
 
+# ---------- pause / jump check (source only) ----------------------------------
+# Run-level pause (current step finishes, run stops before the next), jump
+# forward/backward, jump_back and conditional breakpoints. Imports the
+# interpreter directly, so source mode only.
+if [ "$MODE" = "source" ]; then
+    echo "-- pause/jump check ($MODE)"
+    PJ_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$PJ_PY" ] || PJ_PY="$VENV_PYTHON"
+    "$PJ_PY" "$SCRIPT_DIR/pause_jump_check.py"
+fi
+
 # ---------- debug-output check (source only) ----------------------------------
 # The debug toggle drives test_debug live through the control queue and
 # survives the end-of-run global-dict restore. Imports the interpreter

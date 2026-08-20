@@ -41,10 +41,17 @@ class TestControllerService:
     def step_out(self) -> None:
         self._ctrl.control("step_out")
 
+    def jump_to(self, item_id) -> None:
+        self._ctrl.control("jump_to", item_id=item_id)
+
+    def jump_back(self) -> None:
+        self._ctrl.control("jump_back")
+
     # --- Breakpoints ---
 
-    def add_breakpoint(self, item_id) -> None:
-        self._ctrl.control("add_breakpoint", item_id=item_id)
+    def add_breakpoint(self, item_id, condition: str = None) -> None:
+        self._ctrl.control("add_breakpoint", item_id=item_id,
+                           condition=condition)
 
     def del_breakpoint(self, item_id) -> None:
         self._ctrl.control("del_breakpoint", item_id=item_id)
@@ -62,6 +69,9 @@ class TestControllerService:
 
     def get_enabled_state(self, item_id) -> bool:
         return self._ctrl.control("enabled_state", item_id=item_id)
+
+    def get_enabled_states(self) -> dict:
+        return self._ctrl.control("enabled_states")
 
     def set_enabled_state(self, item_id, state: bool, unitary: bool = False) -> None:
         self._ctrl.control("set_enabled_state", item_id=item_id, enabled_state=state, unitary=unitary)

@@ -10,6 +10,7 @@ from interpreter.utils.param_decl import (
 )
 from interpreter.utils.constants import TestItemType as cst_type
 from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
+from interpreter.utils.step_ctrl import JumpRequested
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, \
     item_load_context, wrap_lines
 
@@ -50,11 +51,17 @@ class TestItem:
 def test_run(f):
     @wraps(f)
     def wrapper(self):
+        # Seek mode (jump): fall through instantly. Fresh result so already-
+        # executed items keep their real in-memory result on a backward jump;
+        # parents aggregate the NORUN like a disabled item.
+        if self.step_ctrl is not None and self.step_ctrl.seek_skip(self):
+            return TestResult(self, TestValue.NORUN, "skipped by jump")
+
         if self.skipped:
             self.result.set(TestValue.NORUN, "test skipped")
             print("Test is skipped.")
             return self.result
-        
+
         if not self.enabled:
             self.result.set(TestValue.NORUN, "test disabled")
             print("Test is disabled.")
@@ -71,18 +78,27 @@ def test_run(f):
 
         # Register as the item step commands originate from while paused.
         # Done here (not in run_test_init) because _is_paused can also be set
-        # externally (user pause, cycle re-iterations).
+        # externally (cycle re-iterations).
         if self._is_paused and self.step_ctrl is not None:
             self.step_ctrl.notify_paused(self)
+            self._sendStatusPaused()
         while self._is_paused:
             sleep(0.2)
             if self.isStopped() :
                 self.result.set(TestValue.NORUN, "test stopped")
                 print("Test is Stopped.")
                 self._is_stopped = False    # Restore state for next run
+                self._is_paused = False
                 if self.step_ctrl is not None:
                     self.step_ctrl.clear_paused(self)
+                if self.is_container:
+                    self.report.decLevel()
                 return self.result
+            if self.step_ctrl is not None and self.step_ctrl.jump_pending():
+                self._is_paused = False
+                self.step_ctrl.clear_paused(self)
+                self._abandon_for_jump()
+                raise JumpRequested()
         if self.step_ctrl is not None:
             self.step_ctrl.clear_paused(self)
 
@@ -121,7 +137,17 @@ def test_run(f):
                 self.run_test_end()
                 return self.result
             # Test execution
-            f(self)
+            try:
+                # Recorded before the body: a step that crashes must still
+                # be the jump_back target. _is_step, not is_container:
+                # unittest/pytest flip the latter for report indentation.
+                if self.step_ctrl is not None and self._is_step \
+                        and self.parent() is not None:
+                    self.step_ctrl.note_executed(self)
+                f(self)
+            except JumpRequested:
+                self._abandon_for_jump()
+                raise
         else:
             msg = "condition not met: " + msg
             self.result.set(TestValue.NORUN, msg)
@@ -161,6 +187,9 @@ class TestItem:
         self.enabled = True
         self.skipped = False
         self.is_container = True
+        # True for items that are a step of their own (jump_back targets);
+        # containers of test items (group, cycle, parallel) set it False.
+        self._is_step = True
         self.is_folded = False
         self._children = []
         self._parent = parent
@@ -178,6 +207,7 @@ class TestItem:
         self._load_error = None
         self._is_running = False
         self._is_breakpoint = False
+        self._bp_condition = None
         self._is_paused = False
         self._stop_on_failure_raw = False
         self._doc = ""
@@ -314,7 +344,17 @@ class TestItem:
         i = 0
         to_be_stopped = False
         while (not self.isStopped()) and (i < self.childCount()) and not to_be_stopped:
-            test_res = self.child(i).execute()
+            try:
+                test_res = self.child(i).execute()
+            except JumpRequested:
+                # Root only: convert the unwound jump into an active seek and
+                # re-enter from the first child (non-route items fall through).
+                if self.parent() is None and self.step_ctrl is not None \
+                        and self.step_ctrl.take_jump():
+                    i = 0
+                    test_results = []
+                    continue
+                raise
             test_results.append(test_res)
             i = i + 1
             if test_res.test_result == TestValue.FAILURE and self._stop_on_failure:
@@ -326,20 +366,18 @@ class TestItem:
             if to_be_stopped:
                 self.result.set(TestValue.FAILURE, "test stopped on failure")
             else:
-                test_success = TestValue.SUCCESS
-                for res in test_results:
-                    if res.test_result != TestValue.SUCCESS:
-                        test_success = TestValue.FAILURE
-                        break
-                self.result.test_result = test_success
+                self.result.test_result = self.__aggregate(test_results)
         else:
-            test_success = TestValue.SUCCESS
-            for res in test_results:
-                if res.test_result != TestValue.SUCCESS:
-                    test_success = TestValue.FAILURE
-                    break
-            self.result.test_result = test_success
+            self.result.test_result = self.__aggregate(test_results)
             self.result.message = "Test run failed"
+
+    def __aggregate(self, test_results):
+        # Only FAILURE fails the run, like group/cycle aggregation: NORUN
+        # (unchecked, condition not met, skipped by jump) is neutral.
+        for res in test_results:
+            if res.test_result == TestValue.FAILURE:
+                return TestValue.FAILURE
+        return TestValue.SUCCESS
 
     def write_banner(self):
         if self.parent() is not None:
@@ -363,12 +401,23 @@ class TestItem:
         self.write_banner()
         self._is_running = True
         self._sendStatusStarted()
-        if self._is_breakpoint:
+        # Pause arming: breakpoint > jump arrival > armed step > run-level
+        # pause request. arrived() is consumed unconditionally: the seek must
+        # end at the target even when the target also holds a breakpoint.
+        arrival = self.step_ctrl is not None and self.step_ctrl.arrived(self)
+        if self._is_breakpoint and self._breakpoint_hit():
             self._is_paused = True
             if self.step_ctrl is not None:
                 # Breakpoint hit while a step is pending: the breakpoint wins.
                 self.step_ctrl.disarm()
+        elif arrival == 'pause':
+            self._is_paused = True
+        elif arrival == 'run':
+            # Re-run arrival: this item runs, the armed step pauses the next.
+            pass
         elif self.step_ctrl is not None and self.step_ctrl.should_pause(self):
+            self._is_paused = True
+        elif self.step_ctrl is not None and self.step_ctrl.pause_requested():
             self._is_paused = True
 
         if self.is_container:
@@ -550,6 +599,43 @@ class TestItem:
         }
         self.status_queue.put(status)
 
+    def _sendStatusPaused(self):
+        status = {
+            "id": self._id,
+            "name": self._name,
+            "status": "paused",
+        }
+        self.status_queue.put(status)
+
+    def _abandon_for_jump(self):
+        """Bookkeeping of a frame unwound by a jump: balance the report
+        level, close the status, no report row."""
+        if self.is_container:
+            self.report.decLevel()
+        self.result.set(TestValue.NORUN, "interrupted by jump")
+        self._is_running = False
+        self.t1 = tm.timestamp()
+        self.duration = self.t1 - self.t0
+        self._sendStatusFinished()
+
+    def _breakpoint_hit(self):
+        """True if the breakpoint must pause: no condition, condition true,
+        or condition unusable (WARN, pause anyway: a missed pause loses the
+        debug session, a spurious one costs an F5)."""
+        if not self._bp_condition:
+            return True
+        try:
+            c = self._prms.expanse(self._bp_condition)
+        except Exception as e:
+            tm.print_warn(f"Breakpoint condition failed on '{self._name}': "
+                          f"{e} — pausing anyway.")
+            return True
+        if isinstance(c, bool):
+            return c
+        tm.print_warn(f"Breakpoint condition on '{self._name}' is not a "
+                      f"boolean ({c!r}) — pausing anyway.")
+        return True
+
     def sendMessage(self, msg):
         status = {"id": self._id, "name": self._name, "message": msg}
         self.status_queue.put(status)
@@ -563,14 +649,13 @@ class TestItem:
     def stop(self):
         self._is_stopped = True
 
-    def pause(self):
-        self._is_paused = True
-
-    def addBreakpoint(self):
+    def addBreakpoint(self, condition=None):
         self._is_breakpoint = True
+        self._bp_condition = condition or None
 
     def delBreakpoint(self):
         self._is_breakpoint = False
+        self._bp_condition = None
 
     def cont(self):
         self._is_paused = False

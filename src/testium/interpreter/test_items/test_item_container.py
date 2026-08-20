@@ -10,6 +10,7 @@ class TestItemContainer(TestItem):
         super().__init__(dict_item, parent, status_queue, filename=filename)
         self._type = item_type
         self.is_container = True
+        self._is_step = False
 
     def _run_children_sequentially(self):
         """Execute all children in order, respecting stop_on_failure and stop requests.

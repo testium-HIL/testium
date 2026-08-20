@@ -1,0 +1,37 @@
+main:
+    name: Pause jump check
+    steps:
+        - group:
+            name: A
+            steps:
+                - sleep:
+                    name: slow
+                    timeout: 1.5
+                - sleep:
+                    name: s1
+                    timeout: 0.01
+        - group:
+            name: B
+            steps:
+                - sleep:
+                    name: s2
+                    timeout: 0.01
+                - sleep:
+                    name: s3
+                    timeout: 0.01
+        - loop:
+            name: C
+            iterator: 2
+            steps:
+                - sleep:
+                    name: slowc
+                    timeout: 0.8
+                - sleep:
+                    name: c1
+                    timeout: 0.01
+        - sleep:
+            name: s5
+            timeout: 0.01
+        - sleep:
+            name: s6
+            timeout: 0.01

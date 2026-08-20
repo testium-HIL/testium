@@ -92,6 +92,9 @@ def main():
     # Persist to the throwaway config: later prefs.init() calls re-read it.
     prefs.init()
     prefs.settings.set_value(prefs.settings.SettingsShowCheckboxes, True)
+    # Debug enabled: covers the step-bar init path (toggled slot fires
+    # while the bar is being built).
+    prefs.settings.set_value(prefs.settings.SettingsDebugOutput, True)
     prefs.settings.sync()
 
     app = QApplication([])
@@ -183,7 +186,40 @@ def main():
         fail(f"log choice not restored on restart "
              f"({win.editLogFilePath.text()!r})")
 
-    # 6. LRU cap: flood with fake entries, trim must keep the newest.
+    # 6. Breakpoint condition: persists per file, restored with the
+    # breakpoint; legacy 4-field entries still restore.
+    item = by_name("Brief")
+    item.setBreakpointState(True, "<| True |>")
+    win.test_service.add_breakpoint(item.id, condition="<| True |>")
+    win.file_manager.reload(other_file)
+    win.file_manager.reload(test_file)
+    item = by_name("Brief")
+    if not item.isBreakpoint() or item._bp_condition != "<| True |>":
+        fail(f"breakpoint condition not restored "
+             f"({item.isBreakpoint()}, {item._bp_condition!r})")
+    legacy = [[[["main", "State check", 0], ["sleep", "Brief", 0]],
+               False, True, True]]
+    win.treeTests.restoreItemStates(legacy, win.test_service,
+                                    apply_check=True)
+    if not by_name("Brief").isBreakpoint():
+        fail("legacy 4-field state entry did not restore the breakpoint")
+
+    # 7. updateStatus with signals connected must not alter check states
+    # (blockSignals) and must forward the paused status.
+    win.reconnect_signals()
+    states_before = win.test_service.get_enabled_states()
+    paused_seen = []
+    win.treeTests.paused.connect(lambda: paused_seen.append(True))
+    win.treeTests.updateStatus(
+        {"id": by_name("s2").id, "status": "started", "timestamp": 0})
+    win.treeTests.updateStatus(
+        {"id": by_name("s2").id, "status": "paused", "name": "s2"})
+    if win.test_service.get_enabled_states() != states_before:
+        fail("updateStatus changed enabled states with signals connected")
+    if not paused_seen:
+        fail("paused status did not emit the paused signal")
+
+    # 8. LRU cap: flood with fake entries, trim must keep the newest.
     key_kept = win._file_state_key(test_file)
     win.stash_file_state(test_file)
     for i in range(win.FileStatesMax + 5):

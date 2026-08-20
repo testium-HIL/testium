@@ -17,6 +17,7 @@ class TestItemGroup(TestItem):
         super().__init__(dict_cycle, parent, status_queue, filename=filename)
         self._type = cst.TYPE_GROUP
         self.is_container = True
+        self._is_step = False
 
     def __runALoop(self):
         results = []

@@ -158,6 +158,10 @@ class TestSet:
 
         res = None
         try:
+            # Clear _is_paused leftovers from a previous run (stop while
+            # paused); the armed step is kept, see the finally comment.
+            self._rootItem.cont()
+            self.__contAllRecursively(self._rootItem)
             a_test_is_skipped = self.__aTestIsSkipped(self._rootItem)
             a_test_is_disabled = self.__aTestIsDisabled(self._rootItem)
             res = self._rootItem.execute()
@@ -165,7 +169,8 @@ class TestSet:
             # End-of-run cleanup of a still-armed step (e.g. step at the very
             # last item). Not done at start of run so a step_into sent from
             # IDLE (armed before 'execute' on the command thread) survives.
-            self._step_ctrl.reset()
+            if self._step_ctrl.reset():
+                tm.print_warn("Jump target was not reached.")
             self._end_test_date = datetime.datetime.now()
             self._test_duration = self._end_test_date - tm.gd("start_test_date")
 
@@ -236,21 +241,18 @@ class TestSet:
             self.__stopRunningTestsRecursively(parent.child(i))
 
     def stop(self):
-        # A pending step must not re-pause execute_on_stop cleanup items.
+        # A pending step or pause must not re-pause execute_on_stop cleanup
+        # items.
         self._step_ctrl.disarm()
+        self._step_ctrl.clear_pause()
         self._rootItem.stop()
         self.__stopRunningTestsRecursively(self._rootItem)
 
-    def __pauseTestsRecursively(self, parent):
-        for i in range(parent.childCount()):
-            if parent.child(i).isRunning():
-                parent.child(i).pause()
-            self.__pauseTestsRecursively(parent.child(i))
-
     def pause(self):
+        # Run-level request: the current step finishes, the next one pauses
+        # before its body. Items already running are past their pause point.
         self._step_ctrl.disarm()
-        self._rootItem.pause()
-        self.__pauseTestsRecursively(self._rootItem)
+        self._step_ctrl.request_pause()
 
     def __setReportRecursively(self, parent):
         for i in range(parent.childCount()):
@@ -261,9 +263,9 @@ class TestSet:
         self._rootItem.report = self._report
         self.__setReportRecursively(self._rootItem)
 
-    def addBreakpoint(self, item_id):
+    def addBreakpoint(self, item_id, condition=None):
         item = self.__findItemById(item_id)
-        item.addBreakpoint()
+        item.addBreakpoint(condition)
 
     def delBreakpoint(self, item_id):
         item = self.__findItemById(item_id)
@@ -279,16 +281,19 @@ class TestSet:
                 f"'{item.name()}' is a '{item.type()}' item.")
         item.setDebugAttach(bool(enabled))
 
-    def __continueTestsRecursively(self, parent):
+    def __contAllRecursively(self, parent):
+        # All items, not only running ones: a finished item can hold an
+        # orphaned _is_paused that would re-freeze its next execution.
         for i in range(parent.childCount()):
-            if parent.child(i).isRunning():
-                parent.child(i).cont()
-            self.__continueTestsRecursively(parent.child(i))
+            parent.child(i).cont()
+            self.__contAllRecursively(parent.child(i))
 
     def cont(self):
-        self._step_ctrl.reset()
+        self._step_ctrl.disarm()
+        self._step_ctrl.clear_pause()
+        self._step_ctrl.cancel_jump()
         self._rootItem.cont()
-        self.__continueTestsRecursively(self._rootItem)
+        self.__contAllRecursively(self._rootItem)
 
     def __setStepControllerRecursively(self, parent):
         for i in range(parent.childCount()):
@@ -301,6 +306,76 @@ class TestSet:
             # Release only the item we step from; other paused items (e.g.
             # parallel branches) stay paused.
             item.cont()
+
+    def __validateJump(self, target):
+        """Common jump checks: run paused, target reachable, no parallel."""
+        if self._step_ctrl.current() is None:
+            raise ETUMRuntimeError(
+                "Jump is only available while the run is paused on an item.")
+        if target is None:
+            raise ETUMRuntimeError("Jump target not found.")
+        # A disabled or skipped node would never fire the arrival: the seek
+        # would silently swallow the rest of the run.
+        node = target
+        while node is not None:
+            if node.skipped or not node.enabled:
+                raise ETUMRuntimeError(
+                    f"Cannot jump to '{target.name()}': "
+                    f"'{node.name()}' is unchecked or skipped.")
+            if node.type() in (cst_type.TYPE_PARALLEL.item_name,
+                               cst_type.TYPE_PARALLEL_BRANCH.item_name):
+                raise ETUMRuntimeError(
+                    "Cannot jump into or out of a parallel block.")
+            node = node.parent()
+        node = self._step_ctrl.current()
+        while node is not None:
+            if node.type() in (cst_type.TYPE_PARALLEL.item_name,
+                               cst_type.TYPE_PARALLEL_BRANCH.item_name):
+                raise ETUMRuntimeError(
+                    "Cannot jump into or out of a parallel block.")
+            node = node.parent()
+
+    def __jumpNotice(self, verb, target):
+        cycles = []
+        node = target.parent()
+        while node is not None:
+            if node.type() == cst_type.TYPE_CYCLE.item_name:
+                cycles.append(node.name())
+            node = node.parent()
+        msg = f'{verb} "{target.name()}".'
+        if cycles:
+            names = '", "'.join(reversed(cycles))
+            msg += f' Cycle "{names}" restarts at iteration 1.'
+        print(msg)
+
+    def jumpTo(self, item_id):
+        target = self.__findItemById(item_id)
+        self.__validateJump(target)
+        self.__jumpNotice("Jumping to", target)
+        self._step_ctrl.disarm()
+        self._step_ctrl.arm_jump(target)
+
+    def jumpBack(self):
+        target = self._step_ctrl.last_executed()
+        if target is None:
+            raise ETUMRuntimeError("No step has been executed yet.")
+        self.__validateJump(target)
+        self.__jumpNotice("Re-running", target)
+        self._step_ctrl.disarm()
+        # No pause on the target: it re-executes, the next item pauses.
+        self._step_ctrl.arm_jump(target, pause_on_target=False)
+
+    def __getEnabledStatesRecursively(self, parent, out):
+        for i in range(parent.childCount()):
+            child = parent.child(i)
+            out[child.id()] = child.enabled
+            self.__getEnabledStatesRecursively(child, out)
+
+    def getEnabledStates(self):
+        """Enabled state of every item, one round-trip: {id: enabled}."""
+        out = {}
+        self.__getEnabledStatesRecursively(self._rootItem, out)
+        return out
 
     def step_into(self):
         self.__step(step_ctrl.MODE_INTO)

@@ -3,6 +3,12 @@ version 0.4.4
 - Settings are stored separately per machine.
 - Several testium instances can run in parallel on the same machine.
 - Tree state and log file are remembered per test file.
+- Pause lets the current step finish and stops the run before the next.
+- Checkboxes stay operative during a run: unchecked steps are skipped.
+- Jump to any step while paused (right-click), forward or backward.
+- Re-run the step that just executed (Shift+F10).
+- Breakpoints can carry a pause condition (right-click).
+- An unchecked or jumped-over top-level item no longer fails the run.
 
 version 0.4.3
 ==============

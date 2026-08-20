@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QToolButton,
     QToolBar,
     QMenu,
+    QInputDialog,
 )
 
 ourPath = os.path.dirname(__file__)
@@ -324,7 +325,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.treeTests.sizePolicy().hasHeightForWidth())
         self.treeTests.setSizePolicy(sizePolicy)
-        self.treeTests.breakpoint.connect(self.on_breakpoint)
+        self.treeTests.paused.connect(self.on_paused)
         self.verticalLayout.addWidget(self.treeTests)
 
     def remove_tree(self):
@@ -395,6 +396,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stepBar.setObjectName("stepBar")
         self.stepBar.setMovable(True)
         self.stepBar.setFloatable(True)
+        # Created before the Debug setChecked below: its toggled slot walks
+        # every step action, this one included.
+        self.actionRerun_step = QAction("Re-run last step", self)
+        self.actionRerun_step.setShortcut(QKeySequence("Shift+F10"))
+        self.actionRerun_step.setEnabled(False)
+        icon = QIcon()
+        icon.addPixmap(QPixmap(icon_prefix() + "/cycle.png"))
+        self.actionRerun_step.setIcon(icon)
+        self.actionRerun_step.triggered.connect(self.runner.on_rerun_step)
         self.stepBar.addAction(self.actionStart_test)
         self.stepBar.addAction(self.actionStop_test)
         self.stepBar.addSeparator()
@@ -404,6 +414,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             (self.actionStep_over, "Step over (F10)"),
             (self.actionStep_into, "Step into (F11)"),
             (self.actionStep_out, "Step out (Shift+F11)"),
+            (self.actionRerun_step, "Re-run last step (Shift+F10)"),
         ):
             action.setToolTip(tip)
             self.stepBar.addAction(action)
@@ -695,8 +706,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionStep_out_triggered(self):
         self.runner.on_step_out()
 
-    def on_breakpoint(self):
-        self.runner.on_breakpoint()
+    def on_paused(self):
+        self.runner.on_paused()
 
     @Slot()
     def on_actionExit_triggered(self):
@@ -724,25 +735,64 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.prefs_apply_font_size()
 
     def on_testTreeContextMenu(self, pos):
-        """Debugger attach on a py_func item, for this session only. Shown
-        disabled on other item types so the option stays discoverable."""
+        """Per-item debug actions. Options that do not apply are shown
+        disabled so they stay discoverable."""
         item = self.treeTests.itemAt(pos)
         if item is None or self.test_service is None:
             return
         is_py_func = item.test_type == cst.TYPE_PY_FUNCTION.item_name
         menu = QMenu(self.treeTests)
-        action = menu.addAction("Wait for IDE debugger (py_func)")
-        action.setCheckable(True)
-        action.setChecked(is_py_func and item.isDebugAttach())
-        action.setEnabled(is_py_func)
-        if menu.exec(self.treeTests.viewport().mapToGlobal(pos)) is action:
-            enabled = action.isChecked()
+        attach = menu.addAction("Wait for IDE debugger (py_func)")
+        attach.setCheckable(True)
+        attach.setChecked(is_py_func and item.isDebugAttach())
+        attach.setEnabled(is_py_func)
+        condition = menu.addAction("Breakpoint condition…")
+        condition.setEnabled(not item._no_breakpoint)
+        jump = menu.addAction("Jump to this item")
+        jump.setEnabled(self.runner.state == TestState.PAUSED
+                        and not item._is_skipped
+                        and not self._in_parallel(item))
+        chosen = menu.exec(self.treeTests.viewport().mapToGlobal(pos))
+        if chosen is attach:
+            enabled = attach.isChecked()
             self.test_service.set_debug_attach(item.id, enabled)
             item.setDebugAttachState(enabled)
+        elif chosen is condition:
+            self._edit_breakpoint_condition(item)
+        elif chosen is jump:
+            try:
+                self.test_service.jump_to(item.id)
+            except ETUMRuntimeError as e:
+                self.statusBar().showMessage(str(e), 10000)
+
+    def _in_parallel(self, item):
+        p = item
+        while p is not None:
+            if p.test_type in (cst.TYPE_PARALLEL.item_name,
+                               cst.TYPE_PARALLEL_BRANCH.item_name):
+                return True
+            p = p.parent()
+        return False
+
+    def _edit_breakpoint_condition(self, item):
+        text, ok = QInputDialog.getText(
+            self, "Breakpoint condition",
+            "Pause only when this <| ... |> expression is true:",
+            text=getattr(item, "_bp_condition", None) or "")
+        if not ok:
+            return
+        text = text.strip()
+        if text:
+            item.setBreakpointState(True, text)
+            self.test_service.add_breakpoint(item.id, condition=text)
+        elif item.isBreakpoint():
+            # Emptied condition: back to a plain breakpoint.
+            item.setBreakpointState(True)
+            self.test_service.add_breakpoint(item.id)
 
     def _set_step_actions_visible(self, visible):
         for action in (self.actionStep_over, self.actionStep_into,
-                       self.actionStep_out):
+                       self.actionStep_out, self.actionRerun_step):
             action.setVisible(visible)
 
     @Slot(bool)
