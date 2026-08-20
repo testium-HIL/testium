@@ -72,6 +72,10 @@ $venvPy = Join-Path $venv 'Scripts\python.exe'
 & $venvPy -m pip install --quiet -r (Join-Path $root 'src\requirements.txt')
 & $venvPy -m pip install --quiet --upgrade build pyinstaller "pygls>=1.3"
 
+# Keep the committed schema in sync with the version being built.
+& $venvPy (Join-Path $root 'src\testium') schema | Set-Content -Encoding utf8 (Join-Path $root 'schema\tum.json')
+Write-Host "schema/tum.json regenerated"
+
 # ---------- 1. wheel ----------
 Step "1  Wheel ($version)"
 if (Test-Path $wheel) {

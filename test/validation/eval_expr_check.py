@@ -87,6 +87,15 @@ def main():
     else:
         fail("invalid implicit expression did not raise")
 
+    ctrl.control("set_gd_var", name="expr_check_path", value="C:\\Users\\john")
+    try:
+        ctrl.control("eval_expr", expr='<| "Lib" in "$(expr_check_path)" |>')
+    except ETUMRuntimeError as e:
+        if 'r"$(var)"' not in str(e):
+            fail(f"Windows-path error does not carry the raw-string hint: {e}")
+    else:
+        fail("Windows-path expression did not raise")
+
     if proc.is_alive():
         ctrl.control("close")
     proc.join(10)

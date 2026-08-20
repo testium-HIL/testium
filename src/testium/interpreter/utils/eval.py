@@ -3,6 +3,15 @@ from interpreter.utils.py_eval import eval_exec
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
 
 
+def escape_hint(error_text):
+    """Remedy for the SyntaxError raised when a substituted Windows path
+    puts \\U... sequences in a string literal."""
+    if "unicodeescape" in error_text:
+        return ('A substituted Windows path breaks the string: '
+                'write it as r"$(var)".')
+    return None
+
+
 def evaluate(val, _warn_on_failure=False, **replacement_dict):
     """Evaluate *val* in the eval subprocess.
 
@@ -35,8 +44,9 @@ def evaluate(val, _warn_on_failure=False, **replacement_dict):
                     detail = (getattr(e, "_message", None)
                               or f"{type(e).__name__}: {e}")
                 warn_once(("eval", val), f"{detail} — left as-is.",
-                          debug_hint="Fix the expression, or set the "
-                                     "variable before it is evaluated.")
+                          debug_hint=escape_hint(str(e))
+                          or "Fix the expression, or set the "
+                             "variable before it is evaluated.")
             elif tm.debug_enabled():
                 tm.print_debug(
                     f"Evaluation of '{val}' failed with message:\n  {e}")

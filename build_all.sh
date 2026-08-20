@@ -204,6 +204,10 @@ build_appimage() {
 
 step "Prep: build tools + runtimes (serial — shared venv)"
 
+# Keep the committed schema in sync with the version being built.
+python "$SCRIPT_DIR/src/testium" schema > "$SCRIPT_DIR/schema/tum.json"
+echo "  schema/tum.json regenerated"
+
 [ -f "$MANUAL" ]   || python -m pip install --quiet --upgrade sphinx linuxdoc
 [ -n "$(wheel_in_dist)" ] || python -m pip install --quiet --upgrade build
 [ -f "$PYI_BIN" ]  || python -m pip install --quiet --upgrade pyinstaller

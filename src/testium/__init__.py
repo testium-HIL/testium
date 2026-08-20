@@ -38,7 +38,7 @@ def main():
         except ImportError as e:
             print(
                 f"testium lsp: language server dependencies missing ({e.name}). "
-                "Install with: pip install 'testium[lsp]'",
+                "Install with: pip install 'testium-hil[lsp]'",
                 file=sys.stderr,
             )
             sys.exit(2)

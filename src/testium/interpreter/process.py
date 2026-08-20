@@ -12,6 +12,7 @@ from runtime.tum_except import print_exception, ETUMRuntimeError, ETUMSyntaxErro
 import api.testium as tm
 import interpreter.utils.globdict as globdict
 from interpreter.utils.params import expanse, unresolved_names
+from interpreter.utils.eval import escape_hint
 from interpreter.utils.py_eval import eval_exec
 from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.test_init import (
@@ -418,9 +419,14 @@ class TestProcess(Process):
                 return result
             i = result.find("<|")
             j = result.rfind("|>")
-            if i != -1 and j > i:
-                return eval_exec(result[i + 2:j])
-            return eval_exec(result)
+            body = result[i + 2:j] if (i != -1 and j > i) else result
+            try:
+                return eval_exec(body)
+            except ETUMRuntimeError as e:
+                hint = escape_hint(str(e))
+                if hint:
+                    raise ETUMRuntimeError(f"{e._message} {hint}") from e
+                raise
         return result
 
     def set_test_outputs(self, outputs: list):
