@@ -70,7 +70,7 @@ from main_win.test_file_manager import TestFileManager
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-    MaxRecentFiles = 5
+    MaxRecentFiles = 10
 
     def __init__(
         self,
@@ -235,6 +235,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QAction(self, visible=False, triggered=self.file_manager.on_open_recent_file)
             )
         self.separatorAct = self.menuFile.addSeparator()
+        # Hover shows the full path (menus hide action tooltips by default).
+        self.menuFile.setToolTipsVisible(True)
         for i in range(MainWindow.MaxRecentFiles):
             self.menuFile.addAction(self.recentFileActs[i])
         self.file_manager.update_recent_file_actions()

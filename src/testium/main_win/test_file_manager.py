@@ -273,6 +273,7 @@ class TestFileManager:
         for i in range(numRecentFiles):
             text = "&%d %s" % (i + 1, w._stripped_name(files[i]))
             w.recentFileActs[i].setText(text)
+            w.recentFileActs[i].setToolTip(files[i])
             w.recentFileActs[i].setData(files[i])
             w.recentFileActs[i].setVisible(True)
         for j in range(numRecentFiles, w.MaxRecentFiles):
