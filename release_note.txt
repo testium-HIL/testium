@@ -12,6 +12,7 @@ version 0.4.4
 - F1 expression tester and breakpoint conditions: the ``<| ... |>``
   markers are implicit.
 - Choices dialog: select/deselect-all and fold/unfold controls.
+- Group items show a folder icon, open or closed with the tree.
 
 version 0.4.3
 ==============

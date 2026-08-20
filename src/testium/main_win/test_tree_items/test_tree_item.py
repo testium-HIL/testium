@@ -23,7 +23,7 @@ _ITEM_CONFIG = {
     "git repository":       {"icon": "git.png"},
     "Runtime plot":         {"icon": "plot.png"},
     "Runtime plot action":  {"icon": "plot.png"},
-    "Group":                {"icon": "group.png",          "expanded": True},
+    "Group":                {"icon": "folder-orange.png",  "icon_on": "folder-open-orange.png", "expanded": True},
     "Image Dialog":         {"icon": "image.png"},
     "Message Dialog":       {"icon": "info.png"},
     "Let":                  {"icon": "let.png"},

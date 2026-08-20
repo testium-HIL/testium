@@ -15,7 +15,9 @@
         <file alias="document.png">black/document.png</file>
         <file alias="edit-clear.png">black/edit-clear.png</file>
         <file alias="folder-open.png">black/folder-open.png</file>
+        <file alias="folder-open-orange.png">black/folder-open.png</file>
         <file alias="folder.png">black/folder.png</file>
+        <file alias="folder-orange.png">black/folder.png</file>
         <file alias="gears.png">black/gears.png</file>
         <file alias="git.png">black/git.png</file>
         <file alias="settings.png">black/settings.png</file>
@@ -68,7 +70,9 @@
         <file alias="document.png">white/document.png</file>
         <file alias="edit-clear.png">white/edit-clear.png</file>
         <file alias="folder-open.png">white/folder-open.png</file>
+        <file alias="folder-open-orange.png">white/folder-open.png</file>
         <file alias="folder.png">white/folder.png</file>
+        <file alias="folder-orange.png">white/folder.png</file>
         <file alias="gears.png">white/gears.png</file>
         <file alias="git.png">white/git.png</file>
         <file alias="settings.png">white/settings.png</file>
@@ -121,7 +125,9 @@
         <file alias="document.png">color/document.png</file>
         <file alias="edit-clear.png">color/edit-clear.png</file>
         <file alias="folder-open.png">color/folder-open.png</file>
+        <file alias="folder-open-orange.png">color/folder-open-orange.png</file>
         <file alias="folder.png">color/folder.png</file>
+        <file alias="folder-orange.png">color/folder-orange.png</file>
         <file alias="gears.png">color/gears.png</file>
         <file alias="git.png">color/git.png</file>
         <file alias="settings.png">color/settings.png</file>
