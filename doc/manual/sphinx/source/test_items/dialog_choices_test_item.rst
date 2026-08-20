@@ -6,7 +6,9 @@
 This test item displays a dialog asking a question and waits for the user
 to select entries from a defined list of items.
 
-These selectable items can be passed as a tree.
+These selectable items can be passed as a tree. Two controls above the
+tree select or deselect every entry and fold or unfold the tree, as in
+the main window.
 
 The :numref:`Figure %s<choices-dialog>` displays an example of this item.
 

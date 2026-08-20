@@ -4,7 +4,8 @@ from multiprocessing import freeze_support
 from itertools import chain
 
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
+from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
+                               QCheckBox, QHBoxLayout)
 from PySide6.QtCore import Qt, QSettings, QTimer, QSize
 from PySide6.QtGui import QFont, QFontInfo
 from PySide6.QtWidgets import QTreeWidgetItem
@@ -80,8 +81,51 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
         self.choicesView.setColumnWidth(1, 800)
         self.root = self.choicesView.invisibleRootItem()
 
+        # Bulk controls above the tree, like the main window.
+        self.checkSelect = QCheckBox("Select all / deselect all", self)
+        self.checkSelect.setTristate(False)
+        self.checkSelect.setChecked(True)
+        self.checkSelect.stateChanged.connect(self.on_selectDeselectAll)
+        self.checkFold = QCheckBox("Fold / Unfold", self)
+        self.checkFold.setTristate(False)
+        self.checkFold.stateChanged.connect(self.on_checkFoldChanged)
+        controls_row = QHBoxLayout()
+        controls_row.addWidget(self.checkSelect)
+        controls_row.addWidget(self.checkFold)
+        controls_row.addStretch(1)
+        self.verticalLayout.insertLayout(1, controls_row)
+        self.choicesView.itemCollapsed.connect(self.on_itemFoldChanged)
+        self.choicesView.itemExpanded.connect(self.on_itemFoldChanged)
+
     def connect_checked(self):
         self.choicesView.itemChanged.connect(self.on_testChecked)
+
+    def on_selectDeselectAll(self):
+        state = self.checkSelect.checkState()
+        self.choicesView.blockSignals(True)
+        try:
+            if state == Qt.Checked:
+                self.updateTreeCheckState(self.root, True)
+            elif state == Qt.Unchecked:
+                self.updateTreeCheckState(self.root, False)
+        finally:
+            self.choicesView.blockSignals(False)
+
+    def on_checkFoldChanged(self):
+        if self.checkFold.checkState() != Qt.Unchecked:
+            self.foldAll(True)
+            self._set_silent(self.checkFold, Qt.Checked)
+        else:
+            self.foldAll(False)
+
+    def on_itemFoldChanged(self):
+        self._set_silent(self.checkFold, Qt.PartiallyChecked)
+
+    @staticmethod
+    def _set_silent(box, state):
+        box.blockSignals(True)
+        box.setCheckState(state)
+        box.blockSignals(False)
 
     def apply_default_icon(self, path):
         if (path is not None) and os.path.exists(path):
@@ -117,10 +161,20 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
                 self.__foldRecursively(tree_item.child(i), is_fold)
 
     def foldAll(self, is_fold):
-        self.__foldRecursively(self.root, is_fold)
+        # Blocked: a bulk fold must not flip checkFold to PartiallyChecked.
+        self.choicesView.blockSignals(True)
+        try:
+            self.__foldRecursively(self.root, is_fold)
+        finally:
+            self.choicesView.blockSignals(False)
 
     def on_testChecked(self, item, index):
-        self.updateTreeCheckState(item, Qt.Checked == item.checkState(0))
+        self.choicesView.blockSignals(True)
+        try:
+            self.updateTreeCheckState(item, Qt.Checked == item.checkState(0))
+        finally:
+            self.choicesView.blockSignals(False)
+        self._set_silent(self.checkSelect, Qt.PartiallyChecked)
 
     def updateTreeCheckState(self, tree_item, is_checked):
         # treat the case of the invisible root

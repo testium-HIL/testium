@@ -11,6 +11,7 @@ version 0.4.4
 - An unchecked or jumped-over top-level item no longer fails the run.
 - F1 expression tester and breakpoint conditions: the ``<| ... |>``
   markers are implicit.
+- Choices dialog: select/deselect-all and fold/unfold controls.
 
 version 0.4.3
 ==============
