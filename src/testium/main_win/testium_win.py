@@ -63,7 +63,9 @@ from interpreter.utils.test_init import (
 )
 from interpreter.utils.version import get_testium_version
 from runtime.tum_except import ETUMRuntimeError
-from main_win.test_runner import TestRunner, TestState
+from gui.run_presenter import RunPresenter, TestState
+from gui.protocols import RunUiState
+from main_win.qt_scheduler import QtScheduler
 from main_win.test_file_manager import TestFileManager
 
 
@@ -107,22 +109,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.test_service = None
         self.threadTestStatus = None
         self._signals_connected = False
-        self.run_exit_code = -1  # -1 = test not yet completed
 
-        self.timer = QTimer()
-        self.timer.setSingleShot(False)
-        self.timer.stop()
-        self.timer.setInterval(100)
-
-        self.timerBlink = QTimer()
-        self.timerBlink.setSingleShot(False)
-        self.timerBlink.stop()
-        self.timerBlink.setInterval(1000)
-        self.timerPause = QTimer()
-        self.timerPause.setSingleShot(False)
-        self.timerPause.stop()
-        self.timerPause.setInterval(500)
-        self.timerPause.state = False
         self.iconBlinkGreen = QIcon()
         self.iconBlinkGreen.addPixmap(QPixmap(icon_prefix() + "/green.png"))
         self.iconBlinkRed = QIcon()
@@ -133,8 +120,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threads_queue = Queue()
         self.status_queue = Queue()
 
-        # Managers
-        self.runner = TestRunner(self)
+        # Presenters / managers
+        self.scheduler = QtScheduler(self)
+        self.runner = RunPresenter(self, self.scheduler,
+                                   lambda: self.test_service,
+                                   self.threads_queue)
+        self.runner.runandclose = runandclose
         self.file_manager = TestFileManager(self)
 
         self.runner.set_blink_green()
@@ -227,10 +218,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttLogFileSaved.toggled.connect(self.buttLogFilePath.setEnabled)
         self.editLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
         self.buttLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
-        self.timer.timeout.connect(self.runner.on_timer_event)
-        self.timerBlink.timeout.connect(self.runner.on_timer_blink)
-        self.timerBlink.timeout.connect(self.runner.on_timer_count)
-        self.timerPause.timeout.connect(self.runner.on_timer_pause)
         self.treeTests.itemSelectionChanged.connect(self.on_testSelectionChanged)
         if prefs.settings.dbl_click_enabled:
             self.treeTests.setExpandsOnDoubleClick(False)
@@ -469,6 +456,97 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                          [int(self.height() * 0.55),
                           int(self.height() * 0.35)], Qt.Vertical)
         self.stepBar.setVisible(True)
+
+    @property
+    def run_exit_code(self):
+        return self.runner.run_exit_code
+
+    # --- RunView implementation (driven by gui/run_presenter.py) ----------
+
+    def apply_run_ui(self, state: RunUiState):
+        running = state.running
+        self.actionOpenTest.setEnabled(not running)
+        self.actionExit.setEnabled(not running)
+        self.actionPreferences.setEnabled(not running)
+        self.actionRefresh_test.setEnabled(not running)
+        self.actionSave_report.setEnabled(not running)
+        # Show Results stays available during the run (log grows live).
+        self.actionShow_Results.setEnabled(True)
+        self.logSettingsBox.setEnabled(not running)
+        self.actionStop_test.setEnabled(running)
+        for action in (self.actionStep_over, self.actionStep_into,
+                       self.actionStep_out, self.actionRerun_step):
+            action.setEnabled(state.steps_enabled)
+        if not running:
+            self.actionStep_into.setEnabled(self.actionStart_test.isEnabled())
+            if prefs.settings.show_checkboxes:
+                self.checkSelect.setEnabled(True)
+            self.checkFold.setEnabled(True)
+        else:
+            self.checkSelect.setDisabled(True)
+            self.checkFold.setDisabled(True)
+
+    def set_start_action(self, text, icon):
+        if text is not None:
+            self.actionStart_test.setText(text)
+        ic = QIcon()
+        ic.addPixmap(QPixmap(icon_prefix() + f"/{icon}.png"))
+        self.actionStart_test.setIcon(ic)
+
+    def set_status_light(self, color):
+        self.buttBlink.setIcon({"green": self.iconBlinkGreen,
+                                "red": self.iconBlinkRed,
+                                "gray": self.iconBlinkGray}[color])
+
+    def set_elapsed(self, text):
+        self.label_runtime.setText(text)
+
+    def append_log(self, text):
+        self.textLog.appendPlainText(text)
+
+    def clear_log(self):
+        self.textLog.clear()
+
+    def show_transient_message(self, text):
+        self.statusBar().showMessage(text, 10000)
+
+    def can_start(self):
+        return self.actionStart_test.isEnabled()
+
+    def test_file(self):
+        return self.testFile
+
+    def log_config(self):
+        return (self.editLogFilePath.text(),
+                self.buttLogFileSaved.isChecked())
+
+    def set_log_file_name(self, path):
+        self.logFileName = path
+
+    def report_config(self):
+        return (self.reportFileName, self.report_type, self.report_pattern)
+
+    def attach_log_sink(self, handle):
+        self.out_log.set(handle)
+
+    def detach_log_sink(self):
+        self.out_log.reset()
+
+    def read_captured(self):
+        return self.stream.read()
+
+    def reset_run_marks(self):
+        self.treeTests.clearGlobalSuccess()
+        self.treeTests.clearAllStatus()
+
+    def clear_current_marks(self):
+        self.treeTests.clearHighlights()
+
+    def run_succeeded(self):
+        return self.treeTests.getGlobalSuccess()
+
+    def close_window(self):
+        self.on_actionExit_triggered()
 
     def _update_step_bar_style(self):
         """Top area: main-toolbar look (large icons + text). Left/right/

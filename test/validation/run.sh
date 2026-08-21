@@ -284,6 +284,16 @@ if [ "$MODE" = "source" ]; then
     "$PUR_PY" "$SCRIPT_DIR/gui_purity_check.py"
 fi
 
+# ---------- GUI presenter check (source only) ---------------------------------
+# The run presenter drives fake views/schedulers/services: state machine,
+# log rotation, exit code — without any toolkit import.
+if [ "$MODE" = "source" ]; then
+    echo "-- GUI presenter check ($MODE)"
+    PRE_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$PRE_PY" ] || PRE_PY="$VENV_PYTHON"
+    "$PRE_PY" "$SCRIPT_DIR/gui_presenter_check.py"
+fi
+
 # ---------- settings check (source only) --------------------------------------
 # Settings written by two concurrent instances are merged per key; a corrupt
 # file falls back to defaults. Imports the settings module directly, so
