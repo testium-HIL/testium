@@ -1,6 +1,10 @@
 version 0.5.0
 ==============
-- GUI overhaul (in progress on this branch).
+- New View menu: show or hide each panel, reset the layout.
+- Panels can be closed from their title bar.
+- The log panel header is a single compact row.
+- Window layout and geometry are saved even when quitting during a run.
+- The saved window layout is reset once (new layout scheme).
 
 version 0.4.4
 ==============

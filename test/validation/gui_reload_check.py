@@ -49,15 +49,27 @@ def _fds():
 def main():
     try:
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtCore import QCoreApplication
+        from PySide6.QtCore import QCoreApplication, qInstallMessageHandler
         from main_win.testium_win import MainWindow
     except Exception as e:
         skip(f"GUI stack unavailable ({e})")
+
+    # A widget rename in the .ui silently drops its auto-connected slot;
+    # Qt only warns on stderr. Collect and fail on those warnings.
+    qt_warnings = []
+
+    def _qt_msg(_mode, _ctx, message):
+        if "connectSlotsByName" in message:
+            qt_warnings.append(message)
+
+    qInstallMessageHandler(_qt_msg)
 
     test_file = os.path.join(HERE, "gui_reload", "test.tum")
     app = QApplication([])
     win = MainWindow(test_file=test_file, config_files=[])
     QCoreApplication.processEvents()
+    if qt_warnings:
+        fail("connectSlotsByName warnings: " + "; ".join(qt_warnings))
     if win.testFile is None:
         fail("sample test did not load")
 

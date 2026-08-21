@@ -68,6 +68,9 @@ from main_win.test_file_manager import TestFileManager
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     MaxRecentFiles = 10
+    # Window-state schema: bumped when docks/toolbars change shape, so
+    # pre-0.5 blobs are rejected and the default layout applies.
+    STATE_VERSION = 1
 
     def __init__(
         self,
@@ -166,12 +169,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         state_settings = prefs.settings.value(
             prefs.SettingsItem("state", bytearray), bytearray()
         )
-        if state_settings:
-            self.restoreState(state_settings)
-        # Force-show: settings saved by previous versions hold the bar in
-        # its old hidden-at-idle state.
+        restored = bool(state_settings) and self.restoreState(
+            bytes(state_settings), self.STATE_VERSION)
+        if not restored:
+            # Pre-0.5 state blob (or none): default layout, honoring the
+            # retired pane-hiding preferences once.
+            self._apply_default_layout()
+            if prefs.settings.hide_doc_pane:
+                self.DocDockWidget.hide()
+            if prefs.settings.hide_log_pane:
+                self.logDockWidget.hide()
         self.stepBar.setVisible(True)
         self._update_step_bar_style()
+        self._build_view_menu()
 
         self.actionStart_test.setDisabled(True)
         self.actionShow_Results.setDisabled(True)
@@ -208,7 +218,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttGoBottom.clicked.connect(self.on_buttGoBottom_clicked)
         self.editLogFilePath.editingFinished.connect(self.on_configLog_changed)
         self.buttLogFileSaved.toggled.connect(self.on_configLogSaved_changed)
-        self.buttLogFileNone.toggled.connect(self.on_configLogNone_changed)
+        self.buttLogFileSaved.toggled.connect(self.editLogFilePath.setEnabled)
+        self.buttLogFileSaved.toggled.connect(self.buttLogFilePath.setEnabled)
+        self.editLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
+        self.buttLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
         self.timer.timeout.connect(self.runner.on_timer_event)
         self.timerBlink.timeout.connect(self.runner.on_timer_blink)
         self.timerBlink.timeout.connect(self.runner.on_timer_count)
@@ -259,8 +272,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.threadTestStatus = ThreadTestStatus(self.status_queue, debug=self.debug)
         self.threadTestStatus.start()
-
-        self.update_from_prefs()
 
         self.reportFileName = locate_report_file(self.reportFileName)
 
@@ -424,6 +435,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stepBar.topLevelChanged.connect(
             lambda _: self._update_step_bar_style())
         self._update_step_bar_style()
+
+    def _build_view_menu(self):
+        self.menuView.addAction(self.logDockWidget.toggleViewAction())
+        self.menuView.addAction(self.DocDockWidget.toggleViewAction())
+        self.menuView.addAction(self.stepBar.toggleViewAction())
+        self.menuView.addSeparator()
+        reset = self.menuView.addAction("Reset layout")
+        reset.triggered.connect(self._apply_default_layout)
+
+    def _apply_default_layout(self):
+        """Default arrangement: log right (~38% width), doc bottom."""
+        for dock in (self.logDockWidget, self.DocDockWidget):
+            dock.setFloating(False)
+            dock.show()
+        self.addDockWidget(Qt.RightDockWidgetArea, self.logDockWidget)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.DocDockWidget)
+        self.resizeDocks([self.logDockWidget],
+                         [int(self.width() * 0.38)], Qt.Horizontal)
+        self.stepBar.setVisible(True)
 
     def _update_step_bar_style(self):
         """Top area: main-toolbar look (large icons + text). Left/right/
@@ -594,7 +624,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             prefs.SettingsItem("geometry", bytearray), bytearray(self.saveGeometry())
         )
         prefs.settings.set_value(
-            prefs.SettingsItem("state", bytearray), bytearray(self.saveState())
+            prefs.SettingsItem("state", bytearray),
+            bytearray(self.saveState(self.STATE_VERSION))
         )
         if self.testFile:
             self.stash_file_state(self.testFile)
@@ -611,8 +642,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
         self._exited = True
         try:
-            if self.runner.state == TestState.IDLE:
-                self.save_settings()
+            self.save_settings()
             self.file_manager.clear_process()
         finally:
             self.threadTestStatus.stop()
@@ -638,22 +668,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.treeTests.removeCheckBoxes()
                 self.reconnect_signals()
             self.checkSelect.setDisabled(True)
-
-    def update_from_prefs(self):
-        self.hide_doc_pane()
-        self.hide_log_pane()
-
-    def hide_doc_pane(self):
-        if prefs.settings.hide_doc_pane:
-            self.DocDockWidget.hide()
-        else:
-            self.DocDockWidget.show()
-
-    def hide_log_pane(self):
-        if prefs.settings.hide_log_pane:
-            self.logDockWidget.hide()
-        else:
-            self.logDockWidget.show()
 
     def update_f1_window(self, tree_item):
         self.d_f1_win.ui.typeLineEdit.setText(tree_item.test_type)
@@ -718,7 +732,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionPreferences_triggered(self):
         result = self.pref_win.exec()
         if result == QDialog.Accepted:
-            self.update_from_prefs()
             if self.pref_win.isChanged(prefs.settings.SettingsShowCheckboxes):
                 self.show_checkboxes()
             if self.pref_win.isChanged(prefs.settings.SettingsDblClickEnabled):
@@ -1001,9 +1014,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_configLogSaved_changed(self):
         prefs.settings.log_file_saved = self.buttLogFileSaved.isChecked()
-
-    def on_configLogNone_changed(self):
-        prefs.settings.log_file_saved = not self.buttLogFileNone.isChecked()
 
     def on_logToBeAppended(self, m):
         self.textLog.moveCursor(QtGui.QTextCursor.End)

@@ -55,8 +55,6 @@ class PrefWindow(QDialog):
 
         s = prefs.settings
         self.fields = [
-            Field(s.SettingsHideDocPane,     "bool",  self.ui.checkDocPane),
-            Field(s.SettingsHideLogPane,     "bool",  self.ui.checkLogPane),
             Field(s.SettingsShowCheckboxes,  "bool",  self.ui.checkBoxTest),
             Field(s.SettingsShowTimeColumn,  "bool",  self.ui.checkShowTime),
             Field(s.SettingsLogPath,         "text",  self.ui.editDefaultLogPath),

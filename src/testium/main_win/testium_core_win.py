@@ -19,9 +19,8 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
 from PySide6.QtWidgets import (QApplication, QCheckBox, QDockWidget, QFrame,
     QHBoxLayout, QLabel, QLayout, QLineEdit,
     QMainWindow, QMenu, QMenuBar, QPushButton,
-    QRadioButton, QSizePolicy, QSpacerItem, QStatusBar,
-    QTextEdit, QToolBar, QToolButton, QVBoxLayout,
-    QWidget)
+    QSizePolicy, QStatusBar, QTextEdit, QToolBar,
+    QToolButton, QVBoxLayout, QWidget)
 import testium_core_win_rc
 
 class Ui_MainWindow(object):
@@ -29,10 +28,6 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1081, 730)
-        font = QFont()
-        font.setFamilies([u"Sans"])
-        font.setPointSize(10)
-        MainWindow.setFont(font)
         icon = QIcon()
         icon.addFile(u":/black/testium_logo.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -142,7 +137,6 @@ class Ui_MainWindow(object):
         self.controlRow.setObjectName(u"controlRow")
         sizePolicy1.setHeightForWidth(self.controlRow.sizePolicy().hasHeightForWidth())
         self.controlRow.setSizePolicy(sizePolicy1)
-        self.controlRow.setMinimumSize(QSize(315, 0))
         self.horizontalLayout_2 = QHBoxLayout(self.controlRow)
         self.horizontalLayout_2.setSpacing(0)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -171,7 +165,6 @@ class Ui_MainWindow(object):
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.checkSelect.sizePolicy().hasHeightForWidth())
         self.checkSelect.setSizePolicy(sizePolicy3)
-        self.checkSelect.setMinimumSize(QSize(125, 0))
         self.checkSelect.setChecked(True)
         self.checkSelect.setTristate(False)
 
@@ -235,108 +228,75 @@ class Ui_MainWindow(object):
         self.menuFile.setObjectName(u"menuFile")
         self.menuTest = QMenu(self.menuBar)
         self.menuTest.setObjectName(u"menuTest")
+        self.menuView = QMenu(self.menuBar)
+        self.menuView.setObjectName(u"menuView")
         self.menuA_propos = QMenu(self.menuBar)
         self.menuA_propos.setObjectName(u"menuA_propos")
         MainWindow.setMenuBar(self.menuBar)
         self.logDockWidget = QDockWidget(MainWindow)
         self.logDockWidget.setObjectName(u"logDockWidget")
-        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
-        sizePolicy5.setHorizontalStretch(0)
-        sizePolicy5.setVerticalStretch(0)
-        sizePolicy5.setHeightForWidth(self.logDockWidget.sizePolicy().hasHeightForWidth())
-        self.logDockWidget.setSizePolicy(sizePolicy5)
-        font1 = QFont()
-        font1.setFamilies([u"Sans"])
-        font1.setPointSize(9)
-        font1.setStyleStrategy(QFont.PreferAntialias)
-        self.logDockWidget.setFont(font1)
-        self.logDockWidget.setFeatures(QDockWidget.DockWidgetFloatable|QDockWidget.DockWidgetMovable)
+        self.logDockWidget.setFeatures(QDockWidget.DockWidgetClosable|QDockWidget.DockWidgetFloatable|QDockWidget.DockWidgetMovable)
         self.logDockWidget.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.dockWidgetContents = QWidget()
         self.dockWidgetContents.setObjectName(u"dockWidgetContents")
-        font2 = QFont()
-        font2.setFamilies([u"Sans"])
-        font2.setPointSize(10)
-        font2.setStyleStrategy(QFont.PreferDefault)
-        self.dockWidgetContents.setFont(font2)
         self.horizontalLayout_7 = QHBoxLayout(self.dockWidgetContents)
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
         self.logFrame = QFrame(self.dockWidgetContents)
         self.logFrame.setObjectName(u"logFrame")
-        sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        sizePolicy6.setHorizontalStretch(0)
-        sizePolicy6.setVerticalStretch(0)
-        sizePolicy6.setHeightForWidth(self.logFrame.sizePolicy().hasHeightForWidth())
-        self.logFrame.setSizePolicy(sizePolicy6)
+        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        sizePolicy5.setHorizontalStretch(0)
+        sizePolicy5.setVerticalStretch(0)
+        sizePolicy5.setHeightForWidth(self.logFrame.sizePolicy().hasHeightForWidth())
+        self.logFrame.setSizePolicy(sizePolicy5)
         self.verticalLayout_3 = QVBoxLayout(self.logFrame)
         self.verticalLayout_3.setSpacing(2)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.verticalLayout_3.setContentsMargins(4, 4, 4, 4)
+        self.logHeaderRow = QHBoxLayout()
+        self.logHeaderRow.setSpacing(4)
+        self.logHeaderRow.setObjectName(u"logHeaderRow")
         self.logSettingsBox = QFrame(self.logFrame)
         self.logSettingsBox.setObjectName(u"logSettingsBox")
         self.horizontalLayout_5 = QHBoxLayout(self.logSettingsBox)
-        self.horizontalLayout_5.setSpacing(5)
+        self.horizontalLayout_5.setSpacing(4)
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
-        self.horizontalLayout_5.setContentsMargins(5, 5, 5, 5)
-        self.widget_6 = QWidget(self.logSettingsBox)
-        self.widget_6.setObjectName(u"widget_6")
-        self.verticalLayout_9 = QVBoxLayout(self.widget_6)
-        self.verticalLayout_9.setSpacing(0)
-        self.verticalLayout_9.setObjectName(u"verticalLayout_9")
-        self.verticalLayout_9.setContentsMargins(0, 0, 0, 0)
-        self.buttLogFileNone = QRadioButton(self.widget_6)
-        self.buttLogFileNone.setObjectName(u"buttLogFileNone")
-        self.buttLogFileNone.setChecked(True)
-
-        self.verticalLayout_9.addWidget(self.buttLogFileNone)
-
-        self.buttLogFileSaved = QRadioButton(self.widget_6)
+        self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.buttLogFileSaved = QCheckBox(self.logSettingsBox)
         self.buttLogFileSaved.setObjectName(u"buttLogFileSaved")
 
-        self.verticalLayout_9.addWidget(self.buttLogFileSaved)
+        self.horizontalLayout_5.addWidget(self.buttLogFileSaved)
 
-
-        self.horizontalLayout_5.addWidget(self.widget_6)
-
-        self.horizontalSpacer_3 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_5.addItem(self.horizontalSpacer_3)
-
-        self.widget_5 = QWidget(self.logSettingsBox)
-        self.widget_5.setObjectName(u"widget_5")
-        self.verticalLayout_8 = QVBoxLayout(self.widget_5)
-        self.verticalLayout_8.setSpacing(0)
-        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
-        self.verticalLayout_8.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(self.widget_5)
-        self.label.setObjectName(u"label")
-
-        self.verticalLayout_8.addWidget(self.label)
-
-        self.editLogFilePath = QLineEdit(self.widget_5)
+        self.editLogFilePath = QLineEdit(self.logSettingsBox)
         self.editLogFilePath.setObjectName(u"editLogFilePath")
 
-        self.verticalLayout_8.addWidget(self.editLogFilePath)
-
-
-        self.horizontalLayout_5.addWidget(self.widget_5)
+        self.horizontalLayout_5.addWidget(self.editLogFilePath)
 
         self.buttLogFilePath = QToolButton(self.logSettingsBox)
         self.buttLogFilePath.setObjectName(u"buttLogFilePath")
-        sizePolicy7 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-        sizePolicy7.setHorizontalStretch(0)
-        sizePolicy7.setVerticalStretch(0)
-        sizePolicy7.setHeightForWidth(self.buttLogFilePath.sizePolicy().hasHeightForWidth())
-        self.buttLogFilePath.setSizePolicy(sizePolicy7)
 
         self.horizontalLayout_5.addWidget(self.buttLogFilePath)
 
-        self.horizontalSpacer_4 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_5.addItem(self.horizontalSpacer_4)
+        self.logHeaderRow.addWidget(self.logSettingsBox)
+
+        self.buttClearLog = QToolButton(self.logFrame)
+        self.buttClearLog.setObjectName(u"buttClearLog")
+        icon17 = QIcon()
+        icon17.addFile(u":/black/edit-clear.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.buttClearLog.setIcon(icon17)
+
+        self.logHeaderRow.addWidget(self.buttClearLog)
+
+        self.buttGoBottom = QToolButton(self.logFrame)
+        self.buttGoBottom.setObjectName(u"buttGoBottom")
+        icon18 = QIcon()
+        icon18.addFile(u":/black/go-bottom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.buttGoBottom.setIcon(icon18)
+
+        self.logHeaderRow.addWidget(self.buttGoBottom)
 
 
-        self.verticalLayout_3.addWidget(self.logSettingsBox)
+        self.verticalLayout_3.addLayout(self.logHeaderRow)
 
         self.logViewFrame = QFrame(self.logFrame)
         self.logViewFrame.setObjectName(u"logViewFrame")
@@ -344,67 +304,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setSpacing(1)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout_2.setContentsMargins(1, 1, 1, 1)
-        self.widget_2 = QWidget(self.logViewFrame)
-        self.widget_2.setObjectName(u"widget_2")
-        self.horizontalLayout_4 = QHBoxLayout(self.widget_2)
-        self.horizontalLayout_4.setSpacing(0)
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
-        self.widget_3 = QWidget(self.widget_2)
-        self.widget_3.setObjectName(u"widget_3")
-        self.verticalLayout_7 = QVBoxLayout(self.widget_3)
-        self.verticalLayout_7.setSpacing(0)
-        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
-
-        self.horizontalLayout_4.addWidget(self.widget_3)
-
-        self.label_2 = QLabel(self.widget_2)
-        self.label_2.setObjectName(u"label_2")
-        font3 = QFont()
-        font3.setFamilies([u"Sans"])
-        font3.setPointSize(10)
-        font3.setBold(True)
-        font3.setStyleStrategy(QFont.PreferAntialias)
-        self.label_2.setFont(font3)
-
-        self.horizontalLayout_4.addWidget(self.label_2)
-
-        self.widget_7 = QWidget(self.widget_2)
-        self.widget_7.setObjectName(u"widget_7")
-        self.horizontalLayout_6 = QHBoxLayout(self.widget_7)
-        self.horizontalLayout_6.setSpacing(5)
-        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
-        self.horizontalLayout_6.setContentsMargins(0, 0, 0, 0)
-
-        self.horizontalLayout_4.addWidget(self.widget_7)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 10, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_4.addItem(self.horizontalSpacer_2)
-
-        self.buttClearLog = QToolButton(self.widget_2)
-        self.buttClearLog.setObjectName(u"buttClearLog")
-        icon17 = QIcon()
-        icon17.addFile(u":/black/edit-clear.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.buttClearLog.setIcon(icon17)
-
-        self.horizontalLayout_4.addWidget(self.buttClearLog)
-
-        self.buttGoBottom = QToolButton(self.widget_2)
-        self.buttGoBottom.setObjectName(u"buttGoBottom")
-        icon18 = QIcon()
-        icon18.addFile(u":/black/go-bottom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.buttGoBottom.setIcon(icon18)
-        self.buttGoBottom.setCheckable(False)
-        self.buttGoBottom.setChecked(False)
-        self.buttGoBottom.setToolButtonStyle(Qt.ToolButtonIconOnly)
-
-        self.horizontalLayout_4.addWidget(self.buttGoBottom)
-
-
-        self.verticalLayout_2.addWidget(self.widget_2)
-
 
         self.verticalLayout_3.addWidget(self.logViewFrame)
 
@@ -417,17 +316,13 @@ class Ui_MainWindow(object):
         self.DocDockWidget.setObjectName(u"DocDockWidget")
         self.DocDockWidget.setEnabled(True)
         self.DocDockWidget.setFloating(False)
-        self.DocDockWidget.setFeatures(QDockWidget.DockWidgetFloatable|QDockWidget.DockWidgetMovable)
+        self.DocDockWidget.setFeatures(QDockWidget.DockWidgetClosable|QDockWidget.DockWidgetFloatable|QDockWidget.DockWidgetMovable)
         self.dockWidgetContents_2 = QWidget()
         self.dockWidgetContents_2.setObjectName(u"dockWidgetContents_2")
         self.horizontalLayout_10 = QHBoxLayout(self.dockWidgetContents_2)
         self.horizontalLayout_10.setObjectName(u"horizontalLayout_10")
         self.textEditTestDoc = QTextEdit(self.dockWidgetContents_2)
         self.textEditTestDoc.setObjectName(u"textEditTestDoc")
-        font4 = QFont()
-        font4.setFamilies([u"Arial"])
-        font4.setPointSize(11)
-        self.textEditTestDoc.setFont(font4)
         self.textEditTestDoc.setUndoRedoEnabled(False)
         self.textEditTestDoc.setReadOnly(True)
 
@@ -447,6 +342,7 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionExit)
         self.menuBar.addAction(self.menuFile.menuAction())
         self.menuBar.addAction(self.menuTest.menuAction())
+        self.menuBar.addAction(self.menuView.menuAction())
         self.menuBar.addAction(self.menuA_propos.menuAction())
         self.menuFile.addAction(self.actionOpenTest)
         self.menuFile.addAction(self.actionRefresh_test)
@@ -556,19 +452,21 @@ class Ui_MainWindow(object):
         self.toolBar.setWindowTitle(QCoreApplication.translate("MainWindow", u"toolBar", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"&File", None))
         self.menuTest.setTitle(QCoreApplication.translate("MainWindow", u"&Test", None))
+        self.menuView.setTitle(QCoreApplication.translate("MainWindow", u"&View", None))
         self.menuA_propos.setTitle(QCoreApplication.translate("MainWindow", u"&Help", None))
         self.logDockWidget.setWindowTitle(QCoreApplication.translate("MainWindow", u"Log", None))
-        self.buttLogFileNone.setText(QCoreApplication.translate("MainWindow", u"None", None))
         self.buttLogFileSaved.setText(QCoreApplication.translate("MainWindow", u"To file", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Log file path", None))
+#if QT_CONFIG(tooltip)
+        self.buttLogFileSaved.setToolTip(QCoreApplication.translate("MainWindow", u"Write the run log to the file beside", None))
+#endif // QT_CONFIG(tooltip)
+        self.editLogFilePath.setPlaceholderText(QCoreApplication.translate("MainWindow", u"log file path", None))
         self.buttLogFilePath.setText(QCoreApplication.translate("MainWindow", u"...", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"Log View", None))
 #if QT_CONFIG(tooltip)
         self.buttClearLog.setToolTip(QCoreApplication.translate("MainWindow", u"Clear the log view", None))
 #endif // QT_CONFIG(tooltip)
         self.buttClearLog.setText(QCoreApplication.translate("MainWindow", u"...", None))
 #if QT_CONFIG(tooltip)
-        self.buttGoBottom.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Uncheck this button to browse back the log</p></body></html>", None))
+        self.buttGoBottom.setToolTip(QCoreApplication.translate("MainWindow", u"Go to the bottom of the log", None))
 #endif // QT_CONFIG(tooltip)
         self.buttGoBottom.setText(QCoreApplication.translate("MainWindow", u"...", None))
         self.DocDockWidget.setWindowTitle(QCoreApplication.translate("MainWindow", u"Test doc", None))

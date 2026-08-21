@@ -56,35 +56,6 @@ class Ui_preferenceWindow(object):
         self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 557, 210))
         self.formLayout = QFormLayout(self.scrollAreaWidgetContents)
         self.formLayout.setObjectName(u"formLayout")
-        self.label_4 = QLabel(self.scrollAreaWidgetContents)
-        self.label_4.setObjectName(u"label_4")
-
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_4)
-
-        self.checkDocPane = QCheckBox(self.scrollAreaWidgetContents)
-        self.checkDocPane.setObjectName(u"checkDocPane")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.MinimumExpanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkDocPane.sizePolicy().hasHeightForWidth())
-        self.checkDocPane.setSizePolicy(sizePolicy)
-        self.checkDocPane.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.checkDocPane)
-
-        self.label_5 = QLabel(self.scrollAreaWidgetContents)
-        self.label_5.setObjectName(u"label_5")
-
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_5)
-
-        self.checkLogPane = QCheckBox(self.scrollAreaWidgetContents)
-        self.checkLogPane.setObjectName(u"checkLogPane")
-        sizePolicy.setHeightForWidth(self.checkLogPane.sizePolicy().hasHeightForWidth())
-        self.checkLogPane.setSizePolicy(sizePolicy)
-        self.checkLogPane.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.checkLogPane)
-
         self.label_3 = QLabel(self.scrollAreaWidgetContents)
         self.label_3.setObjectName(u"label_3")
 
@@ -92,6 +63,9 @@ class Ui_preferenceWindow(object):
 
         self.checkBoxTest = QCheckBox(self.scrollAreaWidgetContents)
         self.checkBoxTest.setObjectName(u"checkBoxTest")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.checkBoxTest.sizePolicy().hasHeightForWidth())
         self.checkBoxTest.setSizePolicy(sizePolicy)
         self.checkBoxTest.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -358,10 +332,6 @@ class Ui_preferenceWindow(object):
 
     def retranslateUi(self, preferenceWindow):
         preferenceWindow.setWindowTitle(QCoreApplication.translate("preferenceWindow", u"preferenceWindow", None))
-        self.label_4.setText(QCoreApplication.translate("preferenceWindow", u"Hide documentation pane", None))
-        self.checkDocPane.setText("")
-        self.label_5.setText(QCoreApplication.translate("preferenceWindow", u"Hide log pane", None))
-        self.checkLogPane.setText("")
         self.label_3.setText(QCoreApplication.translate("preferenceWindow", u"Tests selection available", None))
         self.checkBoxTest.setText("")
         self.label_6.setText(QCoreApplication.translate("preferenceWindow", u"Show step time column (requires restart)", None))
