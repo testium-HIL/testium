@@ -230,6 +230,60 @@ def main():
         fail(f"recent LRU: {fv1.recent} / {fv2.recent}, "
              f"expected {expected}")
 
+    # Variables presenter: rows, filter, edition parsing, expr errors.
+    from gui.variables_presenter import VariablesPresenter, parse_value
+
+    class FakeVarsView:
+        def __init__(self):
+            self.rows = []      # list of (key, display) in row order
+            self.hidden = {}
+            self.expr = None
+
+        def set_enabled(self, enabled):
+            pass
+
+        def clear_rows(self):
+            self.rows.clear()
+
+        def insert_row(self, row):
+            self.rows.insert(row, None)
+
+        def remove_row(self, row):
+            del self.rows[row]
+
+        def set_row(self, row, key, display, tooltip, value, editable):
+            self.rows[row] = (key, display)
+
+        def set_row_hidden(self, row, hidden):
+            self.hidden[row] = hidden
+
+        def row_display(self, row):
+            return self.rows[row][1]
+
+        def show_expr_result(self, text, is_error):
+            self.expr = (text, is_error)
+
+    vview = FakeVarsView()
+    vsvc = FakeService()
+    vp = VariablesPresenter(vview, lambda: vsvc)
+    vp.var_updated("a", 1)
+    vp.var_updated("b", {"x": 1})
+    vp.var_updated("a", 2)
+    if [r[0] for r in vview.rows] != ["a", "b"] or vview.rows[0][1] != "2":
+        fail(f"variables rows: {vview.rows}")
+    vp.var_deleted("a")
+    vp.var_updated("c", "text")
+    if [r[0] for r in vview.rows] != ["b", "c"]:
+        fail(f"variables rows after delete: {vview.rows}")
+    vp.set_filter("b")
+    if vview.hidden.get(1) is not True or vview.hidden.get(0) is not False:
+        fail(f"variables filter: {vview.hidden}")
+    vp.edit_value("c", "[1, 2]")
+    if ("set_gd_var", "c", [1, 2]) not in vsvc.calls:
+        fail(f"edit parse: {vsvc.calls[-1]}")
+    if parse_value("not a literal") != "not a literal":
+        fail("parse_value fallback")
+
     # PySide must never have been imported by this chain.
     if any(m.startswith("PySide") for m in sys.modules):
         fail("a PySide module was imported by the presenter chain")
