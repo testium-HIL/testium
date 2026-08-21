@@ -341,8 +341,16 @@ class QTestTree(QTreeWidget):
                 item.setHighlighted()
                 item.setTimestamp(status['timestamp'])
                 if self._follow:
+                    # Respect the user's folds: never expand — follow the
+                    # topmost collapsed ancestor instead.
+                    target = item
+                    parent = item.parent()
+                    while parent is not None:
+                        if not parent.isExpanded():
+                            target = parent
+                        parent = parent.parent()
                     self.scrollToItem(
-                        item, QTreeWidget.ScrollHint.PositionAtCenter)
+                        target, QTreeWidget.ScrollHint.PositionAtCenter)
             elif st != 'paused':
                 item.resetHighlighted()
 
