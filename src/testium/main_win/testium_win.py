@@ -154,11 +154,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if geo_settings:
             self.restoreGeometry(geo_settings)
 
-        # Side columns own their bottom corners: a dock dropped in the
-        # bottom area then sits under the tree, not across the window.
-        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
-        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
-
         # Built before restoreState so their positions are part of the
         # saved window state.
         self._build_step_bar()
@@ -180,6 +175,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.DocDockWidget.hide()
             if prefs.settings.hide_log_pane:
                 self.logDockWidget.hide()
+        # AFTER restoreState, which restores the corner ownership saved
+        # with the blob. Side columns own their bottom corners: a dock
+        # dropped in the bottom area sits under the tree, not across the
+        # window.
+        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.stepBar.setVisible(True)
         self._update_step_bar_style()
         self._build_view_menu()
