@@ -26,6 +26,43 @@ class RunUiState:
     steps_enabled: bool
 
 
+class FileView(Protocol):
+    """Interface surface driven by the file presenter."""
+
+    def begin_load(self) -> None:
+        """Show the load progress indicator."""
+
+    def set_load_phase(self, text: str) -> None: ...
+
+    def pump(self) -> None:
+        """Process pending interface events while waiting."""
+
+    def end_load(self) -> None: ...
+
+    def show_loaded_test(self, test_data, gd_vars, test_dir) -> None:
+        """Populate the tree and companion panes for a loaded test."""
+
+    def show_load_failure(self) -> None: ...
+
+    def set_window_file(self, path) -> None: ...
+
+    def update_recent_files(self, files) -> None: ...
+
+    def set_variables_service(self, service) -> None: ...
+
+    def snapshot_tree_states(self): ...
+
+    def restore_tree_states(self, states) -> None: ...
+
+    def stash_file_state(self, path) -> None: ...
+
+    def restore_file_state(self) -> None: ...
+
+    def begin_tree_swap(self) -> None: ...
+
+    def end_tree_swap(self) -> None: ...
+
+
 class RunView(Protocol):
     """Interface surface driven by the run presenter."""
 

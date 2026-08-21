@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QVBoxLayout,
     QDialogButtonBox,
+    QProgressDialog,
 )
 from main_win.expression_info import expression_info_button
 from main_win.drawn_icons import follow_icon, search_icon
@@ -67,7 +68,7 @@ from runtime.tum_except import ETUMRuntimeError
 from gui.run_presenter import RunPresenter, TestState
 from gui.protocols import RunUiState
 from main_win.qt_scheduler import QtScheduler
-from main_win.test_file_manager import TestFileManager
+from gui.file_presenter import FilePresenter
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -105,9 +106,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.config_files = config_files
         self.recentFileActs = []
         self.debug = debug
-        self.test_proc = None
-        self.ts_controller = None
-        self.test_service = None
         self.threadTestStatus = None
         self._signals_connected = False
 
@@ -127,7 +125,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                    lambda: self.test_service,
                                    self.threads_queue)
         self.runner.runandclose = runandclose
-        self.file_manager = TestFileManager(self)
+        self.file_manager = FilePresenter(
+            self, self.status_queue, config_files, defines,
+            max_recent=MainWindow.MaxRecentFiles)
 
         self.runner.set_blink_green()
 
@@ -272,7 +272,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Recent files menu
         for i in range(MainWindow.MaxRecentFiles):
             self.recentFileActs.append(
-                QAction(self, visible=False, triggered=self.file_manager.on_open_recent_file)
+                QAction(self, visible=False, triggered=self.on_open_recent_file)
             )
         self.separatorAct = self.menuFile.addSeparator()
         # Hover shows the full path (menus hide action tooltips by default).
@@ -296,7 +296,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.out_log = OutLog()
         self.out_log.logToBeAppended.connect(self.on_logToBeAppended)
         self.redirectStdToTextLog(self.out_log)
-        self.testFile = test_file
 
         self.threadTestStatus = ThreadTestStatus(self.status_queue, debug=self.debug)
         self.threadTestStatus.start()
@@ -498,6 +497,114 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @property
     def run_exit_code(self):
         return self.runner.run_exit_code
+
+    # --- Process triad and file state live on the file presenter ----------
+
+    @property
+    def test_proc(self):
+        return self.file_manager.test_proc
+
+    @property
+    def ts_controller(self):
+        return self.file_manager.ts_controller
+
+    @property
+    def test_service(self):
+        return self.file_manager.test_service
+
+    @property
+    def testFile(self):
+        return self.file_manager.test_file
+
+    @testFile.setter
+    def testFile(self, value):
+        self.file_manager.test_file = value
+
+    # --- FileView implementation (driven by gui/file_presenter.py) --------
+
+    def begin_load(self):
+        progress = QProgressDialog("Starting test process…", None, 0, 0, self)
+        progress.setWindowTitle("Loading")
+        progress.setWindowFlags(
+            Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setMinimumWidth(320)
+        progress._force_close = False
+        progress.closeEvent = (
+            lambda e: e.accept() if progress._force_close else e.ignore())
+        progress.show()
+        self._load_progress = progress
+
+    def set_load_phase(self, text):
+        self._load_progress.setLabelText(text)
+
+    def pump(self):
+        QApplication.processEvents()
+
+    def end_load(self):
+        self._load_progress._force_close = True
+        self._load_progress.close()
+        self._load_progress = None
+
+    def show_loaded_test(self, test_data, gd_vars, test_dir):
+        self.treeTests.clear()
+        self._reset_search()
+        QApplication.processEvents()
+        self.treeTests.loadTestRecursively(
+            self.treeTests.invisibleRootItem(), test_data)
+        self.treeTests.setFoldDefault()
+        self.treeTests.updateTreeSkipState(self.test_service)
+        self.variablesDock.load_initial_vars(gd_vars)
+        self.sync_debug_output_action(gd_vars)
+        self.checkSelect.setChecked(True)
+        self.statusBar().showMessage("Test file loaded", 10000)
+        self.textLog.set_test_dir(test_dir)
+        self.actionStart_test.setEnabled(True)
+        # Step into from idle starts the run paused on its first item.
+        self.actionStep_into.setEnabled(True)
+        self.actionRefresh_test.setEnabled(True)
+        self.show_checkboxes()
+
+    def show_load_failure(self):
+        self.statusBar().showMessage("No test file could be loaded", 10000)
+        self.treeTests.clear()
+        # Keep Refresh available to retry after fixing the file.
+        self.actionStart_test.setDisabled(True)
+        self.actionStep_into.setDisabled(True)
+        self.actionRefresh_test.setEnabled(True)
+
+    def set_window_file(self, path):
+        self.setWindowTitle(self.mainWindowTitle + " - " + path)
+
+    def update_recent_files(self, files):
+        numRecentFiles = min(len(files), MainWindow.MaxRecentFiles)
+        for i in range(numRecentFiles):
+            text = "&%d %s" % (i + 1, self._stripped_name(files[i]))
+            self.recentFileActs[i].setText(text)
+            self.recentFileActs[i].setToolTip(files[i])
+            self.recentFileActs[i].setData(files[i])
+            self.recentFileActs[i].setVisible(True)
+        for j in range(numRecentFiles, MainWindow.MaxRecentFiles):
+            self.recentFileActs[j].setVisible(False)
+        self.separatorAct.setVisible(numRecentFiles > 0)
+
+    def set_variables_service(self, service):
+        self.variablesDock.set_service(service)
+
+    def snapshot_tree_states(self):
+        return self.treeTests.getItemStates()
+
+    def restore_tree_states(self, states):
+        self.treeTests.restoreItemStates(
+            states, self.test_service,
+            apply_check=prefs.settings.show_checkboxes)
+
+    def begin_tree_swap(self):
+        self.disconnect_signals()
+
+    def end_tree_swap(self):
+        self.reconnect_signals()
 
     # --- RunView implementation (driven by gui/run_presenter.py) ----------
 
@@ -818,7 +925,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionOpenTest_triggered(self):
-        self.file_manager.on_open_test()
+        d = ""
+        if self.testFile is not None:
+            d = os.path.dirname(self.testFile)
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Open the test file", d,
+            "testium file (*.tum);;All Files (*)",
+            options=file_dialog.options())
+        if file_name:
+            self.file_manager.reload(file_name)
+
+    def on_open_recent_file(self):
+        action = self.sender()
+        if action:
+            self.file_manager.reload(action.data())
 
     @Slot()
     def on_actionStart_test_triggered(self):
@@ -964,7 +1084,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionRefresh_test_triggered(self):
-        target = self.testFile or getattr(self, "_attempted_file", None)
+        target = self.testFile or self.file_manager.attempted_file
         if target:
             self.file_manager.reload(target)
 

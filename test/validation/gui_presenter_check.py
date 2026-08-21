@@ -207,6 +207,29 @@ def main():
     if not view.closed:
         fail("runandclose did not close the window")
 
+    # File presenter: recent-files LRU and cross-presenter broadcast.
+    from gui.file_presenter import FilePresenter
+
+    class FakeFileView:
+        def __init__(self):
+            self.recent = None
+
+        def update_recent_files(self, files):
+            self.recent = list(files)
+
+        def set_variables_service(self, service):
+            pass
+
+    fv1, fv2 = FakeFileView(), FakeFileView()
+    fp1 = FilePresenter(fv1, None, [], {}, max_recent=3)
+    fp2 = FilePresenter(fv2, None, [], {}, max_recent=3)
+    for name in ("/a.tum", "/b.tum", "/c.tum", "/d.tum", "/b.tum"):
+        fp1.add_file_to_recent(name)
+    expected = ["/b.tum", "/d.tum", "/c.tum"]
+    if fv1.recent != expected or fv2.recent != expected:
+        fail(f"recent LRU: {fv1.recent} / {fv2.recent}, "
+             f"expected {expected}")
+
     # PySide must never have been imported by this chain.
     if any(m.startswith("PySide") for m in sys.modules):
         fail("a PySide module was imported by the presenter chain")
