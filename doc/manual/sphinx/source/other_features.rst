@@ -109,3 +109,17 @@ Several testium instances can run at the same time on the same machine.
   use distinct values.
 * If the ``py_func`` debug port is busy, the next free one is used and
   announced in the test log.
+
+Window layout
+-------------
+
+The Log, Test doc, Test item and Variables panels are dockable: drag a
+panel by its title bar to any side, below the tree, below the log, or
+drop it on another panel to tab them. Panels close from their title bar;
+the View menu lists them and can reset the layout. The arrangement is
+saved on exit, also during a run.
+
+The tree header holds a follow button (the tree scrolls with the running
+step; scrolling by hand disengages) and a magnifier opening the step
+search. The Result column shows the last message on one line: click it
+for the dated failure history, hover it for the full text.
