@@ -179,6 +179,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._update_step_bar_style()
         self._build_view_menu()
 
+        # Toolbar shortcuts forcing a closed panel back on screen.
+        self.actionVariables = QAction("Variables", self)
+        icon = QIcon()
+        icon.addPixmap(QPixmap(icon_prefix() + "/let.png"))
+        self.actionVariables.setIcon(icon)
+        self.actionVariables.setToolTip("Show the Variables panel")
+        self.actionVariables.triggered.connect(
+            self.on_actionVariables_triggered)
+        self.toolBar.insertAction(self.actionSave_report,
+                                  self.actionVariables)
+        self.actionTestInformation.setToolTip("Show the Test item panel")
+
         self.actionStart_test.setDisabled(True)
         self.actionShow_Results.setDisabled(True)
         self.actionSave_report.setDisabled(True)
@@ -971,6 +983,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionTestInformation_triggered(self):
         self.itemDock.show()
         self.itemDock.raise_()
+
+    def on_actionVariables_triggered(self):
+        self.variablesDock.show()
+        self.variablesDock.raise_()
 
     def on_buttLogFilePath_clicked(self):
         if self.editLogFilePath.text() != "":

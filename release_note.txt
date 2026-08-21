@@ -11,6 +11,8 @@ version 0.5.0
   history (a picked entry is copied to the clipboard).
 - The Time column preference applies without restart.
 - The test item dialogs are resizable.
+- Toolbar buttons bring the Test item and Variables panels back on
+  screen; every panel can be dragged to any side or tabbed.
 
 version 0.4.4
 ==============
