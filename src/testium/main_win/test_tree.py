@@ -163,15 +163,6 @@ class QTestTree(QTreeWidget):
         states = tst_ctrl.get_enabled_states()
         self.__synchronizeEnabledStateRecursively(self.root, states)
 
-    def __enableRecursively(self, tree_item):
-        for i in range(tree_item.childCount()):
-            if not tree_item.child(i)._is_skipped:
-                tree_item.child(i).setDisabled(False)
-            self.__enableRecursively(tree_item.child(i))
-
-    def setChildrenEnabled(self):
-        self.__enableRecursively(self.root)
-
     def getGlobalSuccess(self):
         return self._global_success
 
@@ -391,19 +382,6 @@ class QTestTree(QTreeWidget):
         for i in self.root:
             count += 1
         return count
-
-    def getFoldList(self):
-        foldList = []
-        for i in self.root:
-            foldList.append(not i.isExpanded())
-        return foldList
-
-    def restoreFoldList(self, foldlist):
-        itemlist = reversed(list(self.root))
-        for item in itemlist:
-            state = foldlist.pop(len(foldlist)-1)
-            if item is not self.root:
-                item.setExpanded(not state)
 
     def setFoldDefault(self):
         itemlist = list(self.root)

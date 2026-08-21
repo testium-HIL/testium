@@ -11,7 +11,7 @@ import shutil
 
 # Qt
 from PySide6 import QtGui
-from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QTextCursor, QKeySequence
+from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QKeySequence
 from PySide6.QtCore import Slot, QUrl, Qt, QTimer, QSize
 
 from PySide6.QtWidgets import (
@@ -46,8 +46,6 @@ from main_win.test_tree import QTestTree
 
 from main_win.test_run.thread_output import ThreadTestOutput
 from runtime.string_queue import StringQueue
-from interpreter.process import TestProcess
-from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.icons import icon_prefix
 from interpreter.utils import bins
 
@@ -63,8 +61,7 @@ from interpreter.utils.test_init import (
     locate_report_file,
 )
 from interpreter.utils.version import get_testium_version
-from runtime.tum_except import ETUMFileError, ETUMRuntimeError
-from main_win.test_controller_service import TestControllerService
+from runtime.tum_except import ETUMRuntimeError
 from main_win.test_runner import TestRunner, TestState
 from main_win.test_file_manager import TestFileManager
 
@@ -86,7 +83,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     ):
         super().__init__()
         self.setupUi(self)
-        self.textLog = self.create_text_log(self.frame1)
+        self.textLog = self.create_text_log(self.logViewFrame)
         self.verticalLayout_2.addWidget(self.textLog)
 
         self._setup_icons()
@@ -204,10 +201,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.actionRefresh_test.setDisabled(True)
 
-        # Signal connections
-        self.buttLogFilePath.pressed.connect(self.on_buttLogFilePath_clicked)
-        self.buttClearLog.pressed.connect(self.on_buttClearLog_clicked)
-        self.buttGoBottom.pressed.connect(self.on_buttGoBottom_clicked)
+        # Signal connections. clicked (release), not pressed: standard button
+        # behavior; connectSlotsByName does not bind these undecorated slots.
+        self.buttLogFilePath.clicked.connect(self.on_buttLogFilePath_clicked)
+        self.buttClearLog.clicked.connect(self.on_buttClearLog_clicked)
+        self.buttGoBottom.clicked.connect(self.on_buttGoBottom_clicked)
         self.editLogFilePath.editingFinished.connect(self.on_configLog_changed)
         self.buttLogFileSaved.toggled.connect(self.on_configLogSaved_changed)
         self.buttLogFileNone.toggled.connect(self.on_configLogNone_changed)
@@ -224,7 +222,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.treeTests.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeTests.customContextMenuRequested.connect(
             self.on_testTreeContextMenu)
-        QApplication.instance().lastWindowClosed.connect(self.on_exiting)
 
         self.prefs_apply_font()
         self.prefs_apply_font_size()
@@ -269,7 +266,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         last_files = prefs.settings.recent_files
         ret = False
-        if test_file != "":
+        if test_file:
             if not os.path.isabs(test_file):
                 test_file = os.path.join(os.getcwd(), test_file)
             if os.path.isfile(test_file):
@@ -322,7 +319,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return QTextLog(parent)
 
     def create_tree(self):
-        self.treeTests = QTestTree(self.widget)
+        self.treeTests = QTestTree(self.centralColumn)
         self.treeTests.setEnabled(True)
         sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -332,16 +329,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.treeTests.paused.connect(self.on_paused)
         self.verticalLayout.addWidget(self.treeTests)
 
-    def remove_tree(self):
-        self.verticalLayout.removeWidget(self.treeTests)
-        del self.treeTests
-        self.treeTests = None
-
     # ---- test-tree search ---------------------------------------------------
 
     def _build_search_bar(self):
         """Find bar (Ctrl+F): highlight + navigate matches; Name/Type/Doc pick fields."""
-        self.searchBar = QWidget(self.widget)
+        self.searchBar = QWidget(self.centralColumn)
         lay = QHBoxLayout(self.searchBar)
         lay.setContentsMargins(2, 2, 2, 2)
         lay.setSpacing(4)
@@ -614,6 +606,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         event.accept()
 
     def on_exiting(self):
+        # closeEvent can fire more than once (runandclose paths call close()).
+        if getattr(self, "_exited", False):
+            return
+        self._exited = True
         try:
             if self.runner.state == TestState.IDLE:
                 self.save_settings()
@@ -690,9 +686,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @Slot()
     def on_actionStart_test_triggered(self):
         self.runner.on_start_test()
-
-    def on_runFinished(self):
-        self.runner.on_run_finished()
 
     @Slot()
     def on_actionStop_test_triggered(self):
@@ -923,17 +916,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.textEditTestDoc.setText("<b>" + items[0].name + ":</b><br>")
             if str(doc) != "":
                 self.textEditTestDoc.append(doc)
-            if tmstmp > 0:
-                text = self.textLog.toPlainText()
-                index = text.find(f"@@{tmstmp}@@")
-                if index != -1:
-                    cursor = self.textLog.textCursor()
-                    cursor.setPosition(index)
-                    self.textLog.setTextCursor(cursor)
-                    block_number = cursor.blockNumber()
-                    scrollbar = self.textLog.verticalScrollBar()
-                    scrollbar.setValue(block_number)
-
             self.update_f1_window(items[0])
             if self.d_f1_win.isVisible():
                 self.d_f1_win.raise_()
@@ -1026,17 +1008,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_logToBeAppended(self, m):
         self.textLog.moveCursor(QtGui.QTextCursor.End)
         self.textLog.insertPlainText(m)
-
-    # --- Blink delegates (kept for backward compatibility with treeTests signal) ---
-
-    def setBlinkGreen(self):
-        self.runner.set_blink_green()
-
-    def setBlinkRed(self):
-        self.runner.set_blink_red()
-
-    def setBlinkGray(self):
-        self.runner.set_blink_gray()
 
 
 def MainWin(
