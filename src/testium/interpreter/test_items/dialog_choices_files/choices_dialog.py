@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QTreeWidgetItem
 # try:
 from interpreter.test_items.dialog_choices_files import choices_dialog_win
 from interpreter.utils import tree_states
+from interpreter.test_items.dialog_choices_files import choices_presenter
 
 # except:
 #     import choices_dialog_win
@@ -164,48 +165,15 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
             tree_states.cascade_check(tree_item, state)
 
     def checked_state(self, parent=None):
-        if parent is None:
-            return self.checked_state(self.root)
-
-        sub_choices = []
-        for i in range(parent.childCount()):
-            sub_choices.append(self.checked_state(parent.child(i)))
-
-        if parent is self.root:
-            res = sub_choices
-        else:
-            res = {
-                "name": parent.name,
-                "checked": Qt.Checked == parent.checkState(0),
-            }
-            if len(sub_choices) > 0:
-                res.update({"choices": sub_choices})
-
-        return res
+        return choices_presenter.checked_state(
+            self.root, lambda item: Qt.Checked == item.checkState(0),
+            is_root=True)
 
     def apply_checked(self, choice, parent=None):
-        if parent is None:
-            self.apply_checked(choice, self.root)
-            return
-
-        if not isinstance(choice, list):
-            return
-
-        if len(choice) != parent.childCount():
-            return
-
-        for i in range(parent.childCount()):
-            if not isinstance(choice[i], dict):
-                return
-            if choice[i].get("checked", True) == True:
-                parent.child(i).setCheckState(0, Qt.Checked)
-            else:
-                parent.child(i).setCheckState(0, Qt.Unchecked)
-
-            sub_choices = choice[i].get("choices", None)
-            if sub_choices is not None:
-                self.apply_checked(sub_choices, parent.child(i))
-
+        choices_presenter.apply_checked(
+            choice, self.root,
+            lambda item, checked: item.setCheckState(
+                0, Qt.Checked if checked else Qt.Unchecked))
 
 def main(args, conn=None):
     from interpreter.utils.settings import host_id
@@ -214,6 +182,8 @@ def main(args, conn=None):
     SettingsApplication = "testium_choices_dlg_" + args[0] + "." + host_id()
     SettingsLastChoices = "last_choice"
     success = True
+    from interpreter.test_items.dialog_presenter import (
+        AUTO_CLOSE_MS, accepts, mute_frozen_streams)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
@@ -239,7 +209,9 @@ def main(args, conn=None):
     d.choicesView.setFocus()
     auto_result = args[4] if len(args) > 4 else None
     if auto_result is not None:
-        QTimer.singleShot(2000, lambda: d.accept() if auto_result.lower() == 'ok' else d.reject())
+        QTimer.singleShot(AUTO_CLOSE_MS,
+                          lambda: d.accept() if accepts(auto_result)
+                          else d.reject())
     dres = d.exec()
 
     if dres == QDialog.Rejected:
@@ -264,33 +236,7 @@ def main(args, conn=None):
     else:
         print(result, end="")
 
-    if hasattr(sys, "frozen"):
-        # all standard streams are replaced by dummy one to avoid cx_freeze flushing bug.
-        class dummyStream:
-            """dummyStream behaves like a stream but does nothing."""
-
-            def __init__(self):
-                pass
-
-            def write(self, data):
-                pass
-
-            def read(self, data):
-                pass
-
-            def flush(self):
-                pass
-
-            def close(self):
-                pass
-
-        # and now redirect all default streams to this dummyStream:
-        sys.stdout = dummyStream()
-        sys.stderr = dummyStream()
-        sys.stdin = dummyStream()
-        sys.__stdout__ = dummyStream()
-        sys.__stderr__ = dummyStream()
-        sys.__stdin__ = dummyStream()
+    mute_frozen_streams()
 
 
 if __name__ == "__main__":

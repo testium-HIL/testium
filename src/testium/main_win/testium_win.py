@@ -257,6 +257,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.editLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
         self.buttLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
         self.treeTests.itemSelectionChanged.connect(self.on_testSelectionChanged)
+        self.treeTests.itemClicked.connect(self.on_treeItemClicked)
         if prefs.settings.dbl_click_enabled:
             self.treeTests.setExpandsOnDoubleClick(False)
             self.treeTests.itemDoubleClicked.connect(self.on_testItemDblClicked)
@@ -1175,17 +1176,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if str(doc) != "":
                 self.textEditTestDoc.append(doc)
             self.itemDock.show_item(items[0])
+            self._scroll_log_to_item(items[0])
 
-            if tmstmp > 0:
-                cursor = self.textLog.textCursor()
-                cursor.movePosition(QTextCursor.Start)
-                self.textLog.setTextCursor(cursor)
-                if self.textLog.find(f"@@{tmstmp}@@"):
-                    cursor = self.textLog.textCursor()
-                    ln = cursor.block().blockNumber()
-                    self.textLog.verticalScrollBar().setValue(ln)
-                    cursor.clearSelection()
-                    self.textLog.setTextCursor(cursor)
+    def _scroll_log_to_item(self, item):
+        tmstmp = item.timestamp()
+        if tmstmp <= 0:
+            return
+        cursor = self.textLog.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        self.textLog.setTextCursor(cursor)
+        if self.textLog.find(f"@@{tmstmp}@@"):
+            cursor = self.textLog.textCursor()
+            ln = cursor.block().blockNumber()
+            self.textLog.verticalScrollBar().setValue(ln)
+            cursor.clearSelection()
+            self.textLog.setTextCursor(cursor)
+
+    def on_treeItemClicked(self, item, _column):
+        # Selection change does not fire when the same item is clicked
+        # again: reposition the log on every click.
+        self._scroll_log_to_item(item)
 
     def on_testItemDblClicked(self, item, col):
         isBrkpointCol = item.setBreakpointIfCol(col)

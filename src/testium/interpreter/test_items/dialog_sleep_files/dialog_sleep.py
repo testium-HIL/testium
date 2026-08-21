@@ -39,6 +39,8 @@ class DialogSleepWindow(QDialog, dialog_sleep_win.Ui_SleepDialogWindow):
 
 def main(args, conn=None):
     success = True
+    from interpreter.test_items.dialog_presenter import (
+        mute_frozen_streams)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
@@ -61,23 +63,7 @@ def main(args, conn=None):
         conn.send(success)
         conn.close()
 
-    if hasattr(sys, "frozen"):
-        #all standard streams are replaced by dummy one to avoid cx_freeze flushing bug.
-        class dummyStream:
-            ''' dummyStream behaves like a stream but does nothing. '''
-            def __init__(self): pass
-            def write(self,data): pass
-            def read(self,data): pass
-            def flush(self): pass
-            def close(self): pass
-
-        # and now redirect all default streams to this dummyStream:
-        sys.stdout = dummyStream()
-        sys.stderr = dummyStream()
-        sys.stdin = dummyStream()
-        sys.__stdout__ = dummyStream()
-        sys.__stderr__ = dummyStream()
-        sys.__stdin__ = dummyStream()
+    mute_frozen_streams()
 
 
 if __name__ == '__main__':
