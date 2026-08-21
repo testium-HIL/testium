@@ -23,6 +23,8 @@ class QTestTree(QTreeWidget):
     # Emitted when the engine reports an item paused (breakpoint, step,
     # run-level pause, jump arrival).
     paused = Signal()
+    # Emitted when a manual scroll disengages the follow-run mode.
+    follow_disengaged = Signal()
 
     _KNOWN_TYPES = {e.item_name for e in cst}
 
@@ -82,6 +84,21 @@ class QTestTree(QTreeWidget):
         self.set_time_column_visible(prefs.settings.show_time_column)
         self.header().sectionResized.connect(self.resized)
         self.itemClicked.connect(self._on_result_clicked)
+        self._follow = False
+        self.verticalScrollBar().sliderPressed.connect(
+            self._disengage_follow)
+
+    def set_follow(self, enabled):
+        self._follow = bool(enabled)
+
+    def _disengage_follow(self):
+        if self._follow:
+            self._follow = False
+            self.follow_disengaged.emit()
+
+    def wheelEvent(self, event):
+        self._disengage_follow()
+        super().wheelEvent(event)
 
     def set_time_column_visible(self, visible):
         self.setColumnHidden(self.cols['duration']['index'], not bool(visible))
@@ -323,6 +340,9 @@ class QTestTree(QTreeWidget):
             if st == 'started':
                 item.setHighlighted()
                 item.setTimestamp(status['timestamp'])
+                if self._follow:
+                    self.scrollToItem(
+                        item, QTreeWidget.ScrollHint.PositionAtCenter)
             elif st != 'paused':
                 item.resetHighlighted()
 

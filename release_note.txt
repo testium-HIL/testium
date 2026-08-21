@@ -14,6 +14,8 @@ version 0.5.0
 - Toolbar buttons bring the Test item and Variables panels back on
   screen; every panel can be dragged to any side, below the tree, below
   the log, or tabbed.
+- Tree header: a follow button scrolls the tree with the running step
+  (scrolling by hand disengages), a magnifier opens the step search.
 
 version 0.4.4
 ==============

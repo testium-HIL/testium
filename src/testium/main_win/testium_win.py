@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
 )
 from main_win.expression_info import expression_info_button
+from main_win.drawn_icons import follow_icon, search_icon
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(os.path.join(ourPath, "resources"))
@@ -222,6 +223,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.shortcut_find = QShortcut(
             QKeySequence.Find, self, activated=self._toggle_search
         )
+
+        # Tree header buttons: follow the running step, open the search.
+        self.buttFollowRun = QToolButton(self.frame_3)
+        self.buttFollowRun.setIcon(follow_icon())
+        self.buttFollowRun.setCheckable(True)
+        self.buttFollowRun.setAutoRaise(True)
+        self.buttFollowRun.setToolTip(
+            "Scroll the tree with the running step; scrolling by hand "
+            "disengages")
+        self.buttFollowRun.toggled.connect(self.treeTests.set_follow)
+        self.treeTests.follow_disengaged.connect(
+            lambda: self._set_follow_button_silent(False))
+        self.buttSearch = QToolButton(self.frame_3)
+        self.buttSearch.setIcon(search_icon())
+        self.buttSearch.setAutoRaise(True)
+        self.buttSearch.setToolTip("Search steps (Ctrl+F)")
+        self.buttSearch.clicked.connect(self._toggle_search)
+        self.horizontalLayout_9.insertWidget(2, self.buttFollowRun)
+        self.horizontalLayout_9.insertWidget(3, self.buttSearch)
 
         self.actionRefresh_test.setDisabled(True)
 
@@ -991,6 +1011,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_actionVariables_triggered(self):
         self._toggle_panel(self.variablesDock)
+
+    def _set_follow_button_silent(self, checked):
+        self.buttFollowRun.blockSignals(True)
+        self.buttFollowRun.setChecked(checked)
+        self.buttFollowRun.blockSignals(False)
 
     @staticmethod
     def _toggle_panel(dock):
