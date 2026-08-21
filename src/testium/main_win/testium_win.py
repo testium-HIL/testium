@@ -41,7 +41,8 @@ from main_win.testium_core_win import Ui_MainWindow
 from main_win.text_log import QTextLog
 from main_win.about_win.about_win import Ui_About
 from main_win.preference_win.preference_win import PrefWindow
-from main_win.f1_win.d_f1_win import DialogF1
+from main_win.variables_dock import VariablesDock
+from main_win.item_dock import ItemDock
 from main_win.test_tree import QTestTree
 
 from main_win.test_run.thread_output import ThreadTestOutput
@@ -162,9 +163,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if geo_settings:
             self.restoreGeometry(geo_settings)
 
-        # Built before restoreState so its position (docked/floating) is
-        # part of the saved window state.
+        # Built before restoreState so their positions are part of the
+        # saved window state.
         self._build_step_bar()
+        self.variablesDock = VariablesDock(self)
+        self.itemDock = ItemDock(self)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.itemDock)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.variablesDock)
 
         state_settings = prefs.settings.value(
             prefs.SettingsItem("state", bytearray), bytearray()
@@ -258,8 +263,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.about_win.labelVersion.setText(get_testium_version())
         self.d_about_win.setModal(True)
 
-        self.d_f1_win = DialogF1(self)
-
         self.stream = StringQueue()
         stdio_redir.redirect(self.stream)
         self.threadOutput = ThreadTestOutput(self.stream, self.threads_queue)
@@ -290,8 +293,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.threadTestStatus.testSetIsFinished.connect(self.runner.on_run_finished)
         self.threadTestStatus.statusToBeUpdated.connect(self.treeTests.updateStatus)
-        self.threadTestStatus.gdUpdated.connect(self.d_f1_win.gd_var_updated)
-        self.threadTestStatus.gdDeleted.connect(self.d_f1_win.gd_var_deleted)
+        self.threadTestStatus.gdUpdated.connect(self.variablesDock.gd_var_updated)
+        self.threadTestStatus.gdDeleted.connect(self.variablesDock.gd_var_deleted)
         self.reconnect_signals()
 
         if runandclose:
@@ -439,20 +442,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _build_view_menu(self):
         self.menuView.addAction(self.logDockWidget.toggleViewAction())
         self.menuView.addAction(self.DocDockWidget.toggleViewAction())
+        self.menuView.addAction(self.itemDock.toggleViewAction())
+        self.menuView.addAction(self.variablesDock.toggleViewAction())
         self.menuView.addAction(self.stepBar.toggleViewAction())
         self.menuView.addSeparator()
         reset = self.menuView.addAction("Reset layout")
         reset.triggered.connect(self._apply_default_layout)
 
     def _apply_default_layout(self):
-        """Default arrangement: log right (~38% width), doc bottom."""
-        for dock in (self.logDockWidget, self.DocDockWidget):
+        """Default arrangement: log right (~38% width); doc, item and
+        variables tabbed below it, doc on top."""
+        docks = (self.logDockWidget, self.DocDockWidget,
+                 self.itemDock, self.variablesDock)
+        for dock in docks:
             dock.setFloating(False)
             dock.show()
         self.addDockWidget(Qt.RightDockWidgetArea, self.logDockWidget)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.DocDockWidget)
+        self.splitDockWidget(self.logDockWidget, self.DocDockWidget,
+                             Qt.Vertical)
+        self.tabifyDockWidget(self.DocDockWidget, self.itemDock)
+        self.tabifyDockWidget(self.itemDock, self.variablesDock)
+        self.DocDockWidget.raise_()
         self.resizeDocks([self.logDockWidget],
                          [int(self.width() * 0.38)], Qt.Horizontal)
+        self.resizeDocks([self.logDockWidget, self.DocDockWidget],
+                         [int(self.height() * 0.55),
+                          int(self.height() * 0.35)], Qt.Vertical)
         self.stepBar.setVisible(True)
 
     def _update_step_bar_style(self):
@@ -669,14 +684,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.reconnect_signals()
             self.checkSelect.setDisabled(True)
 
-    def update_f1_window(self, tree_item):
-        self.d_f1_win.ui.typeLineEdit.setText(tree_item.test_type)
-        self.d_f1_win.ui.sequenceFileNameLineEdit.setText(tree_item.seq_filename)
-        if tree_item.content is not None and tree_item.content != "":
-            self.d_f1_win.ui.TestContentEdit.setText(tree_item.content)
-        else:
-            self.d_f1_win.ui.TestContentEdit.setText("")
-
     def _stripped_name(self, fullFileName):
         fname = os.path.basename(fullFileName)
         fdir = os.path.dirname(fullFileName)
@@ -881,8 +888,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionTestInformation_triggered(self):
-        if not self.d_f1_win.isVisible():
-            self.d_f1_win.show()
+        self.itemDock.show()
+        self.itemDock.raise_()
 
     def on_buttLogFilePath_clicked(self):
         if self.editLogFilePath.text() != "":
@@ -929,9 +936,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.textEditTestDoc.setText("<b>" + items[0].name + ":</b><br>")
             if str(doc) != "":
                 self.textEditTestDoc.append(doc)
-            self.update_f1_window(items[0])
-            if self.d_f1_win.isVisible():
-                self.d_f1_win.raise_()
+            self.itemDock.show_item(items[0])
 
             if tmstmp > 0:
                 cursor = self.textLog.textCursor()
@@ -981,8 +986,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_F1Pressed(self):
         item = self.treeTests.currentItem()
-        self.update_f1_window(item)
-        self.d_f1_win.setVisible(True)
+        if item is not None:
+            self.itemDock.show_item(item)
+        self.variablesDock.show()
+        self.variablesDock.raise_()
+        self.variablesDock.filter_edit.setFocus()
 
     def on_checkFoldChanged(self):
         self.disconnect_signals()

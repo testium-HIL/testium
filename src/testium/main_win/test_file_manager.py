@@ -70,7 +70,7 @@ class TestFileManager:
             del w.test_service
             w.test_service = None
         # Reset the globals table (clears the rows and the key→row map).
-        w.d_f1_win.set_service(None)
+        w.variablesDock.set_service(None)
         # Drop the previously-loaded test directory from sys.path.
         self._remove_test_dir_from_path()
 
@@ -148,7 +148,7 @@ class TestFileManager:
             w.testFile = None
             w.ts_controller = TestSetController()
             w.test_service = TestControllerService(w.ts_controller)
-            w.d_f1_win.set_service(w.test_service)
+            w.variablesDock.set_service(w.test_service)
             w.test_proc = TestProcess(
                 file_name,
                 w.status_queue,
@@ -179,7 +179,7 @@ class TestFileManager:
                 w.test_proc = None
                 del w.test_service
                 w.test_service = None
-                w.d_f1_win.set_service(None)
+                w.variablesDock.set_service(None)
                 try:
                     w.ts_controller.close()
                 except Exception:
@@ -203,7 +203,7 @@ class TestFileManager:
             w.treeTests.setFoldDefault()
             w.treeTests.updateTreeSkipState(w.test_service)
             gd_vars = w.test_service.get_gd_vars()
-            w.d_f1_win.load_initial_vars(gd_vars)
+            w.variablesDock.load_initial_vars(gd_vars)
             w.sync_debug_output_action(gd_vars)
 
             w.checkSelect.setChecked(True)
