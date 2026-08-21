@@ -1,7 +1,6 @@
 import sys
 import os
 from multiprocessing import freeze_support
-from itertools import chain
 
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
@@ -12,24 +11,10 @@ from PySide6.QtWidgets import QTreeWidgetItem
 
 # try:
 from interpreter.test_items.dialog_choices_files import choices_dialog_win
+from interpreter.utils import tree_states
 
 # except:
 #     import choices_dialog_win
-
-
-def __iter__QTreeWidgetItem(self):
-    for item in chain(*map(iter, self.children())):
-        yield item
-    yield self
-
-
-def childrenQTreeWidgetItem(self):
-    return [self.child(i) for i in range(self.childCount())]
-
-
-QTreeWidgetItem.name = ""
-QTreeWidgetItem.__iter__ = __iter__QTreeWidgetItem
-QTreeWidgetItem.children = childrenQTreeWidgetItem
 
 
 class ChoicesTreeItem(QTreeWidgetItem):
@@ -154,17 +139,11 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
             if sub_choices is not None:
                 self.populate_tree(tree_item, sub_choices)
 
-    def __foldRecursively(self, tree_item, is_fold):
-        for i in range(tree_item.childCount()):
-            if tree_item.child(i).childCount() > 0:
-                tree_item.child(i).setExpanded(not is_fold)
-                self.__foldRecursively(tree_item.child(i), is_fold)
-
     def foldAll(self, is_fold):
         # Blocked: a bulk fold must not flip checkFold to PartiallyChecked.
         self.choicesView.blockSignals(True)
         try:
-            self.__foldRecursively(self.root, is_fold)
+            tree_states.fold_recursively(self.root, is_fold)
         finally:
             self.choicesView.blockSignals(False)
 
@@ -177,18 +156,12 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
         self._set_silent(self.checkSelect, Qt.PartiallyChecked)
 
     def updateTreeCheckState(self, tree_item, is_checked):
-        # treat the case of the invisible root
+        state = Qt.Checked if is_checked else Qt.Unchecked
         if tree_item is self.root:
             for i in range(self.root.childCount()):
-                self.updateTreeCheckState(self.root.child(i), is_checked)
+                tree_states.cascade_check(self.root.child(i), state)
         else:
-            if is_checked:
-                tree_item.setCheckState(0, Qt.Checked)
-            else:
-                tree_item.setCheckState(0, Qt.Unchecked)
-
-            for i in range(tree_item.childCount()):
-                self.updateTreeCheckState(tree_item.child(i), is_checked)
+            tree_states.cascade_check(tree_item, state)
 
     def checked_state(self, parent=None):
         if parent is None:

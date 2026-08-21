@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (c) 2026 François Dausseur
 """Test-item dock: type, source file and YAML content of the selected
-item. Replaces the Test item tab of the retired F1 window."""
+item."""
 
 import os
 import re

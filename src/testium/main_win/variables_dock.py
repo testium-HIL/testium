@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (c) 2026 François Dausseur
 """Variables dock: the global dict table with filter, edition and the
-expression tester. Replaces the Variables tab of the retired F1 window."""
+expression tester."""
 
 import ast
 import json

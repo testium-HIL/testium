@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QTreeWidget, QMenu, QApplication)
 from PySide6.QtCore import (Signal, QSize, Qt)
 
 from gui.result_history import ResultHistory
+from interpreter.utils import tree_states
 from main_win.test_tree_items.common import make_columns
 from runtime.tum_except import (ETUMFileError, ETUMSyntaxError)
 from main_win.test_controller_service import TestControllerService
@@ -123,8 +124,8 @@ class QTestTree(QTreeWidget):
     def _refresh_result(self, item):
         text = self.result_history.current(item.id)
         idx = self.cols['desc']['index']
-        # One line whatever the message: multi-line text would change the
-        # row height. The full text stays in the tooltip and the history.
+        # Multi-line text would change the row height; the full text
+        # stays in the tooltip and the history.
         item.setText(idx, " ".join(text.split()))
         item.setToolTip(idx, text if text else None)
 
@@ -148,21 +149,10 @@ class QTestTree(QTreeWidget):
         tst_ctrl.check_uncheck_all(isChecked)
         self.synchronizeEnabledState(tst_ctrl)
 
-    def __foldRecursively(self, tree_item, is_fold):
-        for i in range(tree_item.childCount()):
-            if tree_item.child(i).childCount() > 0 and tree_item.child(i).recursive_unfoldable :
-                # GUI optimisation :
-                # if you must fold everything, fold first the parent and then the childrens (1 GUI update)
-                # if you must unfold everything, unfold first the childrens and then the parents (1 GUI update)
-                if is_fold:
-                    tree_item.child(i).setExpanded(not is_fold)
-                    self.__foldRecursively(tree_item.child(i), is_fold)
-                else:
-                    self.__foldRecursively(tree_item.child(i), is_fold)
-                    tree_item.child(i).setExpanded(not is_fold)
-
     def foldAll(self, is_fold):
-        self.__foldRecursively(self.root, is_fold)
+        tree_states.fold_recursively(
+            self.root, is_fold,
+            unfoldable=lambda item: item.recursive_unfoldable)
 
     def __synchronizeEnabledStateRecursively(self, tree_item, states):
         for i in range(tree_item.childCount()):
@@ -345,8 +335,8 @@ class QTestTree(QTreeWidget):
                 item.setHighlighted()
                 item.setTimestamp(status['timestamp'])
                 if self._follow:
-                    # Respect the user's folds: never expand — follow the
-                    # topmost collapsed ancestor instead.
+                    # Never expand a collapsed group: follow its topmost
+                    # collapsed ancestor.
                     target = item
                     parent = item.parent()
                     while parent is not None:

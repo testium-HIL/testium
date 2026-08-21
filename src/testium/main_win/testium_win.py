@@ -3,8 +3,6 @@ import os
 import shlex
 import subprocess
 import webbrowser
-import hashlib
-import time
 from multiprocessing import Queue
 from threading import Thread
 import shutil
@@ -69,12 +67,14 @@ from gui.run_presenter import RunPresenter, TestState
 from gui.protocols import RunUiState
 from main_win.qt_scheduler import QtScheduler
 from gui.file_presenter import FilePresenter
+from gui.search_presenter import SearchNavigator
+from gui.tree_presenter import FileStateStore, FILE_STATES_MAX
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     MaxRecentFiles = 10
-    # Window-state schema: bumped when docks/toolbars change shape, so
-    # pre-0.5 blobs are rejected and the default layout applies.
+    # Window-state schema version: bump when docks or toolbars change
+    # shape; an older blob is rejected and the default layout applies.
     STATE_VERSION = 1
 
     def __init__(
@@ -120,6 +120,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.status_queue = Queue()
 
         # Presenters / managers
+        self._file_states = FileStateStore()
         self.scheduler = QtScheduler(self)
         self.runner = RunPresenter(self, self.scheduler,
                                    lambda: self.test_service,
@@ -169,17 +170,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         restored = bool(state_settings) and self.restoreState(
             bytes(state_settings), self.STATE_VERSION)
         if not restored:
-            # Pre-0.5 state blob (or none): default layout, honoring the
-            # retired pane-hiding preferences once.
+            # Unknown state blob: default layout; the old pane-hiding
+            # preferences are honored once.
             self._apply_default_layout()
             if prefs.settings.hide_doc_pane:
                 self.DocDockWidget.hide()
             if prefs.settings.hide_log_pane:
                 self.logDockWidget.hide()
-        # AFTER restoreState, which restores the corner ownership saved
-        # with the blob. Side columns own their bottom corners: a dock
-        # dropped in the bottom area sits under the tree, not across the
-        # window.
+        # Set after restoreState: the blob restores corner ownership too.
+        # Side columns own the bottom corners so a dock dropped in the
+        # bottom area sits under the tree.
         self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
         self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.stepBar.setVisible(True)
@@ -218,7 +218,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         self._search_matches = []
-        self._search_idx = 0
+        self._search_nav = SearchNavigator()
         self._build_search_bar()
         self.shortcut_find = QShortcut(
             QKeySequence.Find, self, activated=self._toggle_search
@@ -734,37 +734,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._search_matches = self.treeTests.search(
             self.searchEdit.text(), self._search_fields()
         )
-        self._search_idx = 0
+        self._search_nav.set_matches(len(self._search_matches))
         if self._search_matches:
-            self._goto_match(0)
+            self._goto_match()
         else:
             self._update_search_count()
 
     def _update_search_count(self):
-        n = len(self._search_matches)
-        if n == 0:
-            self.searchCount.setText(
-                "0/0" if self.searchEdit.text().strip() else ""
-            )
-        else:
-            self.searchCount.setText("{}/{}".format(self._search_idx + 1, n))
+        self.searchCount.setText(self._search_nav.count_text(
+            bool(self.searchEdit.text().strip())))
 
-    def _goto_match(self, idx):
+    def _goto_match(self):
         if not self._search_matches:
             return
-        self._search_idx = idx % len(self._search_matches)
-        it = self._search_matches[self._search_idx]
+        it = self._search_matches[self._search_nav.index]
         self.treeTests.scrollToItem(it)
         self.treeTests.setCurrentItem(it)
         self._update_search_count()
 
     def _search_next(self):
         if self._search_matches:
-            self._goto_match(self._search_idx + 1)
+            self._search_nav.next()
+            self._goto_match()
 
     def _search_prev(self):
         if self._search_matches:
-            self._goto_match(self._search_idx - 1)
+            self._search_nav.prev()
+            self._goto_match()
 
     def _close_search(self):
         if self.treeTests is not None:
@@ -772,53 +768,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.treeTests.setFocus()
         self.searchBar.setVisible(False)
         self._search_matches = []
+        self._search_nav.clear()
 
     def _reset_search(self):
         """New test file loaded: drop stale matches and hide the bar."""
         self._search_matches = []
-        self._search_idx = 0
+        self._search_nav.clear()
         if hasattr(self, "searchBar"):
             self.searchBar.setVisible(False)
             self.searchCount.setText("")
 
-    # Tree states and log-file choice are stored per test file, one settings
-    # key per file: two instances on different files never clobber each other.
-    FileStatesMax = 20
+    # Per-test-file states live in gui/tree_presenter.py; these
+    # wrappers feed it the widget data.
+    FileStatesMax = FILE_STATES_MAX
 
     def _file_state_key(self, path):
-        digest = hashlib.sha1(
-            os.path.normcase(os.path.abspath(path)).encode()).hexdigest()
-        return "itemstates." + digest[:12]
+        return self._file_states.key(path)
 
     def stash_file_state(self, test_file):
-        entry = [os.path.normcase(os.path.abspath(test_file)), time.time(),
-                 self.treeTests.getItemStates(),
-                 self.editLogFilePath.text(),
-                 self.buttLogFileSaved.isChecked()]
-        prefs.settings.set_value(
-            prefs.SettingsItem(self._file_state_key(test_file), list), entry)
-        self._trim_file_states()
+        self._file_states.stash(test_file,
+                                self.treeTests.getItemStates(),
+                                self.editLogFilePath.text(),
+                                self.buttLogFileSaved.isChecked())
 
     def _trim_file_states(self):
-        names = prefs.settings.option_names("itemstates.")
-        if len(names) <= self.FileStatesMax:
-            return
-
-        def saved_at(name):
-            entry = prefs.settings.value(prefs.SettingsItem(name, list), [])
-            return entry[1] if len(entry) >= 2 else 0
-
-        for name in sorted(names, key=saved_at)[:len(names) - self.FileStatesMax]:
-            prefs.settings.remove_value(name)
+        self._file_states.trim()
 
     def restore_file_state(self):
         if self.testFile is None:
             return
-        entry = prefs.settings.value(
-            prefs.SettingsItem(self._file_state_key(self.testFile), list), [])
-        if len(entry) < 5:
+        entry = self._file_states.restore(self.testFile)
+        if entry is None:
             return
-        states, log_file, log_saved = entry[2], entry[3], entry[4]
+        states, log_file, log_saved = entry
         if not self._cli_log_file:
             self.editLogFilePath.setText(log_file)
             self.logFileName = log_file
