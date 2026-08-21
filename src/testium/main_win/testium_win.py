@@ -987,12 +987,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionTestInformation_triggered(self):
-        self.itemDock.show()
-        self.itemDock.raise_()
+        self._toggle_panel(self.itemDock)
 
     def on_actionVariables_triggered(self):
-        self.variablesDock.show()
-        self.variablesDock.raise_()
+        self._toggle_panel(self.variablesDock)
+
+    @staticmethod
+    def _toggle_panel(dock):
+        # Hidden or tabbed behind (not visible for Qt): bring it to the
+        # front; visible on top: hide it.
+        if dock.isVisible():
+            dock.hide()
+        else:
+            dock.show()
+            dock.raise_()
 
     def on_buttLogFilePath_clicked(self):
         if self.editLogFilePath.text() != "":
