@@ -113,15 +113,19 @@ class QTestTree(QTreeWidget):
             return
         menu = QMenu(self)
         for date, message in entries[:20]:
-            menu.addAction(f"{date}  {message}")
+            action = menu.addAction(
+                f"{date}  " + " ".join(message.split()))
+            action.setData(f"{date}  {message}")
         chosen = menu.exec(QCursor.pos())
         if chosen is not None:
-            QApplication.clipboard().setText(chosen.text())
+            QApplication.clipboard().setText(chosen.data())
 
     def _refresh_result(self, item):
         text = self.result_history.current(item.id)
         idx = self.cols['desc']['index']
-        item.setText(idx, text)
+        # One line whatever the message: multi-line text would change the
+        # row height. The full text stays in the tooltip and the history.
+        item.setText(idx, " ".join(text.split()))
         item.setToolTip(idx, text if text else None)
 
     def updateTestSetItemState(self, tree_item, tst_ctrl: TestControllerService, state, unitary=False):
