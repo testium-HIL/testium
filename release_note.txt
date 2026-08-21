@@ -12,7 +12,8 @@ version 0.5.0
 - The Time column preference applies without restart.
 - The test item dialogs are resizable.
 - Toolbar buttons bring the Test item and Variables panels back on
-  screen; every panel can be dragged to any side or tabbed.
+  screen; every panel can be dragged to any side, below the tree, below
+  the log, or tabbed.
 
 version 0.4.4
 ==============

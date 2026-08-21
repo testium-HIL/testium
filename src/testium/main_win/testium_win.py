@@ -154,6 +154,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if geo_settings:
             self.restoreGeometry(geo_settings)
 
+        # Side columns own their bottom corners: a dock dropped in the
+        # bottom area then sits under the tree, not across the window.
+        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
+
         # Built before restoreState so their positions are part of the
         # saved window state.
         self._build_step_bar()
