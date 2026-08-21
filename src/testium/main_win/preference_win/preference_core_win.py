@@ -334,7 +334,7 @@ class Ui_preferenceWindow(object):
         preferenceWindow.setWindowTitle(QCoreApplication.translate("preferenceWindow", u"preferenceWindow", None))
         self.label_3.setText(QCoreApplication.translate("preferenceWindow", u"Tests selection available", None))
         self.checkBoxTest.setText("")
-        self.label_6.setText(QCoreApplication.translate("preferenceWindow", u"Show step time column (requires restart)", None))
+        self.label_6.setText(QCoreApplication.translate("preferenceWindow", u"Show step time column", None))
         self.checkShowTime.setText("")
         self.label_7.setText(QCoreApplication.translate("preferenceWindow", u"Test tree item double click enabled", None))
         self.checkDblClick.setText("")

@@ -92,7 +92,7 @@
            <item row="3" column="0">
             <widget class="QLabel" name="label_6">
              <property name="text">
-              <string>Show step time column (requires restart)</string>
+              <string>Show step time column</string>
              </property>
             </widget>
            </item>

@@ -173,7 +173,6 @@ class QTestTreeItem(QTreeWidgetItem):
         self.setCheckState(self._cols["name"]["index"], Qt.Checked)
         self._is_highlighted = False
         self._is_search_match = False
-        self._failure_list = None
         self._no_breakpoint = False
         parent.addChild(self)
         self._has_failed = False

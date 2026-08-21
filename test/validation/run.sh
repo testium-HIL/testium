@@ -275,6 +275,15 @@ if [ "$MODE" = "source" ]; then
     "$GUI_PY" "$SCRIPT_DIR/gui_state_check.py"
 fi
 
+# ---------- GUI purity check (source only) ------------------------------------
+# The presenter layer (src/testium/gui) must stay toolkit-free.
+if [ "$MODE" = "source" ]; then
+    echo "-- GUI purity check ($MODE)"
+    PUR_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$PUR_PY" ] || PUR_PY="$VENV_PYTHON"
+    "$PUR_PY" "$SCRIPT_DIR/gui_purity_check.py"
+fi
+
 # ---------- settings check (source only) --------------------------------------
 # Settings written by two concurrent instances are merged per key; a corrupt
 # file falls back to defaults. Imports the settings module directly, so

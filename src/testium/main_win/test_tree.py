@@ -2,14 +2,13 @@ import sys
 import os
 
 # Qt
-from PySide6.QtGui import (QIcon, QPixmap)
+from PySide6.QtGui import (QIcon, QPixmap, QCursor)
 from PySide6 import QtWidgets
-from PySide6.QtWidgets import (QTreeWidget, QComboBox)
+from PySide6.QtWidgets import (QTreeWidget, QMenu, QApplication)
 from PySide6.QtCore import (Signal, QSize, Qt)
-from PySide6.QtGui import (QFont, QFontInfo)
-from time import (time)
 
-from main_win.test_tree_items.common import (TEST_COLS, TEST_COLS_WITH_TIME)
+from gui.result_history import ResultHistory
+from main_win.test_tree_items.common import make_columns
 from runtime.tum_except import (ETUMFileError, ETUMSyntaxError)
 from main_win.test_controller_service import TestControllerService
 from main_win.test_tree_items.test_tree_item import make_tree_item
@@ -34,16 +33,12 @@ class QTestTree(QTreeWidget):
 
         self.setAlternatingRowColors(True)
         self.setIconSize(QSize(18, 18))
-        font = QFont()
-        font.setPointSize(8)
+        font = self.font()
+        font.setPointSizeF(max(7.0, font.pointSizeF() - 1))
         self.setFont(font)
-        self.setAlternatingRowColors(True)
         self.setAnimated(True)
-        self.setWordWrap(True)
-        if prefs.settings.show_time_column:
-            self.cols = TEST_COLS_WITH_TIME
-        else:
-            self.cols = TEST_COLS
+        self.result_history = ResultHistory()
+        self.cols = make_columns()
         for k, v in prefs.settings.columns_size.items():
             if k in self.cols:
                 self.cols[k]['size'] = v
@@ -55,10 +50,6 @@ class QTestTree(QTreeWidget):
         self.header().setMinimumSectionSize(50)
         self.header().setStretchLastSection(False)
         self._global_success = True
-
-        fi = QFontInfo(self.font())
-        self._row_height = int(fi.pixelSize() * 2)
-        self.setStyleSheet( ''' QTreeView::Item {{ height:{}px; }}'''.format(self._row_height))
 
         for name, data in self.cols.items():
             self.headerItem().setText(data['index'], data['name'])
@@ -88,7 +79,33 @@ class QTestTree(QTreeWidget):
         self.testStepIcon.addPixmap(QPixmap(icon_prefix() + "/document.png"))
         self.root = self.invisibleRootItem()
 
+        self.set_time_column_visible(prefs.settings.show_time_column)
         self.header().sectionResized.connect(self.resized)
+        self.itemClicked.connect(self._on_result_clicked)
+
+    def set_time_column_visible(self, visible):
+        self.setColumnHidden(self.cols['duration']['index'], not bool(visible))
+
+    def _on_result_clicked(self, item, column):
+        """Dated failure history of the Result column, newest first; a
+        picked entry is copied to the clipboard."""
+        if column != self.cols['desc']['index']:
+            return
+        entries = self.result_history.entries(item.id)
+        if not entries:
+            return
+        menu = QMenu(self)
+        for date, message in entries[:20]:
+            menu.addAction(f"{date}  {message}")
+        chosen = menu.exec(QCursor.pos())
+        if chosen is not None:
+            QApplication.clipboard().setText(chosen.text())
+
+    def _refresh_result(self, item):
+        text = self.result_history.current(item.id)
+        idx = self.cols['desc']['index']
+        item.setText(idx, text)
+        item.setToolTip(idx, text if text else None)
 
     def updateTestSetItemState(self, tree_item, tst_ctrl: TestControllerService, state, unitary=False):
         id = tree_item.id
@@ -244,10 +261,8 @@ class QTestTree(QTreeWidget):
     def __clearAllStatusRecursively(self, parent):
         for i in range(parent.childCount()):
             parent.child(i).clearStatus()
-            # clear the combobox of results
-            cb = self.itemWidget(parent.child(i), self.cols['desc']['index'])
-            cb.clear()
-            cb.addItem(' ')
+            parent.child(i).setText(self.cols['desc']['index'], "")
+            parent.child(i).setToolTip(self.cols['desc']['index'], None)
             self.__clearAllStatusRecursively(parent.child(i))
 
     def clearAllStatus(self):
@@ -255,14 +270,8 @@ class QTestTree(QTreeWidget):
         # itemChanged.
         self.blockSignals(True)
         try:
-            root_item = self.invisibleRootItem()
-            for i in range(root_item.childCount()):
-                root_item.child(i).clearStatus()
-                cb = self.itemWidget(root_item.child(
-                    i), self.cols['desc']['index'])
-                cb.clear()
-                cb.addItem(' ')
-                self.__clearAllStatusRecursively(root_item.child(i))
+            self.result_history.clear()
+            self.__clearAllStatusRecursively(self.invisibleRootItem())
         finally:
             self.blockSignals(False)
 
@@ -296,18 +305,18 @@ class QTestTree(QTreeWidget):
                 self._global_success = False
             # update the displayed message
             if 'message' in status:
-                cb = self.itemWidget(item, self.cols['desc']['index'])
                 if (not is_success) and (not is_norun):
                     if not status['message'] == '':
-                        cb.setItemText(0, status['message'])
-                        cb.insertItem(
-                            1, status['date'] + ' ' + status['message'])
+                        self.result_history.record_failure(
+                            item.id, status['date'], status['message'])
                 elif not is_norun:
-                    cb.setItemText(0, status['message'])
+                    self.result_history.set_current(
+                        item.id, status['message'])
+                self._refresh_result(item)
 
         elif 'message' in status:
-            cb = self.itemWidget(item, self.cols['desc']['index'])
-            cb.setItemText(0, status['message'])
+            self.result_history.set_current(item.id, status['message'])
+            self._refresh_result(item)
 
         if 'status' in status:
             st = status['status'].lower()
@@ -331,20 +340,6 @@ class QTestTree(QTreeWidget):
                     f"Error in the test_set: item '{item_name}' has "
                     f"undefined type '{childType}'")
             tree_item = make_tree_item(tree_parent, test_set_item[test_id], self.cols)
-
-            cb = QComboBox(self)
-            self.setItemWidget(tree_item, self.cols['desc']['index'], cb)
-            cb.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-            cb.setStyleSheet("""QComboBox {
-                border-width: 1px;
-                border-style: solid;
-                border-radius: 4px;
-                }""")
-            cb.setEditable(False)
-            cb.addItem(" ")
-            cb.setMaxCount(1000)
-            cb.setMaxVisibleItems(20)
-            tree_item._failure_list = cb
             tree_item.is_folded = False
             if len(test_set_item[test_id]["child"]) > 0:
                 tree_item.is_folded = test_set_item[test_id]["folded"]

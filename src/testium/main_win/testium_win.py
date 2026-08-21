@@ -746,6 +746,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.treeTests.itemDoubleClicked.connect(self.on_testItemDblClicked)
                 else:
                     self.treeTests.itemDoubleClicked.disconnect()
+            if self.pref_win.isChanged(prefs.settings.SettingsShowTimeColumn):
+                self.treeTests.set_time_column_visible(
+                    prefs.settings.show_time_column)
             if self.pref_win.isChanged(prefs.settings.SettingsLogFont):
                 self.prefs_apply_font()
             if self.pref_win.isChanged(prefs.settings.SettingsLogFontSize):
