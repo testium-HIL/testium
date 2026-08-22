@@ -181,6 +181,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.DocDockWidget.hide()
             if prefs.settings.hide_log_pane:
                 self.logDockWidget.hide()
+        # Nesting: panels can be stacked in both orientations inside an
+        # area, not only along the area's own axis.
+        self.setDockNestingEnabled(True)
         # Set after restoreState: the blob restores corner ownership too.
         # Side columns own the bottom corners so a dock dropped in the
         # bottom area sits under the tree.
