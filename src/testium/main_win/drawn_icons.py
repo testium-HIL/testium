@@ -1,12 +1,24 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (c) 2026 François Dausseur
-"""Small icons drawn in code — same in every icon theme."""
+"""Small icons drawn in code, colored to match the icon theme."""
 
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import (QColor, QFont, QFontMetrics, QIcon, QPainter,
                            QPainterPath, QPen, QPixmap)
 
+from interpreter.utils.icons import icon_prefix
+
 _cache = {}
+
+
+def _ink(color_ink):
+    """Icon color: black/white themes override the color-theme ink."""
+    prefix = icon_prefix()
+    if prefix == ":/black":
+        return QColor(0, 0, 0)
+    if prefix == ":/white":
+        return QColor(255, 255, 255)
+    return color_ink
 
 
 def follow_icon():
@@ -68,7 +80,8 @@ def _centered_text_path(font, text):
 
 def expression_icon():
     """Formula glyph: evaluate an expression."""
-    icon = _cache.get("expression")
+    key = "expression" + icon_prefix()
+    icon = _cache.get(key)
     if icon is None:
         # Drawn at 256 px: crisp once scaled down. Fill plus outline:
         # bold alone is too thin at toolbar size.
@@ -76,31 +89,32 @@ def expression_icon():
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
-        ink = QColor(255, 183, 77)
+        ink = _ink(QColor(255, 183, 77))
         pen = QPen(ink)
-        pen.setWidth(10)
+        pen.setWidth(9)
         font = QFont("serif")
         font.setItalic(True)
         font.setBold(True)
-        font.setPixelSize(200)
+        font.setPixelSize(170)
         path = _centered_text_path(font, "f")
-        path.translate(84, 122)
+        path.translate(90, 123)
         font2 = QFont(font)
-        font2.setPixelSize(122)
+        font2.setPixelSize(104)
         path2 = _centered_text_path(font2, "x")
-        path2.translate(184, 174)
+        path2.translate(176, 167)
         for glyph in (path, path2):
             painter.fillPath(glyph, ink)
             painter.strokePath(glyph, pen)
         painter.end()
         icon = QIcon(pixmap)
-        _cache["expression"] = icon
+        _cache[key] = icon
     return icon
 
 
 def variables_icon():
     """$( ) glyph: the testium variable syntax."""
-    icon = _cache.get("variables")
+    key = "variables" + icon_prefix()
+    icon = _cache.get(key)
     if icon is None:
         # Sans $( ) around an italic serif x, shared baseline, sized to
         # fill the 256 px canvas.
@@ -108,7 +122,7 @@ def variables_icon():
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QColor(186, 104, 200))
+        painter.setPen(_ink(QColor(186, 104, 200)))
         gap = 2
 
         def fonts(px):
@@ -149,5 +163,5 @@ def variables_icon():
             x += tight.width() + gap
         painter.end()
         icon = QIcon(pixmap)
-        _cache["variables"] = icon
+        _cache[key] = icon
     return icon
