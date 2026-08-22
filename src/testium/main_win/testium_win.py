@@ -443,8 +443,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         shared with the Test menu (shortcuts stay global)."""
         self.stepBar = QToolBar("Run", self)
         self.stepBar.setObjectName("stepBar")
-        self.stepBar.setMovable(False)
-        self.stepBar.setFloatable(False)
+        self.stepBar.setMovable(True)
+        self.stepBar.setFloatable(True)
         # Created before the Debug setChecked below: its toggled slot walks
         # every step action, this one included.
         self.actionRerun_step = QAction("Re-run last step", self)
@@ -472,6 +472,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._set_step_actions_visible(self.actionDebugOutput.isChecked())
 
         self.addToolBar(Qt.TopToolBarArea, self.stepBar)
+        # Fires on undock and on re-dock after a drag, so every move ends
+        # with a style refresh matching the final area.
+        self.stepBar.topLevelChanged.connect(
+            lambda _: self._update_step_bar_style())
         self._update_step_bar_style()
 
     def _build_view_menu(self):
