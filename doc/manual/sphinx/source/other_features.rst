@@ -113,7 +113,7 @@ Several testium instances can run at the same time on the same machine.
 Window layout
 -------------
 
-The Log, Test doc, Test item and Variables panels are dockable: drag a
+The Log, Test doc, Step info and Variables panels are dockable: drag a
 panel by its title bar to any side, below the tree, below the log, or
 drop it on another panel to tab them. Panels close from their title bar;
 the View menu lists them and can reset the layout. The arrangement is

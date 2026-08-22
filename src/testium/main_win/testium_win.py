@@ -474,7 +474,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionExpression.setToolTip("Show the Expression panel")
         self.actionExpression.triggered.connect(
             self.on_actionExpression_triggered)
-        self.actionTestInformation.setToolTip("Show the Test item panel")
+        self.actionTestInformation.setToolTip("Show the Step info panel")
         self.panelsBar = QToolBar("Panels", self)
         self.panelsBar.setObjectName("panelsBar")
         self.panelsBar.setIconSize(self.toolBar.iconSize())

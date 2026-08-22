@@ -1,7 +1,7 @@
 version 0.5.0
 ==============
 - The F1 window is replaced by two dockable panels: Variables and
-  Test item, tabbed with the doc panel by default. F1 focuses Variables.
+  Step info, tabbed with the doc panel by default. F1 focuses Variables.
 - New View menu: show or hide each panel, reset the layout.
 - Panels can be closed from their title bar.
 - The log panel header is a single compact row.
@@ -11,7 +11,7 @@ version 0.5.0
   history (a picked entry is copied to the clipboard).
 - The Time column preference applies without restart.
 - The test item dialogs are resizable.
-- Toolbar buttons bring the Test item and Variables panels back on
+- Toolbar buttons bring the Step info and Variables panels back on
   screen; every panel can be dragged to any side, below the tree, below
   the log, or tabbed.
 - The expression tester is its own panel.

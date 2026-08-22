@@ -440,7 +440,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(shortcut)
         self.actionPreferences.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+Shift+P", None))
 #endif // QT_CONFIG(shortcut)
-        self.actionTestInformation.setText(QCoreApplication.translate("MainWindow", u"Step &Information", None))
+        self.actionTestInformation.setText(QCoreApplication.translate("MainWindow", u"Step &info", None))
 #if QT_CONFIG(tooltip)
         self.actionTestInformation.setToolTip(QCoreApplication.translate("MainWindow", u"Details on the selected test step", None))
 #endif // QT_CONFIG(tooltip)

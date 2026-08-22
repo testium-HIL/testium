@@ -55,7 +55,7 @@ class YamlHighlighter(QSyntaxHighlighter):
 
 class ItemDock(QDockWidget):
     def __init__(self, parent=None):
-        super().__init__("Test item", parent)
+        super().__init__("Step info", parent)
         self.setObjectName("itemDock")
 
         body = QWidget(self)

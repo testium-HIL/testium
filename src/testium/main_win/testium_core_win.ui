@@ -673,7 +673,7 @@
      <normaloff>:/black/info.png</normaloff>:/black/info.png</iconset>
    </property>
    <property name="text">
-    <string>Step &amp;Information</string>
+    <string>Step &amp;info</string>
    </property>
    <property name="toolTip">
     <string>Details on the selected test step</string>
