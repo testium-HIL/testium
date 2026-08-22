@@ -43,6 +43,7 @@ from main_win.about_win.about_win import Ui_About
 from main_win.preference_win.preference_win import PrefWindow
 from main_win.variables_dock import VariablesDock
 from main_win.item_dock import ItemDock
+from main_win.expression_dock import ExpressionDock
 from main_win.test_tree import QTestTree
 
 from main_win.test_run.thread_output import ThreadTestOutput
@@ -161,8 +162,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._build_step_bar()
         self.variablesDock = VariablesDock(self)
         self.itemDock = ItemDock(self)
+        self.expressionDock = ExpressionDock(self)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.itemDock)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.variablesDock)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.expressionDock)
 
         state_settings = prefs.settings.value(
             prefs.SettingsItem("state", bytearray), bytearray()
@@ -469,6 +472,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.menuView.addAction(self.DocDockWidget.toggleViewAction())
         self.menuView.addAction(self.itemDock.toggleViewAction())
         self.menuView.addAction(self.variablesDock.toggleViewAction())
+        self.menuView.addAction(self.expressionDock.toggleViewAction())
         self.menuView.addAction(self.stepBar.toggleViewAction())
         self.menuView.addSeparator()
         reset = self.menuView.addAction("Reset layout")
@@ -478,7 +482,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Default arrangement: log right (~38% width); doc, item and
         variables tabbed below it, doc on top."""
         docks = (self.logDockWidget, self.DocDockWidget,
-                 self.itemDock, self.variablesDock)
+                 self.itemDock, self.variablesDock, self.expressionDock)
         for dock in docks:
             dock.setFloating(False)
             dock.show()
@@ -487,6 +491,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                              Qt.Vertical)
         self.tabifyDockWidget(self.DocDockWidget, self.itemDock)
         self.tabifyDockWidget(self.itemDock, self.variablesDock)
+        self.tabifyDockWidget(self.variablesDock, self.expressionDock)
         self.DocDockWidget.raise_()
         self.resizeDocks([self.logDockWidget],
                          [int(self.width() * 0.38)], Qt.Horizontal)
@@ -592,6 +597,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_variables_service(self, service):
         self.variablesDock.set_service(service)
+        self.expressionDock.set_service(service)
 
     def snapshot_tree_states(self):
         return self.treeTests.getItemStates()

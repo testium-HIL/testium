@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (c) 2026 François Dausseur
-"""Variables dock: the global dict table with filter, edition and the
-expression tester. Display only; the logic lives in
-gui/variables_presenter.py."""
+"""Variables dock: the global dict table with filter and edition.
+Display only; the logic lives in gui/variables_presenter.py."""
 
 import json
 
@@ -16,7 +15,6 @@ from PySide6.QtWidgets import (
 )
 
 from gui.variables_presenter import VariablesPresenter
-from main_win.expression_info import expression_info_button
 
 
 class GdVarEditDialog(QDialog):
@@ -51,21 +49,6 @@ class GdVarEditDialog(QDialog):
             self.accept()
         except json.JSONDecodeError as e:
             QMessageBox.warning(self, "Invalid JSON", str(e))
-
-
-class _ExprEdit(QPlainTextEdit):
-    """Enter evaluates, Shift+Enter inserts a newline."""
-
-    def __init__(self, on_enter, parent=None):
-        super().__init__(parent)
-        self._on_enter = on_enter
-
-    def keyPressEvent(self, event):
-        if (event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
-                and not event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
-            self._on_enter()
-            return
-        super().keyPressEvent(event)
 
 
 class VariablesDock(QDockWidget):
@@ -130,37 +113,6 @@ class VariablesDock(QDockWidget):
         add_row.addWidget(self.addVarButton)
         layout.addLayout(add_row)
 
-        # Fixed height: the vertical slack goes to the table.
-        metrics = QFontMetrics(self._mono_font)
-        self._expr_edit = _ExprEdit(self._on_expr_entered)
-        self._expr_edit.setPlaceholderText("$(var) == 3   (Enter evaluates)")
-        self._expr_edit.setFont(self._mono_font)
-        self._expr_edit.setFixedHeight(metrics.lineSpacing() * 3 + 12)
-        self._expr_edit.setEnabled(False)
-        self._expr_button = QPushButton("Evaluate")
-        self._expr_button.clicked.connect(self._on_expr_entered)
-        self._expr_button.setEnabled(False)
-        self._expr_result = QPlainTextEdit()
-        self._expr_result.setReadOnly(True)
-        self._expr_result.setFont(self._mono_font)
-        self._expr_result.setPlaceholderText("Result")
-        self._expr_result.setFixedHeight(metrics.lineSpacing() * 4 + 12)
-        box = QGroupBox("Expression tester", body)
-        box_layout = QVBoxLayout(box)
-        expr_row = QHBoxLayout()
-        expr_row.addWidget(self._expr_edit, 1)
-        expr_row.addWidget(expression_info_button(
-            self, extra="<br>A lone <code>$(name)</code> shows the value "
-                        "without evaluating it.<br><b>Enter</b> evaluates, "
-                        "<b>Shift+Enter</b> inserts a new line."),
-            0, Qt.AlignmentFlag.AlignTop)
-        expr_row.addWidget(self._expr_button, 0, Qt.AlignmentFlag.AlignTop)
-        box_layout.addLayout(expr_row)
-        box_layout.addWidget(self._expr_result)
-        box.setSizePolicy(QSizePolicy.Policy.Preferred,
-                          QSizePolicy.Policy.Fixed)
-        layout.addWidget(box)
-
         self.setWidget(body)
 
     # --- entry points ---
@@ -185,11 +137,6 @@ class VariablesDock(QDockWidget):
     def set_enabled(self, enabled):
         self.varsTable.setEnabled(enabled)
         self.addVarButton.setEnabled(enabled)
-        self._expr_edit.setEnabled(enabled)
-        self._expr_button.setEnabled(enabled)
-        if not enabled:
-            self._expr_result.clear()
-            self._expr_result.setStyleSheet("")
 
     def clear_rows(self):
         self._updating = True
@@ -250,14 +197,7 @@ class VariablesDock(QDockWidget):
         item = self.varsTable.item(row, 1)
         return item.text() if item is not None else ""
 
-    def show_expr_result(self, text, is_error):
-        self._expr_result.setStyleSheet("color: #b71c1c;" if is_error else "")
-        self._expr_result.setPlainText(text)
-
     # --- widget slots ------------------------------------------------------
-
-    def _on_expr_entered(self):
-        self._presenter.evaluate(self._expr_edit.toPlainText())
 
     def _on_filter_changed(self, _arg=None):
         self._presenter.set_filter(self.filter_edit.text(),

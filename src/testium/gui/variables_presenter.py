@@ -142,7 +142,11 @@ class VariablesPresenter:
         if service is not None:
             service.del_gd_var(key)
 
-    # --- expression tester ---
+
+class ExpressionPresenter:
+    def __init__(self, view, service) -> None:
+        self._view = view
+        self._service = service
 
     def evaluate(self, expr):
         expr = expr.strip()
