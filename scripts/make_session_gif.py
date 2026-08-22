@@ -23,7 +23,7 @@ OUTPUT = os.path.join(REPO, "doc", "testium_session.gif")
 
 TICK_MS = 150
 WINDOW = (1280, 800)
-LOG_DOCK_WIDTH = 500
+LOG_DOCK_WIDTH = 600
 CURSOR_REST = (620, 470)
 MAX_FRAMES = 400
 
@@ -124,10 +124,16 @@ def capture(frames_dir):
                      config_files=[])
     win.resize(*WINDOW)
     win.DocDockWidget.hide()
-    win.itemDock.hide()
-    win.variablesDock.hide()
+    # The three panels tabbed under the tree, Step info on top.
+    for dock in (win.itemDock, win.variablesDock, win.expressionDock):
+        win.addDockWidget(Qt.BottomDockWidgetArea, dock)
+        dock.show()
+    win.tabifyDockWidget(win.itemDock, win.variablesDock)
+    win.tabifyDockWidget(win.variablesDock, win.expressionDock)
+    win.itemDock.raise_()
     win.show()
     win.resizeDocks([win.logDockWidget], [LOG_DOCK_WIDTH], Qt.Horizontal)
+    win.resizeDocks([win.itemDock], [230], Qt.Vertical)
 
     items = {it.name: it for it in win.treeTests._all_items()}
     bp_item = items["Acquire three samples"]
@@ -139,7 +145,7 @@ def capture(frames_dir):
         return (c.x(), c.y())
 
     def action_center(action):
-        for bar in (win.stepBar, win.toolBar):
+        for bar in (win.stepBar, win.toolBar, win.panelsBar):
             w = bar.widgetForAction(action)
             if w is not None:
                 return widget_center(w)
@@ -156,11 +162,7 @@ def capture(frames_dir):
         win.test_service.add_breakpoint(bp_item.id)
 
     def show_variables():
-        # Below the tree, not stacked under the log column.
-        win.addDockWidget(Qt.BottomDockWidgetArea, win.variablesDock)
-        win.variablesDock.show()
-        win.variablesDock.raise_()
-        win.resizeDocks([win.variablesDock], [240], Qt.Vertical)
+        win.on_actionVariables_triggered()
 
     sc = Scenario(CURSOR_REST)
     # Breakpoint on the acquisition loop.
