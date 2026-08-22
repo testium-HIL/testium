@@ -54,3 +54,21 @@ def search_icon():
         icon = QIcon(pixmap)
         _cache["search"] = icon
     return icon
+
+
+def expression_icon():
+    """Equals sign: evaluate an expression."""
+    icon = _cache.get("expression")
+    if icon is None:
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(70, 70, 70))
+        painter.drawRoundedRect(12, 20, 40, 9, 4, 4)
+        painter.drawRoundedRect(12, 36, 40, 9, 4, 4)
+        painter.end()
+        icon = QIcon(pixmap)
+        _cache["expression"] = icon
+    return icon

@@ -31,7 +31,8 @@ from PySide6.QtWidgets import (
     QProgressDialog,
 )
 from main_win.expression_info import expression_info_button
-from main_win.drawn_icons import follow_icon, search_icon
+from main_win.drawn_icons import (follow_icon, search_icon,
+                                  expression_icon)
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(os.path.join(ourPath, "resources"))
@@ -199,6 +200,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.on_actionVariables_triggered)
         self.toolBar.insertAction(self.actionSave_report,
                                   self.actionVariables)
+        self.actionExpression = QAction("Expression", self)
+        self.actionExpression.setIcon(expression_icon())
+        self.actionExpression.setToolTip("Show the Expression panel")
+        self.actionExpression.triggered.connect(
+            self.on_actionExpression_triggered)
+        self.toolBar.insertAction(self.actionSave_report,
+                                  self.actionExpression)
         self.actionTestInformation.setToolTip("Show the Test item panel")
 
         self.actionStart_test.setDisabled(True)
@@ -468,11 +476,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._update_step_bar_style()
 
     def _build_view_menu(self):
-        self.menuView.addAction(self.logDockWidget.toggleViewAction())
-        self.menuView.addAction(self.DocDockWidget.toggleViewAction())
-        self.menuView.addAction(self.itemDock.toggleViewAction())
-        self.menuView.addAction(self.variablesDock.toggleViewAction())
-        self.menuView.addAction(self.expressionDock.toggleViewAction())
+        for dock, icon_name in ((self.logDockWidget, "document"),
+                                (self.DocDockWidget, "note"),
+                                (self.itemDock, "info"),
+                                (self.variablesDock, "let")):
+            action = dock.toggleViewAction()
+            icon = QIcon()
+            icon.addPixmap(QPixmap(icon_prefix() + f"/{icon_name}.png"))
+            action.setIcon(icon)
+            self.menuView.addAction(action)
+        action = self.expressionDock.toggleViewAction()
+        action.setIcon(expression_icon())
+        self.menuView.addAction(action)
         self.menuView.addAction(self.stepBar.toggleViewAction())
         self.menuView.addSeparator()
         reset = self.menuView.addAction("Reset layout")
@@ -1120,6 +1135,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_actionVariables_triggered(self):
         self._toggle_panel(self.variablesDock)
+
+    def on_actionExpression_triggered(self):
+        self._toggle_panel(self.expressionDock)
 
     def _set_follow_button_silent(self, checked):
         self.buttFollowRun.blockSignals(True)
