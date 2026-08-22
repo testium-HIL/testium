@@ -482,7 +482,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.panelsBar.addAction(self.actionTestInformation)
         self.panelsBar.addAction(self.actionVariables)
         self.panelsBar.addAction(self.actionExpression)
-        self.addToolBar(Qt.TopToolBarArea, self.panelsBar)
+        # First launch: between the main bar and the Run bar.
+        self.insertToolBar(self.stepBar, self.panelsBar)
 
     def _build_view_menu(self):
         for dock, icon_name in ((self.logDockWidget, "document"),
