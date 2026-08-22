@@ -161,6 +161,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Built before restoreState so their positions are part of the
         # saved window state.
         self._build_step_bar()
+        self._build_panels_bar()
         self.variablesDock = VariablesDock(self)
         self.itemDock = ItemDock(self)
         self.expressionDock = ExpressionDock(self)
@@ -192,25 +193,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stepBar.setVisible(True)
         self._update_step_bar_style()
         self._build_view_menu()
-
-        # Toolbar shortcuts forcing a closed panel back on screen.
-        self.actionVariables = QAction("Variables", self)
-        icon = QIcon()
-        icon.addPixmap(QPixmap(icon_prefix() + "/let.png"))
-        self.actionVariables.setIcon(icon)
-        self.actionVariables.setToolTip("Show the Variables panel")
-        self.actionVariables.triggered.connect(
-            self.on_actionVariables_triggered)
-        self.toolBar.insertAction(self.actionSave_report,
-                                  self.actionVariables)
-        self.actionExpression = QAction("Expression", self)
-        self.actionExpression.setIcon(expression_icon())
-        self.actionExpression.setToolTip("Show the Expression panel")
-        self.actionExpression.triggered.connect(
-            self.on_actionExpression_triggered)
-        self.toolBar.insertAction(self.actionSave_report,
-                                  self.actionExpression)
-        self.actionTestInformation.setToolTip("Show the Test item panel")
 
         self.actionStart_test.setDisabled(True)
         self.actionShow_Results.setDisabled(True)
@@ -477,6 +459,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stepBar.topLevelChanged.connect(
             lambda _: self._update_step_bar_style())
         self._update_step_bar_style()
+
+    def _build_panels_bar(self):
+        """Separate bar with the panel-visibility buttons."""
+        self.actionVariables = QAction("Variables", self)
+        icon = QIcon()
+        icon.addPixmap(QPixmap(icon_prefix() + "/let.png"))
+        self.actionVariables.setIcon(icon)
+        self.actionVariables.setToolTip("Show the Variables panel")
+        self.actionVariables.triggered.connect(
+            self.on_actionVariables_triggered)
+        self.actionExpression = QAction("Expression", self)
+        self.actionExpression.setIcon(expression_icon())
+        self.actionExpression.setToolTip("Show the Expression panel")
+        self.actionExpression.triggered.connect(
+            self.on_actionExpression_triggered)
+        self.actionTestInformation.setToolTip("Show the Test item panel")
+        self.panelsBar = QToolBar("Panels", self)
+        self.panelsBar.setObjectName("panelsBar")
+        self.panelsBar.setIconSize(self.toolBar.iconSize())
+        self.panelsBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.panelsBar.addAction(self.actionTestInformation)
+        self.panelsBar.addAction(self.actionVariables)
+        self.panelsBar.addAction(self.actionExpression)
+        self.addToolBar(Qt.TopToolBarArea, self.panelsBar)
 
     def _build_view_menu(self):
         for dock, icon_name in ((self.logDockWidget, "document"),

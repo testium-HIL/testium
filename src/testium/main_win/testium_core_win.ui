@@ -232,7 +232,6 @@
    <addaction name="actionOpenTest"/>
    <addaction name="actionRefresh_test"/>
    <addaction name="separator"/>
-   <addaction name="actionTestInformation"/>
    <addaction name="actionSave_report"/>
    <addaction name="actionShow_Results"/>
    <addaction name="actionHelp"/>

@@ -334,7 +334,6 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionOpenTest)
         self.toolBar.addAction(self.actionRefresh_test)
         self.toolBar.addSeparator()
-        self.toolBar.addAction(self.actionTestInformation)
         self.toolBar.addAction(self.actionSave_report)
         self.toolBar.addAction(self.actionShow_Results)
         self.toolBar.addAction(self.actionHelp)
