@@ -1129,13 +1129,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionTestInformation_triggered(self):
-        self._toggle_panel(self.itemDock)
+        self._show_panel(self.itemDock)
 
     def on_actionVariables_triggered(self):
-        self._toggle_panel(self.variablesDock)
+        self._show_panel(self.variablesDock)
 
     def on_actionExpression_triggered(self):
-        self._toggle_panel(self.expressionDock)
+        self._show_panel(self.expressionDock)
 
     def _set_follow_button_silent(self, checked):
         self.buttFollowRun.blockSignals(True)
@@ -1143,12 +1143,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttFollowRun.blockSignals(False)
 
     @staticmethod
-    def _toggle_panel(dock):
+    def _show_panel(dock):
         # Hidden or tabbed behind (not visible for Qt): bring it to the
-        # front; visible on top: hide it.
-        if dock.isVisible():
-            dock.hide()
-        else:
+        # front. Already on top: nothing — the panel closes from its
+        # title bar.
+        if not dock.isVisible():
             dock.show()
             dock.raise_()
 
