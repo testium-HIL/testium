@@ -66,7 +66,8 @@ def expression_icon():
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QColor(70, 70, 70))
+        # Plot blue, like the color theme.
+        painter.setPen(QColor(29, 138, 197))
         font = QFont("serif")
         font.setItalic(True)
         font.setBold(True)
@@ -92,7 +93,8 @@ def variables_icon():
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QColor(70, 70, 70))
+        # Cycle purple, like the color theme.
+        painter.setPen(QColor(155, 38, 175))
         font = QFont("monospace")
         font.setBold(True)
         size = 40
