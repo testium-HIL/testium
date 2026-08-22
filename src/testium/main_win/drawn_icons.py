@@ -3,7 +3,9 @@
 """Small icons drawn in code — same in every icon theme."""
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QRect
+from PySide6.QtGui import (QColor, QFont, QFontMetrics, QIcon,
+                           QPainter, QPixmap)
 
 _cache = {}
 
@@ -57,18 +59,52 @@ def search_icon():
 
 
 def expression_icon():
-    """Equals sign: evaluate an expression."""
+    """Formula glyph: evaluate an expression."""
     icon = _cache.get("expression")
     if icon is None:
         pixmap = QPixmap(64, 64)
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor(70, 70, 70))
-        painter.drawRoundedRect(12, 20, 40, 9, 4, 4)
-        painter.drawRoundedRect(12, 36, 40, 9, 4, 4)
+        painter.setPen(QColor(70, 70, 70))
+        font = QFont("serif")
+        font.setItalic(True)
+        font.setBold(True)
+        font.setPixelSize(46)
+        painter.setFont(font)
+        painter.drawText(QRect(4, 2, 34, 60), Qt.AlignCenter, "f")
+        font2 = QFont("serif")
+        font2.setItalic(True)
+        font2.setPixelSize(30)
+        painter.setFont(font2)
+        painter.drawText(QRect(32, 22, 28, 40), Qt.AlignCenter, "x")
         painter.end()
         icon = QIcon(pixmap)
         _cache["expression"] = icon
+    return icon
+
+
+def variables_icon():
+    """$( ) glyph: the testium variable syntax."""
+    icon = _cache.get("variables")
+    if icon is None:
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(QColor(70, 70, 70))
+        font = QFont("monospace")
+        font.setBold(True)
+        size = 40
+        font.setPixelSize(size)
+        metrics = QFontMetrics(font)
+        while metrics.horizontalAdvance("$( )") > 60 and size > 10:
+            size -= 2
+            font.setPixelSize(size)
+            metrics = QFontMetrics(font)
+        painter.setFont(font)
+        painter.drawText(QRect(0, 0, 64, 64), Qt.AlignCenter, "$( )")
+        painter.end()
+        icon = QIcon(pixmap)
+        _cache["variables"] = icon
     return icon

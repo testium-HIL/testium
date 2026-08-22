@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 )
 from main_win.expression_info import expression_info_button
 from main_win.drawn_icons import (follow_icon, search_icon,
-                                  expression_icon)
+                                  expression_icon, variables_icon)
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(os.path.join(ourPath, "resources"))
@@ -463,9 +463,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _build_panels_bar(self):
         """Separate bar with the panel-visibility buttons."""
         self.actionVariables = QAction("Variables", self)
-        icon = QIcon()
-        icon.addPixmap(QPixmap(icon_prefix() + "/let.png"))
-        self.actionVariables.setIcon(icon)
+        self.actionVariables.setIcon(variables_icon())
         self.actionVariables.setToolTip("Show the Variables panel")
         self.actionVariables.triggered.connect(
             self.on_actionVariables_triggered)
@@ -488,13 +486,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _build_view_menu(self):
         for dock, icon_name in ((self.logDockWidget, "document"),
                                 (self.DocDockWidget, "note"),
-                                (self.itemDock, "info"),
-                                (self.variablesDock, "let")):
+                                (self.itemDock, "info")):
             action = dock.toggleViewAction()
             icon = QIcon()
             icon.addPixmap(QPixmap(icon_prefix() + f"/{icon_name}.png"))
             action.setIcon(icon)
             self.menuView.addAction(action)
+        action = self.variablesDock.toggleViewAction()
+        action.setIcon(variables_icon())
+        self.menuView.addAction(action)
         action = self.expressionDock.toggleViewAction()
         action.setIcon(expression_icon())
         self.menuView.addAction(action)
