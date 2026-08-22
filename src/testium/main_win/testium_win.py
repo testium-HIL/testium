@@ -1144,10 +1144,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @staticmethod
     def _show_panel(dock):
-        # Hidden or tabbed behind (not visible for Qt): bring it to the
-        # front. Already on top: nothing — the panel closes from its
+        # Hidden, or tabbed behind (empty visible region): bring it to
+        # the front. Already on top: nothing — the panel closes from its
         # title bar.
-        if not dock.isVisible():
+        if not dock.isVisible() or dock.visibleRegion().isEmpty():
             dock.show()
             dock.raise_()
 
