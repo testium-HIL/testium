@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (c) 2026 François Dausseur
-"""Per-test-file interface state: tree item states and log-file choice,
-stored in the settings under one key per file, LRU-capped."""
+"""Path-keyed tree item-state format (fold/check/breakpoint) and the
+per-file settings store holding one snapshot per file, LRU-capped.
+Pure Python; the toolkit side supplies node accessors and callbacks."""
 
 import hashlib
 import os
@@ -10,6 +11,68 @@ import time
 import interpreter.utils.settings as prefs
 
 FILE_STATES_MAX = 20
+
+
+# --- Path-keyed item states (fold/check/breakpoint) -----------------------
+# Snapshot format: one [key, folded, checked, breakpoint, bp_condition]
+# entry per item, JSON-compatible. Key = (type, name, occ) components from
+# root to item; occ counts preceding same-named siblings.
+
+def walk_with_keys(parent, children, ident, prefix=()):
+    """Yield (node, key); children(node) -> nodes, ident(node) -> (type, name)."""
+    seen = {}
+    for node in children(parent):
+        base = ident(node)
+        occ = seen.get(base, 0)
+        seen[base] = occ + 1
+        key = prefix + (base + (occ,),)
+        yield node, key
+        yield from walk_with_keys(node, children, ident, key)
+
+
+def snapshot_states(nodes_with_keys, capture):
+    """Build the snapshot. capture(node) -> (folded, checked, breakpoint,
+    bp_condition)."""
+    states = []
+    for node, key in nodes_with_keys:
+        folded, checked, breakpoint, condition = capture(node)
+        states.append([[list(c) for c in key],
+                       folded, checked, breakpoint, condition])
+    return states
+
+
+def states_by_key(states):
+    """Decode a snapshot to key -> (folded, checked, breakpoint, condition).
+    Length-tolerant: entries saved without bp_condition load unchanged."""
+    wanted = {}
+    for entry in states:
+        key, folded, checked, breakpoint = entry[:4]
+        condition = entry[4] if len(entry) > 4 else None
+        wanted[tuple(tuple(c) for c in key)] = (
+            folded, checked, breakpoint, condition)
+    return wanted
+
+
+def restore_states(states, nodes_with_keys, service, apply_check, *,
+                   set_folded, show_skipped, set_checked, set_breakpoint):
+    """Restore by path key; unmatched keys keep defaults. Breakpoints and
+    enabled states are re-issued to *service* with the new interpreter ids.
+    set_breakpoint returns False when the node refuses breakpoints."""
+    wanted = states_by_key(states)
+    for node, key in nodes_with_keys:
+        state = wanted.get(key)
+        if state is None:
+            continue
+        folded, checked, breakpoint, condition = state
+        set_folded(node, folded)
+        if apply_check:
+            if service.get_skipped_state(node.id):
+                show_skipped(node)
+            else:
+                set_checked(node, checked)
+                service.set_enabled_state(node.id, checked, unitary=True)
+        if breakpoint and set_breakpoint(node, condition):
+            service.add_breakpoint(node.id, condition=condition)
 
 
 class FileStateStore:

@@ -284,6 +284,262 @@ def main():
     if parse_value("not a literal") != "not a literal":
         fail("parse_value fallback")
 
+    # Tree state format: structural keys, snapshot round-trip, restore.
+    from gui.tree_presenter import (walk_with_keys, snapshot_states,
+                                    states_by_key, restore_states)
+
+    class Node:
+        def __init__(self, test_type, name, node_id, children=()):
+            self.test_type = test_type
+            self.name = name
+            self.id = node_id
+            self.kids = list(children)
+
+    s1 = Node("step", "s", 11)
+    s2 = Node("step", "s", 12)          # same (type, name): occurrence 1
+    grp = Node("group", "g", 10, [s1, s2])
+    root = Node("", "", 0, [grp])
+    walk = lambda: walk_with_keys(root, lambda n: n.kids,
+                                  lambda n: (n.test_type, n.name or ""))
+    keys = [key for _n, key in walk()]
+    if keys[1][-1] != ("step", "s", 0) or keys[2][-1] != ("step", "s", 1):
+        fail(f"occurrence keys: {keys}")
+    per_node = {10: (False, True, True, None),
+                11: (True, False, True, "x > 1"),
+                12: (False, True, True, None)}
+    states = snapshot_states(walk(), lambda n: per_node[n.id])
+    if states_by_key(states)[keys[1]] != (True, False, True, "x > 1"):
+        fail("snapshot round-trip lost a state")
+    # Entries saved before bp_condition existed load with condition None.
+    if states_by_key([[[["step", "s", 0]], True, True, True]]) \
+            [(("step", "s", 0),)] != (True, True, True, None):
+        fail("length-tolerant decode broken")
+
+    class FakeTreeService:
+        def __init__(self):
+            self.calls = []
+
+        def get_skipped_state(self, node_id):
+            return node_id == 12
+
+        def set_enabled_state(self, node_id, state, unitary=False):
+            self.calls.append(("enable", node_id, state, unitary))
+
+        def add_breakpoint(self, node_id, condition=None):
+            self.calls.append(("bp", node_id, condition))
+
+    tsvc = FakeTreeService()
+    applied = []
+    restore_states(
+        states, walk(), tsvc, True,
+        set_folded=lambda n, folded: applied.append(("fold", n.id, folded)),
+        show_skipped=lambda n: applied.append(("skipped", n.id)),
+        set_checked=lambda n, checked: applied.append(("check", n.id, checked)),
+        # Node 10 refuses breakpoints: no service re-issue for it.
+        set_breakpoint=lambda n, condition: n.id != 10)
+    if ("skipped", 12) not in applied or ("check", 12, True) in applied:
+        fail(f"skipped node not handled: {applied}")
+    if ("enable", 11, False, True) not in tsvc.calls:
+        fail(f"enabled state not re-issued: {tsvc.calls}")
+    if ("bp", 11, "x > 1") not in tsvc.calls:
+        fail(f"breakpoint not re-issued: {tsvc.calls}")
+    # Skip only affects check/enable: the breakpoint is still re-issued.
+    if ("bp", 12, None) not in tsvc.calls:
+        fail(f"breakpoint dropped on a skipped node: {tsvc.calls}")
+    if any(c[0] == "bp" and c[1] == 10 for c in tsvc.calls):
+        fail("breakpoint re-issued for a node that refuses breakpoints")
+
+    # Tree view model: precedences, search rule, tables.
+    from gui import tree_view_model as tvm
+
+    if tvm.highlight_style(True, True) != "run" \
+            or tvm.highlight_style(False, True) != "search" \
+            or tvm.highlight_style(False, False) is not None:
+        fail("highlight precedence broken")
+    if tvm.gutter_icon(True, True, None) != "attach_bp" \
+            or tvm.gutter_icon(True, False, None) != "attach" \
+            or tvm.gutter_icon(False, True, "x") != "bp_conditional" \
+            or tvm.gutter_icon(False, True, None) != "bp" \
+            or tvm.gutter_icon(False, False, None) is not None:
+        fail("gutter precedence broken")
+    if not tvm.matches_search("cons", ["type"], "step1", "Console", None) \
+            or tvm.matches_search("cons", ["name"], "step1", "Console", None):
+        fail("search match rule broken")
+    if not tvm.ITEM_CONFIG["unittest"].get("no_breakpoint") \
+            or tvm.ITEM_CONFIG["Console"].get("unfoldable") is not False:
+        fail("ITEM_CONFIG behavioral columns changed")
+    cols = tvm.make_columns()
+    if len({c['index'] for c in cols.values()}) != len(cols):
+        fail("column indices not unique")
+
+    # Status presenter: engine status decoding, failure state, follow.
+    from gui.status_presenter import StatusPresenter
+    from interpreter.test_items.test_result import TestValue
+
+    sp = StatusPresenter()
+    upd = sp.decode({'id': 5, 'status': 'started', 'timestamp': 42})
+    if upd.highlight is not True or upd.follow or upd.paused:
+        fail(f"started decode: {upd}")
+    if sp.timestamp(5) != 42:
+        fail("timestamp not latched")
+    sp.decode({'id': 5, 'status': 'started', 'timestamp': 99})
+    if sp.timestamp(5) != 42:
+        fail("timestamp latch must keep the first value")
+    upd = sp.decode({'id': 5, 'value': TestValue.SUCCESS.value,
+                     'message': 'ok'})
+    if upd.icon != "success" or upd.result != ("ok", "ok"):
+        fail(f"success decode: {upd}")
+    upd = sp.decode({'id': 5, 'value': TestValue.FAILURE.value,
+                     'message': 'boom\nline2', 'date': 'D1'})
+    if (upd.icon != "fail" or upd.failure_count != 1
+            or upd.result != ("boom line2", "boom\nline2")):
+        fail(f"failure decode: {upd}")
+    if sp.global_success:
+        fail("failure did not clear global success")
+    if sp.history.entries(5) != [("D1", "boom\nline2")]:
+        fail(f"failure history: {sp.history.entries(5)}")
+    upd = sp.decode({'id': 5, 'value': TestValue.SUCCESS.value})
+    if upd.icon != "success_after_fail":
+        fail(f"success after failure: {upd.icon}")
+    upd = sp.decode({'id': 5, 'value': TestValue.NORUN.value,
+                     'message': 'skip'})
+    if upd.icon is not None:
+        fail(f"norun must not set an icon: {upd.icon}")
+    upd = sp.decode({'id': 5, 'status': 'paused'})
+    if not upd.paused or upd.highlight is not None:
+        fail(f"paused decode: {upd}")
+    upd = sp.decode({'id': 5, 'status': 'ended'})
+    if upd.highlight is not False:
+        fail(f"ended must reset the highlight: {upd}")
+    if sp.decode({'id': 0, 'status': 'started'}) is not None:
+        fail("id 0 must decode to None")
+    sp.follow = True
+    upd = sp.decode({'id': 6, 'status': 'started', 'timestamp': 1})
+    if not upd.follow:
+        fail("follow directive missing")
+    # Follow target: topmost collapsed ancestor, else the item itself.
+    if StatusPresenter.follow_target("it", [("p", True), ("gp", True)]) != "it":
+        fail("expanded chain must target the item")
+    if StatusPresenter.follow_target(
+            "it", [("p", False), ("gp", False), ("root", True)]) != "gp":
+        fail("target must be the topmost collapsed ancestor")
+    sp.clear_run_marks()
+    upd = sp.decode({'id': 5, 'value': TestValue.SUCCESS.value})
+    if upd.icon != "success" or sp.history.current(5) != "":
+        fail("clear_run_marks did not reset the failure state")
+    sp.reset()
+    if sp.timestamp(5) != -1 or not sp.global_success:
+        fail("reset did not clear timestamps and the verdict")
+
+    # Debug presenter: menu availability, condition rule, output sync.
+    from gui.debug_presenter import (DebugPresenter, item_menu_state,
+                                     breakpoint_condition_change)
+    from interpreter.utils.constants import TestItemType as cst
+
+    py_func = cst.TYPE_PY_FUNCTION.item_name
+    ms = item_menu_state(py_func, True, False, False, True, [py_func, "Group"])
+    if not (ms.attach_enabled and ms.attach_checked and ms.condition_enabled
+            and ms.jump_enabled):
+        fail(f"menu state (py_func, paused): {ms}")
+    ms = item_menu_state("Sleep", False, True, False, True,
+                         ["Sleep", cst.TYPE_PARALLEL.item_name])
+    if ms.attach_enabled or ms.condition_enabled or ms.jump_enabled:
+        fail(f"menu state (parallel, no_breakpoint): {ms}")
+    if item_menu_state("Sleep", False, False, True, True, ["Sleep"]) \
+            .jump_enabled:
+        fail("jump must be disabled on a skipped item")
+    if item_menu_state("Sleep", False, False, False, False, ["Sleep"]) \
+            .jump_enabled:
+        fail("jump must require a paused run")
+    if breakpoint_condition_change(False, "  x == 1 ") != "x == 1":
+        fail("condition text not kept")
+    if breakpoint_condition_change(True, "") is not None:
+        fail("emptied condition must downgrade to a plain breakpoint")
+    if breakpoint_condition_change(False, "  ") is not False:
+        fail("empty condition without a breakpoint must change nothing")
+
+    class FakeDebugView:
+        def __init__(self):
+            self.steps_visible = None
+            self.checked = False
+            self.messages = []
+
+        def set_step_actions_visible(self, visible):
+            self.steps_visible = visible
+
+        def debug_output_checked(self):
+            return self.checked
+
+        def set_debug_output_checked(self, checked):
+            self.checked = checked
+
+        def show_transient_message(self, text):
+            self.messages.append(text)
+
+    dview = FakeDebugView()
+    dsvc = FakeService()
+    dp = DebugPresenter(dview, lambda: dsvc)
+    dview.checked = True    # the toggle signal comes from the checked box
+    dp.on_debug_output_toggled(True)
+    if dview.steps_visible is not True \
+            or ("set_gd_var", "test_debug", True) not in dsvc.calls:
+        fail(f"debug output toggle: {dsvc.calls}")
+    if prefs.settings.debug_output is not True:
+        fail("debug output preference not stored")
+    dp.sync_debug_output({"test_debug": False})
+    if dview.checked is not False or dview.steps_visible is not False:
+        fail("effective test_debug not reflected")
+    dp.sync_debug_output({"test_debug": False})   # no change: no flicker
+    from runtime.tum_except import ETUMRuntimeError
+
+    class JumpFailService:
+        def jump_to(self, item_id):
+            raise ETUMRuntimeError("no jump")
+
+    DebugPresenter(dview, lambda: JumpFailService()).jump_to(3)
+    if not dview.messages or "no jump" not in dview.messages[-1]:
+        fail(f"jump error not surfaced: {dview.messages}")
+
+    # Preferences presenter: restore/store, dirty set, effect dispatch.
+    from gui.preferences_presenter import (PreferencesPresenter, pref_fields,
+                                           apply_preference_changes)
+
+    class FakePrefView:
+        def __init__(self):
+            self.values = {}
+
+        def field_value(self, key, ftype):
+            return self.values[key.name]
+
+        def set_field_value(self, key, ftype, value):
+            self.values[key.name] = value
+
+    pview = FakePrefView()
+    pp = PreferencesPresenter(pview)
+    pp.restore()
+    if len(pview.values) != len(pref_fields()):
+        fail("restore did not fill every field")
+    time_key = prefs.settings.SettingsShowTimeColumn
+    pview.values[time_key.name] = not pview.values[time_key.name]
+    pp.store()
+    if not pp.is_changed(time_key) \
+            or pp.is_changed(prefs.settings.SettingsLogFontSize):
+        fail("dirty set wrong after store")
+    if prefs.settings.value(time_key) != pview.values[time_key.name]:
+        fail("store did not persist the edited value")
+
+    class FakeMainView:
+        def __init__(self):
+            self.verbs = []
+
+        def __getattr__(self, name):
+            return lambda: self.verbs.append(name)
+
+    mview = FakeMainView()
+    apply_preference_changes(pp, mview)
+    if mview.verbs != ["apply_time_column_preference"]:
+        fail(f"effect dispatch: {mview.verbs}")
+
     # PySide must never have been imported by this chain.
     if any(m.startswith("PySide") for m in sys.modules):
         fail("a PySide module was imported by the presenter chain")

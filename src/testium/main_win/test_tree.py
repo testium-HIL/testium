@@ -7,15 +7,15 @@ from PySide6 import QtWidgets
 from PySide6.QtWidgets import (QTreeWidget, QMenu, QApplication)
 from PySide6.QtCore import (Signal, QSize, Qt)
 
-from gui.result_history import ResultHistory
+from gui.status_presenter import StatusPresenter
+from gui.tree_presenter import (walk_with_keys, snapshot_states,
+                                restore_states)
 from interpreter.utils import tree_states
-from main_win.test_tree_items.common import make_columns
+from gui.tree_view_model import make_columns
 from runtime.tum_except import (ETUMFileError, ETUMSyntaxError)
 from main_win.test_controller_service import TestControllerService
 from main_win.test_tree_items.test_tree_item import make_tree_item
 
-from interpreter.test_items.test_result import (TestValue)
-import api.testium as tm
 import interpreter.utils.settings as prefs
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.icons import icon_prefix
@@ -40,7 +40,8 @@ class QTestTree(QTreeWidget):
         font.setPointSizeF(max(7.0, font.pointSizeF() - 1))
         self.setFont(font)
         self.setAnimated(True)
-        self.result_history = ResultHistory()
+        self._status = StatusPresenter()
+        self.result_history = self._status.history
         self.cols = make_columns()
         for k, v in prefs.settings.columns_size.items():
             if k in self.cols:
@@ -52,7 +53,6 @@ class QTestTree(QTreeWidget):
         self.header().setDefaultSectionSize(50)
         self.header().setMinimumSectionSize(50)
         self.header().setStretchLastSection(False)
-        self._global_success = True
 
         for name, data in self.cols.items():
             self.headerItem().setText(data['index'], data['name'])
@@ -85,16 +85,15 @@ class QTestTree(QTreeWidget):
         self.set_time_column_visible(prefs.settings.show_time_column)
         self.header().sectionResized.connect(self.resized)
         self.itemClicked.connect(self._on_result_clicked)
-        self._follow = False
         self.verticalScrollBar().sliderPressed.connect(
             self._disengage_follow)
 
     def set_follow(self, enabled):
-        self._follow = bool(enabled)
+        self._status.follow = bool(enabled)
 
     def _disengage_follow(self):
-        if self._follow:
-            self._follow = False
+        if self._status.follow:
+            self._status.follow = False
             self.follow_disengaged.emit()
 
     def wheelEvent(self, event):
@@ -120,14 +119,6 @@ class QTestTree(QTreeWidget):
         chosen = menu.exec(QCursor.pos())
         if chosen is not None:
             QApplication.clipboard().setText(chosen.data())
-
-    def _refresh_result(self, item):
-        text = self.result_history.current(item.id)
-        idx = self.cols['desc']['index']
-        # Multi-line text would change the row height; the full text
-        # stays in the tooltip and the history.
-        item.setText(idx, " ".join(text.split()))
-        item.setToolTip(idx, text if text else None)
 
     def updateTestSetItemState(self, tree_item, tst_ctrl: TestControllerService, state, unitary=False):
         id = tree_item.id
@@ -192,10 +183,19 @@ class QTestTree(QTreeWidget):
         self.__synchronizeEnabledStateRecursively(self.root, states)
 
     def getGlobalSuccess(self):
-        return self._global_success
+        return self._status.global_success
 
     def clearGlobalSuccess(self):
-        self._global_success = True
+        self._status.global_success = True
+
+    def item_timestamp(self, item):
+        """First 'started' timestamp of the item, -1 before it ran."""
+        return self._status.timestamp(item.id)
+
+    def clear(self):
+        # Interpreter ids are reallocated on reload: drop per-id run state.
+        self._status.reset()
+        super().clear()
 
     def _all_items(self):
         """Pre-order (visual, top-to-bottom) iteration over every tree item."""
@@ -281,76 +281,55 @@ class QTestTree(QTreeWidget):
         # itemChanged.
         self.blockSignals(True)
         try:
-            self.result_history.clear()
+            self._status.clear_run_marks()
             self.__clearAllStatusRecursively(self.invisibleRootItem())
         finally:
             self.blockSignals(False)
 
     def updateStatus(self, status):
-        if status['id'] > 0:
-            item = self.__findItemById(status['id'])
-            if item is not None:
-                # Signals stay connected during a run (live checkboxes):
-                # setBackground/setText on the name column must not fire
-                # itemChanged. The paused signal is emitted after unblocking.
-                emit_paused = False
-                self.blockSignals(True)
-                try:
-                    self.__updateStatusItem(item, status)
-                    if status.get('status', '').lower() == 'paused':
-                        emit_paused = True
-                finally:
-                    self.blockSignals(False)
-                if emit_paused:
-                    self.paused.emit()
+        if status.get('id', 0) <= 0:
+            return
+        item = self.__findItemById(status['id'])
+        if item is None:
+            return
+        upd = self._status.decode(status)
+        # Signals stay connected during a run (live checkboxes):
+        # setBackground/setText on the name column must not fire
+        # itemChanged. The paused signal is emitted after unblocking.
+        self.blockSignals(True)
+        try:
+            self.__applyStatusUpdate(item, upd)
+        finally:
+            self.blockSignals(False)
+        if upd.paused:
+            self.paused.emit()
 
-    def __updateStatusItem(self, item, status):
-        if 'value' in status:
-            # update the icon
-            is_success = status['value'] == TestValue.SUCCESS.value
-            is_norun = status['value'] == TestValue.NORUN.value
-            if is_success:
-                item.setStatusIcon(True)
-            elif not is_norun:
-                item.setStatusIcon(False)
-                self._global_success = False
-            # update the displayed message
-            if 'message' in status:
-                if (not is_success) and (not is_norun):
-                    if not status['message'] == '':
-                        self.result_history.record_failure(
-                            item.id, status['date'], status['message'])
-                elif not is_norun:
-                    self.result_history.set_current(
-                        item.id, status['message'])
-                self._refresh_result(item)
-
-        elif 'message' in status:
-            self.result_history.set_current(item.id, status['message'])
-            self._refresh_result(item)
-
-        if 'status' in status:
-            st = status['status'].lower()
-            if st == 'started':
-                item.setHighlighted()
-                item.setTimestamp(status['timestamp'])
-                if self._follow:
-                    # Never expand a collapsed group: follow its topmost
-                    # collapsed ancestor.
-                    target = item
-                    parent = item.parent()
-                    while parent is not None:
-                        if not parent.isExpanded():
-                            target = parent
-                        parent = parent.parent()
-                    self.scrollToItem(
-                        target, QTreeWidget.ScrollHint.PositionAtCenter)
-            elif st != 'paused':
-                item.resetHighlighted()
-
-        if ('duration' in status) and ('duration' in self.cols):
-            item.setText(self.cols['duration']['index'],
-                         '{:.1f}'.format(tm.timestamp_as_sec(status['duration'])))
+    def __applyStatusUpdate(self, item, upd):
+        if upd.icon is not None:
+            item.setStatusIcon(upd.icon)
+        if upd.failure_count is not None:
+            item.setText(self.cols['failure']['index'],
+                         str(upd.failure_count))
+        if upd.result is not None:
+            one_line, tooltip = upd.result
+            idx = self.cols['desc']['index']
+            item.setText(idx, one_line)
+            item.setToolTip(idx, tooltip)
+        if upd.highlight is True:
+            item.setHighlighted()
+        elif upd.highlight is False:
+            item.resetHighlighted()
+        if upd.follow:
+            ancestors = []
+            parent = item.parent()
+            while parent is not None:
+                ancestors.append((parent, parent.isExpanded()))
+                parent = parent.parent()
+            target = StatusPresenter.follow_target(item, ancestors)
+            self.scrollToItem(
+                target, QTreeWidget.ScrollHint.PositionAtCenter)
+        if (upd.duration_text is not None) and ('duration' in self.cols):
+            item.setText(self.cols['duration']['index'], upd.duration_text)
 
     def loadTestRecursively(self, tree_parent, test_set_item):
 
@@ -407,72 +386,37 @@ class QTestTree(QTreeWidget):
                 item.setExpanded(False)
 
     # --- Path-keyed item states (fold/check/breakpoint) -----------------------
-    # Reload and startup restoration matches items by a path key instead of
-    # positional lists.
+    # Format and restore policy in gui/tree_presenter.py.
 
-    def _walk_with_keys(self, parent=None, prefix=()):
-        """Yield (item, key) for every item. Key = tuple of (type, name, occ)
-        components from root to item; occ counts the preceding siblings with
-        the same (type, name), so unrelated insertions don't shift keys."""
-        if parent is None:
-            parent = self.invisibleRootItem()
-        seen = {}
-        for i in range(parent.childCount()):
-            item = parent.child(i)
-            ident = (item.test_type, item.name or "")
-            occ = seen.get(ident, 0)
-            seen[ident] = occ + 1
-            key = prefix + (ident + (occ,),)
-            yield item, key
-            yield from self._walk_with_keys(item, key)
+    def _walk_with_keys(self):
+        return walk_with_keys(
+            self.invisibleRootItem(),
+            lambda item: item.children(),
+            lambda item: (item.test_type, item.name or ""))
 
     def getItemStates(self):
-        """One [key, folded, checked, breakpoint, bp_condition] entry per
-        item. JSON-compatible: feeds both the reload snapshot and the
-        settings."""
-        states = []
-        for item, key in self._walk_with_keys():
-            states.append([
-                [list(c) for c in key],
-                not item.isExpanded(),
-                item.checkState(0) == Qt.Checked,
-                item.isBreakpoint(),
-                getattr(item, "_bp_condition", None),
-            ])
-        return states
+        return snapshot_states(self._walk_with_keys(), lambda item: (
+            not item.isExpanded(),
+            item.checkState(0) == Qt.Checked,
+            item.isBreakpoint(),
+            getattr(item, "_bp_condition", None)))
 
     def restoreItemStates(self, states, tst_ctrl: TestControllerService,
                           apply_check: bool):
-        """Restore fold/check/breakpoint by path key. Items whose key is
-        absent keep their defaults; obsolete keys are dropped. Breakpoints
-        and enabled states are re-issued with the new interpreter ids.
-        Length-tolerant: entries saved without bp_condition load unchanged."""
-        wanted = {}
-        for entry in states:
-            key, folded, checked, breakpoint = entry[:4]
-            condition = entry[4] if len(entry) > 4 else None
-            wanted[tuple(tuple(c) for c in key)] = (
-                folded, checked, breakpoint, condition)
-        for item, key in self._walk_with_keys():
-            state = wanted.get(key)
-            if state is None:
-                continue
-            folded, checked, breakpoint, condition = state
-            item.setExpanded(not folded)
-            if apply_check:
-                if tst_ctrl.get_skipped_state(item.id):
-                    item.setDisabled(True)
-                    for i in range(item.childCount()):
-                        item.child(i).setExpanded(False)
-                else:
-                    item.setCheckState(
-                        self.cols['name']['index'],
-                        Qt.Checked if checked else Qt.Unchecked)
-                    self.updateTestSetItemState(item, tst_ctrl, checked,
-                                                unitary=True)
-            if breakpoint and not item._no_breakpoint:
-                item.setBreakpointState(True, condition)
-                tst_ctrl.add_breakpoint(item.id, condition=condition)
+        def show_skipped(item):
+            item.setDisabled(True)
+            for i in range(item.childCount()):
+                item.child(i).setExpanded(False)
+
+        restore_states(
+            states, self._walk_with_keys(), tst_ctrl, apply_check,
+            set_folded=lambda item, folded: item.setExpanded(not folded),
+            show_skipped=show_skipped,
+            set_checked=lambda item, checked: item.setCheckState(
+                self.cols['name']['index'],
+                Qt.Checked if checked else Qt.Unchecked),
+            set_breakpoint=lambda item, condition:
+                item.setBreakpointState(True, condition))
 
     def resized(self, col, old_size, size):
         for k, v in self.cols.items():

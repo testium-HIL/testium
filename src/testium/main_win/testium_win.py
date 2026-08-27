@@ -56,7 +56,6 @@ from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
 from main_win import file_dialog
 import interpreter.utils.settings as prefs
-from interpreter.utils.constants import TestItemType as cst
 from runtime.stdout_redirect import stdio_redir
 import api.testium as tm
 from interpreter.utils.test_init import (
@@ -64,10 +63,12 @@ from interpreter.utils.test_init import (
     locate_report_file,
 )
 from interpreter.utils.version import get_testium_version
-from runtime.tum_except import ETUMRuntimeError
 from gui.run_presenter import RunPresenter, TestState
 from gui.protocols import RunUiState
 from main_win.qt_scheduler import QtScheduler
+from gui.debug_presenter import (DebugPresenter, item_menu_state,
+                                 breakpoint_condition_change)
+from gui.preferences_presenter import apply_preference_changes
 from gui.file_presenter import FilePresenter
 from gui.search_presenter import SearchNavigator
 from gui.tree_presenter import FileStateStore, FILE_STATES_MAX
@@ -128,6 +129,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                    lambda: self.test_service,
                                    self.threads_queue)
         self.runner.runandclose = runandclose
+        self.debugger = DebugPresenter(self, lambda: self.test_service)
         self.file_manager = FilePresenter(
             self, self.status_queue, config_files, defines,
             max_recent=MainWindow.MaxRecentFiles)
@@ -451,7 +453,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.stepBar.addAction(action)
         # The step actions belong to the debug mode: shown (and their
         # shortcuts active) only when Debug is checked.
-        self._set_step_actions_visible(self.actionDebugOutput.isChecked())
+        self.set_step_actions_visible(self.actionDebugOutput.isChecked())
 
         self.addToolBar(Qt.TopToolBarArea, self.stepBar)
         # Fires on undock and on re-dock after a drag, so every move ends
@@ -988,20 +990,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionPreferences_triggered(self):
         result = self.pref_win.exec()
         if result == QDialog.Accepted:
-            if self.pref_win.isChanged(prefs.settings.SettingsShowCheckboxes):
-                self.show_checkboxes()
-            if self.pref_win.isChanged(prefs.settings.SettingsDblClickEnabled):
-                if prefs.settings.dbl_click_enabled:
-                    self.treeTests.itemDoubleClicked.connect(self.on_testItemDblClicked)
-                else:
-                    self.treeTests.itemDoubleClicked.disconnect()
-            if self.pref_win.isChanged(prefs.settings.SettingsShowTimeColumn):
-                self.treeTests.set_time_column_visible(
-                    prefs.settings.show_time_column)
-            if self.pref_win.isChanged(prefs.settings.SettingsLogFont):
-                self.prefs_apply_font()
-            if self.pref_win.isChanged(prefs.settings.SettingsLogFontSize):
-                self.prefs_apply_font_size()
+            apply_preference_changes(self.pref_win.presenter, self)
+
+    # Effect verbs from gui/preferences_presenter.CHANGE_EFFECTS.
+
+    def apply_dbl_click_preference(self):
+        if prefs.settings.dbl_click_enabled:
+            self.treeTests.itemDoubleClicked.connect(
+                self.on_testItemDblClicked)
+        else:
+            self.treeTests.itemDoubleClicked.disconnect()
+
+    def apply_time_column_preference(self):
+        self.treeTests.set_time_column_visible(
+            prefs.settings.show_time_column)
 
     def on_testTreeContextMenu(self, pos):
         """Per-item debug actions. Options that do not apply are shown
@@ -1009,39 +1011,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         item = self.treeTests.itemAt(pos)
         if item is None or self.test_service is None:
             return
-        is_py_func = item.test_type == cst.TYPE_PY_FUNCTION.item_name
+        types = []
+        p = item
+        while p is not None:
+            types.append(p.test_type)
+            p = p.parent()
+        state = item_menu_state(
+            item.test_type, item.isDebugAttach(), item._no_breakpoint,
+            item._is_skipped, self.runner.state == TestState.PAUSED, types)
         menu = QMenu(self.treeTests)
         attach = menu.addAction("Wait for IDE debugger (py_func)")
         attach.setCheckable(True)
-        attach.setChecked(is_py_func and item.isDebugAttach())
-        attach.setEnabled(is_py_func)
+        attach.setChecked(state.attach_checked)
+        attach.setEnabled(state.attach_enabled)
         condition = menu.addAction("Breakpoint condition…")
-        condition.setEnabled(not item._no_breakpoint)
+        condition.setEnabled(state.condition_enabled)
         jump = menu.addAction("Jump to this item")
-        jump.setEnabled(self.runner.state == TestState.PAUSED
-                        and not item._is_skipped
-                        and not self._in_parallel(item))
+        jump.setEnabled(state.jump_enabled)
         chosen = menu.exec(self.treeTests.viewport().mapToGlobal(pos))
         if chosen is attach:
             enabled = attach.isChecked()
-            self.test_service.set_debug_attach(item.id, enabled)
+            self.debugger.set_debug_attach(item.id, enabled)
             item.setDebugAttachState(enabled)
         elif chosen is condition:
             self._edit_breakpoint_condition(item)
         elif chosen is jump:
-            try:
-                self.test_service.jump_to(item.id)
-            except ETUMRuntimeError as e:
-                self.statusBar().showMessage(str(e), 10000)
-
-    def _in_parallel(self, item):
-        p = item
-        while p is not None:
-            if p.test_type in (cst.TYPE_PARALLEL.item_name,
-                               cst.TYPE_PARALLEL_BRANCH.item_name):
-                return True
-            p = p.parent()
-        return False
+            self.debugger.jump_to(item.id)
 
     def _edit_breakpoint_condition(self, item):
         dlg = QDialog(self)
@@ -1065,35 +1060,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         edit.setFocus()
         if dlg.exec() != QDialog.Accepted:
             return
-        text = edit.text().strip()
-        if text:
-            item.setBreakpointState(True, text)
-            self.test_service.add_breakpoint(item.id, condition=text)
-        elif item.isBreakpoint():
-            # Emptied condition: back to a plain breakpoint.
-            item.setBreakpointState(True)
-            self.test_service.add_breakpoint(item.id)
+        change = breakpoint_condition_change(item.isBreakpoint(), edit.text())
+        if change is False:
+            return
+        item.setBreakpointState(True, change)
+        self.debugger.add_breakpoint(item.id, condition=change)
 
-    def _set_step_actions_visible(self, visible):
+    # --- DebugView implementation (driven by gui/debug_presenter.py) ------
+
+    def set_step_actions_visible(self, visible):
         for action in (self.actionStep_over, self.actionStep_into,
                        self.actionStep_out, self.actionRerun_step):
             action.setVisible(visible)
 
+    def debug_output_checked(self):
+        return self.actionDebugOutput.isChecked()
+
+    def set_debug_output_checked(self, checked):
+        self.actionDebugOutput.blockSignals(True)
+        self.actionDebugOutput.setChecked(checked)
+        self.actionDebugOutput.blockSignals(False)
+
+    # ----------------------------------------------------------------------
+
     @Slot(bool)
     def on_actionDebugOutput_toggled(self, checked):
-        prefs.settings.debug_output = checked
-        self._set_step_actions_visible(checked)
-        if self.test_service is not None:
-            self.test_service.set_gd_var("test_debug", bool(checked))
+        self.debugger.on_debug_output_toggled(checked)
 
     def sync_debug_output_action(self, gd_vars):
-        """Show the effective test_debug value; the preference is unchanged."""
-        effective = bool(gd_vars.get("test_debug", False))
-        if effective != self.actionDebugOutput.isChecked():
-            self.actionDebugOutput.blockSignals(True)
-            self.actionDebugOutput.setChecked(effective)
-            self.actionDebugOutput.blockSignals(False)
-            self._set_step_actions_visible(effective)
+        self.debugger.sync_debug_output(gd_vars)
 
     @Slot()
     def on_actionRefresh_test_triggered(self):
@@ -1203,7 +1198,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         items = self.treeTests.selectedItems()
         if len(items) > 0:
             doc = items[0].doc
-            tmstmp = items[0].timestamp()
             self.textEditTestDoc.setText("<b>" + items[0].name + ":</b><br>")
             if str(doc) != "":
                 self.textEditTestDoc.append(doc)
@@ -1211,7 +1205,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._scroll_log_to_item(items[0])
 
     def _scroll_log_to_item(self, item):
-        tmstmp = item.timestamp()
+        tmstmp = self.treeTests.item_timestamp(item)
         if tmstmp <= 0:
             return
         cursor = self.textLog.textCursor()
@@ -1238,7 +1232,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.test_service.del_breakpoint(item.id)
             return
         if (self.logFileName is not None) and os.access(self.logFileName, os.R_OK):
-            ln = tm.line_number("@@{}@@".format(item.timestamp()), self.logFileName)
+            ln = tm.line_number("@@{}@@".format(
+                self.treeTests.item_timestamp(item)), self.logFileName)
             if ln > 0:
                 self._open_in_editor(self.logFileName, ln + 1)
 

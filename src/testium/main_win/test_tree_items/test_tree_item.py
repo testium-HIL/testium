@@ -6,46 +6,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QTreeWidgetItem)
 from interpreter.utils.icons import icon_prefix
 from api.testium import print_warn
-
-# Maps item_name (from TestItemType.item_name) to visual config.
-# Keys: icon (required), icon_on (optional 2nd state), expanded, unfoldable, no_breakpoint
-_ITEM_CONFIG = {
-    "unittest":             {"icon": "folder.png",        "icon_on": "folder-open.png", "expanded": True,  "no_breakpoint": True},
-    "unittest step":        {"icon": "document.png",                                                        "no_breakpoint": True},
-    "pytest":               {"icon": "pytest.png",                                       "expanded": True,  "no_breakpoint": True},
-    "pytest step":          {"icon": "pytest.png",                                                          "no_breakpoint": True},
-    "Console":              {"icon": "terminal.png",       "unfoldable": False},
-    "Console action":       {"icon": "terminal.png"},
-    "Cycle":                {"icon": "cycle.png",          "expanded": True},
-    "python Function":      {"icon": "python.png"},
-    "lua Function":         {"icon": "lua.png"},
-    "Report":               {"icon": "report.png"},
-    "git repository":       {"icon": "git.png"},
-    "Runtime plot":         {"icon": "plot.png"},
-    "Runtime plot action":  {"icon": "plot.png"},
-    "Group":                {"icon": "folder-orange.png",  "icon_on": "folder-open-orange.png", "expanded": True},
-    "Image Dialog":         {"icon": "image.png"},
-    "Message Dialog":       {"icon": "info.png"},
-    "Let":                  {"icon": "let.png"},
-    "Check value":          {"icon": "verif.png"},
-    "Note Dialog":          {"icon": "note.png"},
-    "Question Dialog":      {"icon": "question.png"},
-    "Sleep":                {"icon": "sleep.png"},
-    "References Dialog":    {"icon": "label.png"},
-    "Value Dialog":         {"icon": "question.png"},
-    "Choices Dialog":       {"icon": "label.png"},
-    "Run tum":              {"icon": "run.png"},
-    "JSON-RPC":             {"icon": "json.png",           "unfoldable": False},
-    "JSON-RPC action":      {"icon": "json.png"},
-    "Parallel":             {"icon": "parallel.png",        "expanded": True},
-    "Parallel branch":      {"icon": "parallel_branch.png", "expanded": True},
-}
+from gui import tree_view_model
 
 
 def make_tree_item(parent, test_set_item, cols):
     """Factory: create a QTestTreeItem configured for the given test_set_item type."""
     item = QTestTreeItem(parent, test_set_item, cols)
-    cfg = _ITEM_CONFIG.get(test_set_item["type"], {})
+    cfg = tree_view_model.ITEM_CONFIG.get(test_set_item["type"], {})
     if cfg.get("unfoldable") is False:
         item.recursive_unfoldable = False
     if cfg.get("expanded"):
@@ -175,14 +142,11 @@ class QTestTreeItem(QTreeWidgetItem):
         self._is_search_match = False
         self._no_breakpoint = False
         parent.addChild(self)
-        self._has_failed = False
         self._display_pause = False
         self._bp_condition = None
         self._debug_attach = False
         self.icon_pause = _breakpoint_icon()
         self.icon_fake = QIcon()
-        self.nfailure = 0
-        self._timestamp = -1
         self._is_skipped = False
         tool_tip = (
             None
@@ -206,27 +170,21 @@ class QTestTreeItem(QTreeWidgetItem):
 
     def clearStatus(self):
         self.clearStatusIcon()
-        self.nfailure = 0
-        self.setText(self._cols["failure"]["index"], str(self.nfailure))
+        self.setText(self._cols["failure"]["index"], "0")
 
     def clearStatusIcon(self):
-        icon = QIcon()
-        self.setIcon(self._cols["status"]["index"], icon)
-        self._has_failed = False
+        self.setIcon(self._cols["status"]["index"], QIcon())
 
-    def setStatusIcon(self, success):
-        icon = QIcon()
-        if success:
-            if self._has_failed:
-                icon.addPixmap(QPixmap(icon_prefix() + "/success_orange.png"))
-            else:
-                icon.addPixmap(QPixmap(icon_prefix() + "/success.png"))
-        else:
-            icon.addPixmap(QPixmap(icon_prefix() + "/fail.png"))
-            self._has_failed = True
-            self.nfailure = self.nfailure + 1
-            self.setText(self._cols["failure"]["index"], str(self.nfailure))
+    _STATUS_PNG = {
+        "success": "success.png",
+        "success_after_fail": "success_orange.png",
+        "fail": "fail.png",
+    }
 
+    def setStatusIcon(self, kind):
+        """kind: a StatusUpdate.icon value from gui/status_presenter.py."""
+        icon = QIcon()
+        icon.addPixmap(QPixmap(icon_prefix() + "/" + self._STATUS_PNG[kind]))
         self.setIcon(self._cols["status"]["index"], icon)
 
     def setBreakpointState(self, on, condition=None):
@@ -251,11 +209,15 @@ class QTestTreeItem(QTreeWidgetItem):
 
     def _refresh_gutter(self):
         col = self._cols["pause"]["index"]
-        if self.isDebugAttach():
-            self.setIcon(col, _attach_icon(self._display_pause))
-        elif self._display_pause and self._bp_condition:
+        kind = tree_view_model.gutter_icon(
+            self.isDebugAttach(), self._display_pause, self._bp_condition)
+        if kind == "attach_bp":
+            self.setIcon(col, _attach_icon(True))
+        elif kind == "attach":
+            self.setIcon(col, _attach_icon(False))
+        elif kind == "bp_conditional":
             self.setIcon(col, _conditional_bp_icon())
-        elif self._display_pause:
+        elif kind == "bp":
             self.setIcon(col, self.icon_pause)
         else:
             self.setIcon(col, self.icon_fake)
@@ -274,14 +236,17 @@ class QTestTreeItem(QTreeWidgetItem):
         return self._display_pause
 
     def _refresh_highlight(self):
-        """Recompute name-column colours from flags: run (green) > search (amber) > none."""
+        """Recompute name-column colours; precedence and palette in
+        gui/tree_view_model.py."""
         col = self._cols["name"]["index"]
-        if self._is_highlighted:
-            self.setBackground(col, QBrush(QColor(153, 255, 153)))
+        style = tree_view_model.highlight_style(
+            self._is_highlighted, self._is_search_match)
+        if style == "run":
+            self.setBackground(col, QBrush(QColor(tree_view_model.RUN_BG)))
             self.setForeground(col, QBrush())
-        elif self._is_search_match:
-            self.setBackground(col, QBrush(QColor(255, 224, 130)))
-            self.setForeground(col, QBrush(QColor(0, 0, 0)))
+        elif style == "search":
+            self.setBackground(col, QBrush(QColor(tree_view_model.SEARCH_BG)))
+            self.setForeground(col, QBrush(QColor(tree_view_model.SEARCH_FG)))
         else:
             self.setBackground(col, QBrush())
             self.setForeground(col, QBrush())
@@ -297,14 +262,8 @@ class QTestTreeItem(QTreeWidgetItem):
             self._refresh_highlight()
 
     def matches_search(self, needle, fields):
-        """True if *needle* (lowercase) is in any enabled field (name/type/doc)."""
-        if "name" in fields and needle in (self.name or "").lower():
-            return True
-        if "type" in fields and needle in (self.test_type or "").lower():
-            return True
-        if "doc" in fields and needle in str(self.doc or "").lower():
-            return True
-        return False
+        return tree_view_model.matches_search(
+            needle, fields, self.name, self.test_type, self.doc)
 
     def setSearchMatch(self, on):
         """Search highlight (amber bg + black text), readable in any theme."""
@@ -319,10 +278,3 @@ class QTestTreeItem(QTreeWidgetItem):
         if resource_on != "":
             icon.addPixmap(QPixmap(resource_on), QIcon.Normal, QIcon.On)
         self.setIcon(self._cols["name"]["index"], icon)
-
-    def setTimestamp(self, val):
-        if (self._timestamp < 0) and (val > 0):
-            self._timestamp = val
-
-    def timestamp(self):
-        return self._timestamp

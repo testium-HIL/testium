@@ -1,11 +1,10 @@
-from collections import namedtuple
-
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QDialog, QFileDialog, QLabel, QLineEdit
 from PySide6.QtGui import QFont
 
 from main_win.preference_win.preference_core_win import Ui_preferenceWindow
 from main_win import file_dialog
+from gui.preferences_presenter import PreferencesPresenter
 
 import interpreter.utils.settings as prefs
 
@@ -24,8 +23,6 @@ _FIELD = {
     "combo": (lambda w: int(w.currentIndex()),      lambda w, v: w.setCurrentIndex(v)),
     "font":  (lambda w: w.currentFont().toString(), _set_font),
 }
-
-Field = namedtuple("Field", "key type widget")
 
 
 class PrefWindow(QDialog):
@@ -53,22 +50,23 @@ class PrefWindow(QDialog):
         self.editEditorCmd.setPlaceholderText("ex: code -g {file}:{line}")
         self.ui.formLayout.addRow(QLabel("Open log line in editor"), self.editEditorCmd)
 
+        # Field list and store/restore logic in gui/preferences_presenter.py.
         s = prefs.settings
-        self.fields = [
-            Field(s.SettingsShowCheckboxes,  "bool",  self.ui.checkBoxTest),
-            Field(s.SettingsShowTimeColumn,  "bool",  self.ui.checkShowTime),
-            Field(s.SettingsLogPath,         "text",  self.ui.editDefaultLogPath),
-            Field(s.SettingsReportPath,      "text",  self.ui.editDefaultReportPath),
-            Field(s.SettingsDblClickEnabled, "bool",  self.ui.checkDblClick),
-            Field(s.SettingsEditorCmd,       "text",  self.editEditorCmd),
-            Field(s.SettingsIconsTheme,      "combo", self.ui.choiceIconsTheme),
-            Field(s.SettingsLogFont,         "font",  self.ui.font_choice),
-            Field(s.SettingsLogFontSize,     "int",   self.ui.font_size),
-            Field(s.SettingsGitSupported,    "bool",  self.ui.checkGitSupported),
-            Field(s.SettingsPythonPath,      "text",  self.ui.editPythonPath),
-            Field(s.SettingsLuaPath,         "text",  self.ui.editLuaPath),
-        ]
-        self._changed = set()
+        self._widgets = {
+            s.SettingsShowCheckboxes.name:  self.ui.checkBoxTest,
+            s.SettingsShowTimeColumn.name:  self.ui.checkShowTime,
+            s.SettingsLogPath.name:         self.ui.editDefaultLogPath,
+            s.SettingsReportPath.name:      self.ui.editDefaultReportPath,
+            s.SettingsDblClickEnabled.name: self.ui.checkDblClick,
+            s.SettingsEditorCmd.name:       self.editEditorCmd,
+            s.SettingsIconsTheme.name:      self.ui.choiceIconsTheme,
+            s.SettingsLogFont.name:         self.ui.font_choice,
+            s.SettingsLogFontSize.name:     self.ui.font_size,
+            s.SettingsGitSupported.name:    self.ui.checkGitSupported,
+            s.SettingsPythonPath.name:      self.ui.editPythonPath,
+            s.SettingsLuaPath.name:         self.ui.editLuaPath,
+        }
+        self.presenter = PreferencesPresenter(self)
         self.restore_prefs()
         # Open sized to the content of the largest tab (a row is added in
         # code above, so the .ui geometry cannot know it); stays resizable.
@@ -78,21 +76,24 @@ class PrefWindow(QDialog):
             sa.setMinimumWidth(hint.width() + 4)
         self.adjustSize()
 
+    # --- PreferencesView implementation (driven by gui/preferences_presenter.py)
+
+    def field_value(self, key, ftype):
+        return _FIELD[ftype][0](self._widgets[key.name])
+
+    def set_field_value(self, key, ftype, value):
+        _FIELD[ftype][1](self._widgets[key.name], value)
+
+    # ----------------------------------------------------------------------
+
     def store_prefs(self):
-        self._changed = set()
-        for f in self.fields:
-            val = _FIELD[f.type][0](f.widget)
-            if val != prefs.settings.value(f.key):
-                prefs.settings.set_value(f.key, val)
-                self._changed.add(f.key.name)
-        prefs.settings.sync()
+        self.presenter.store()
 
     def restore_prefs(self):
-        for f in self.fields:
-            _FIELD[f.type][1](f.widget, prefs.settings.value(f.key))
+        self.presenter.restore()
 
     def isChanged(self, setting):
-        return setting.name in self._changed
+        return self.presenter.is_changed(setting)
 
     @Slot()
     def on_buttOKPressed(self):

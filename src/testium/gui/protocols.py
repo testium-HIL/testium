@@ -63,6 +63,28 @@ class FileView(Protocol):
     def end_tree_swap(self) -> None: ...
 
 
+class PreferencesView(Protocol):
+    """Preferences dialog surface driven by the preferences presenter.
+    *key* is a settings item; *ftype* one of the pref_fields widget types."""
+
+    def field_value(self, key, ftype: str): ...
+
+    def set_field_value(self, key, ftype: str, value) -> None: ...
+
+
+class DebugView(Protocol):
+    """Interface surface driven by the debug presenter."""
+
+    def set_step_actions_visible(self, visible: bool) -> None: ...
+
+    def debug_output_checked(self) -> bool: ...
+
+    def set_debug_output_checked(self, checked: bool) -> None:
+        """Silent: must not re-enter the toggle handler."""
+
+    def show_transient_message(self, text: str) -> None: ...
+
+
 class RunView(Protocol):
     """Interface surface driven by the run presenter."""
 
