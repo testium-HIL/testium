@@ -5,7 +5,7 @@ from multiprocessing import freeze_support
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
                                QCheckBox, QHBoxLayout)
-from PySide6.QtCore import Qt, QSettings, QTimer, QSize
+from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QFont, QFontInfo
 from PySide6.QtWidgets import QTreeWidgetItem
 
@@ -86,23 +86,28 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
     def connect_checked(self):
         self.choicesView.itemChanged.connect(self.on_testChecked)
 
+    @staticmethod
+    def _state_name(state):
+        return {Qt.Checked: "checked", Qt.Unchecked: "unchecked"}.get(
+            state, "partial")
+
     def on_selectDeselectAll(self):
-        state = self.checkSelect.checkState()
+        target = choices_presenter.bulk_check_target(
+            self._state_name(self.checkSelect.checkState()))
+        if target is None:
+            return
         self.choicesView.blockSignals(True)
         try:
-            if state == Qt.Checked:
-                self.updateTreeCheckState(self.root, True)
-            elif state == Qt.Unchecked:
-                self.updateTreeCheckState(self.root, False)
+            self.updateTreeCheckState(self.root, target)
         finally:
             self.choicesView.blockSignals(False)
 
     def on_checkFoldChanged(self):
-        if self.checkFold.checkState() != Qt.Unchecked:
-            self.foldAll(True)
+        fold, pin = choices_presenter.fold_action(
+            self._state_name(self.checkFold.checkState()))
+        self.foldAll(fold)
+        if pin != "unchecked":
             self._set_silent(self.checkFold, Qt.Checked)
-        else:
-            self.foldAll(False)
 
     def on_itemFoldChanged(self):
         self._set_silent(self.checkFold, Qt.PartiallyChecked)
@@ -176,14 +181,10 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
                 0, Qt.Checked if checked else Qt.Unchecked))
 
 def main(args, conn=None):
-    from interpreter.utils.settings import host_id
-    SettingsCompagny = "Testium"
-    # Per-host storage, like TestiumSettings (network home shared by PCs).
-    SettingsApplication = "testium_choices_dlg_" + args[0] + "." + host_id()
-    SettingsLastChoices = "last_choice"
     success = True
     from interpreter.test_items.dialog_presenter import (
-        AUTO_CLOSE_MS, accepts, mute_frozen_streams)
+        AUTO_CLOSE_MS, accepts, arg_at, load_last, mute_frozen_streams,
+        save_last, send_result)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
@@ -199,15 +200,12 @@ def main(args, conn=None):
     d.populate_tree(d.root, args[2])
     d.foldAll(False)
 
-    settings = QSettings(SettingsCompagny, SettingsApplication)
-    last_choice = settings.value(SettingsLastChoices, "")
-
-    d.apply_checked(last_choice)
+    d.apply_checked(load_last("choices", args[0]))
 
     d.connect_checked()
 
     d.choicesView.setFocus()
-    auto_result = args[4] if len(args) > 4 else None
+    auto_result = arg_at(args, 4)
     if auto_result is not None:
         QTimer.singleShot(AUTO_CLOSE_MS,
                           lambda: d.accept() if accepts(auto_result)
@@ -221,20 +219,8 @@ def main(args, conn=None):
 
     result = d.checked_state()
 
-    if conn:
-        if result:
-            # An empty tree yields [] — keep the previous selection instead
-            # of locking every next dialog to its all-checked default.
-            settings.setValue(SettingsLastChoices, result)
-        # Flush before sending: the parent terminates this subprocess as soon
-        # as it reads the result, so the QSettings destructor never runs and
-        # the write would race the kill (lost under Flatpak — see the
-        # tested-references dialog for the full rationale).
-        settings.sync()
-        conn.send([result, success])
-        conn.close()
-    else:
-        print(result, end="")
+    save_last("choices", args[0], result)
+    send_result(conn, result, success)
 
     mute_frozen_streams()
 

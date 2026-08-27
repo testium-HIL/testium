@@ -1,7 +1,5 @@
 import sys
 import os
-import shlex
-import subprocess
 import webbrowser
 from multiprocessing import Queue
 from threading import Thread
@@ -50,7 +48,6 @@ from main_win.test_tree import QTestTree
 from main_win.test_run.thread_output import ThreadTestOutput
 from runtime.string_queue import StringQueue
 from interpreter.utils.icons import icon_prefix
-from interpreter.utils import bins
 
 from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
@@ -69,6 +66,8 @@ from main_win.qt_scheduler import QtScheduler
 from gui.debug_presenter import (DebugPresenter, item_menu_state,
                                  breakpoint_condition_change)
 from gui.preferences_presenter import apply_preference_changes
+from gui.session_presenter import SessionPresenter
+from gui import open_target
 from gui.file_presenter import FilePresenter
 from gui.search_presenter import SearchNavigator
 from gui.tree_presenter import FileStateStore, FILE_STATES_MAX
@@ -76,9 +75,6 @@ from gui.tree_presenter import FileStateStore, FILE_STATES_MAX
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     MaxRecentFiles = 10
-    # Window-state schema version: bump when docks or toolbars change
-    # shape; an older blob is rejected and the default layout applies.
-    STATE_VERSION = 1
 
     def __init__(
         self,
@@ -130,6 +126,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                    self.threads_queue)
         self.runner.runandclose = runandclose
         self.debugger = DebugPresenter(self, lambda: self.test_service)
+        self.session = SessionPresenter(self)
         self.file_manager = FilePresenter(
             self, self.status_queue, config_files, defines,
             max_recent=MainWindow.MaxRecentFiles)
@@ -141,24 +138,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Persistence
         self.pref_win = PrefWindow(self)
 
-        lastLog = prefs.settings.log_file
-        self._cli_log_file = self.logFileName != ""
-        if self.logFileName == "":
-            self.editLogFilePath.setText(lastLog)
-            self.logFileName = lastLog
-            if prefs.settings.log_file_saved:
-                self.buttLogFileSaved.setChecked(True)
-        else:
-            if not os.path.isabs(self.logFileName):
-                self.logFileName = os.path.join(os.getcwd(), self.logFileName)
+        self.logFileName, log_saved, self._cli_log_file = \
+            self.session.initial_log_config(self.logFileName)
+        if log_saved:
             self.buttLogFileSaved.setChecked(True)
         self.editLogFilePath.setText(self.logFileName)
 
-        geo_settings = prefs.settings.value(
-            prefs.SettingsItem("geometry", bytearray), bytearray()
-        )
-        if geo_settings:
-            self.restoreGeometry(geo_settings)
+        self.session.restore_geometry()
 
         # Built before restoreState so their positions are part of the
         # saved window state.
@@ -171,19 +157,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.addDockWidget(Qt.BottomDockWidgetArea, self.variablesDock)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.expressionDock)
 
-        state_settings = prefs.settings.value(
-            prefs.SettingsItem("state", bytearray), bytearray()
-        )
-        restored = bool(state_settings) and self.restoreState(
-            bytes(state_settings), self.STATE_VERSION)
-        if not restored:
-            # Unknown state blob: default layout; the old pane-hiding
-            # preferences are honored once.
-            self._apply_default_layout()
-            if prefs.settings.hide_doc_pane:
-                self.DocDockWidget.hide()
-            if prefs.settings.hide_log_pane:
-                self.logDockWidget.hide()
+        self.session.restore_layout()
         # Nesting: panels can be stacked in both orientations inside an
         # area, not only along the area's own axis.
         self.setDockNestingEnabled(True)
@@ -301,17 +275,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.reportFileName = locate_report_file(self.reportFileName)
 
-        last_files = prefs.settings.recent_files
-        ret = False
-        if test_file:
-            if not os.path.isabs(test_file):
-                test_file = os.path.join(os.getcwd(), test_file)
-            if os.path.isfile(test_file):
-                ret = self.file_manager.load(test_file)
-        elif (len(last_files) > 0) and os.path.isfile(last_files[0]):
-            ret = self.file_manager.load(last_files[0])
-
-        if ret:
+        start_file = self.session.startup_file(test_file)
+        if start_file and self.file_manager.load(start_file):
             self.restore_file_state()
 
         self.threadTestStatus.testSetIsFinished.connect(self.runner.on_run_finished)
@@ -875,17 +840,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.textLog.setFont(f)
 
     def save_settings(self):
-        prefs.settings.set_value(
-            prefs.SettingsItem("geometry", bytearray), bytearray(self.saveGeometry())
-        )
-        prefs.settings.set_value(
-            prefs.SettingsItem("state", bytearray),
-            bytearray(self.saveState(self.STATE_VERSION))
-        )
-        if self.testFile:
-            self.stash_file_state(self.testFile)
+        self.session.save(self.testFile)
+
+    # --- SessionView implementation (driven by gui/session_presenter.py) --
+
+    def restore_geometry(self, blob):
+        self.restoreGeometry(blob)
+
+    def restore_state(self, blob, version):
+        return self.restoreState(blob, version)
+
+    def apply_default_layout(self):
+        self._apply_default_layout()
+
+    def hide_doc_pane(self):
+        self.DocDockWidget.hide()
+
+    def hide_log_pane(self):
+        self.logDockWidget.hide()
+
+    def save_geometry(self):
+        return self.saveGeometry()
+
+    def save_state(self, version):
+        return self.saveState(version)
+
+    def save_column_sizes(self):
         self.treeTests.saveSizes()
-        prefs.settings.sync()
 
     def closeEvent(self, event):
         self.on_exiting()
@@ -1117,7 +1098,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage(
             "Opening the logfile (" + s + "): " + self.logFileName, 100000
         )
-        if not bins.host_open_path(self.logFileName):
+        if not open_target.open_path(self.logFileName):
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.logFileName))
 
     @Slot()
@@ -1213,7 +1194,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         cursor = self.textLog.textCursor()
         cursor.movePosition(QTextCursor.Start)
         self.textLog.setTextCursor(cursor)
-        if self.textLog.find(f"@@{tmstmp}@@"):
+        if self.textLog.find(open_target.timestamp_marker(tmstmp)):
             cursor = self.textLog.textCursor()
             ln = cursor.block().blockNumber()
             self.textLog.verticalScrollBar().setValue(ln)
@@ -1234,23 +1215,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.test_service.del_breakpoint(item.id)
             return
         if (self.logFileName is not None) and os.access(self.logFileName, os.R_OK):
-            ln = tm.line_number("@@{}@@".format(
-                self.treeTests.item_timestamp(item)), self.logFileName)
+            ln = tm.line_number(
+                open_target.timestamp_marker(
+                    self.treeTests.item_timestamp(item)),
+                self.logFileName)
             if ln > 0:
                 self._open_in_editor(self.logFileName, ln + 1)
 
     def _open_in_editor(self, path, line):
-        """Open path at line via the configured editor template ({file}/{line}).
-        Empty template or failure falls back to opening the file without line."""
-        tmpl = prefs.settings.editor_cmd
-        if tmpl:
-            try:
-                argv = [p.format(file=path, line=line) for p in shlex.split(tmpl)]
-                subprocess.Popen(bins.host_console_command(argv, os.path.dirname(path) or "."))
-                return
-            except (KeyError, ValueError, IndexError, OSError):
-                pass
-        if not bins.host_open_path(path):
+        # Cascade in gui/open_target.py; URL opening is the toolkit fallback.
+        if not open_target.open_path(path, line):
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_spacePressed(self):

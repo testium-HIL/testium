@@ -18,7 +18,7 @@ class TestDialogWindow(QDialog, dialog_image_win.Ui_Dialog):
 def main(args, conn):
     success = True
     from interpreter.test_items.dialog_presenter import (
-        AUTO_CLOSE_MS, accepts, mute_frozen_streams)
+        AUTO_CLOSE_MS, accepts, arg_at, mute_frozen_streams)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
@@ -41,7 +41,7 @@ def main(args, conn):
 
         d.labelImage.setPixmap(QtGui.QPixmap.fromImage(image2))
 
-        auto_result = args[3] if len(args) > 3 else None
+        auto_result = arg_at(args, 3)
         if auto_result is not None:
             QTimer.singleShot(AUTO_CLOSE_MS,
                               lambda: d.accept() if accepts(auto_result)

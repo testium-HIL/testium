@@ -16,7 +16,7 @@ class TestDialogWindow(QDialog, dialog_value_win.Ui_Dialog):
 def main(args, conn=None):
     success = True
     from interpreter.test_items.dialog_presenter import (
-        AUTO_CLOSE_MS, accepts, mute_frozen_streams)
+        AUTO_CLOSE_MS, accepts, arg_at, mute_frozen_streams, send_result)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
@@ -28,9 +28,9 @@ def main(args, conn=None):
     d.labelDialog.setText(args[1])
     d.lineEdit.setText(args[2])
     d.lineEdit.setFocus()
-    auto_result = args[3] if len(args) > 3 else None
+    auto_result = arg_at(args, 3)
     if auto_result is not None:
-        auto_value = args[4] if len(args) > 4 else None
+        auto_value = arg_at(args, 4)
         def _auto_close():
             if auto_value is not None:
                 d.lineEdit.setText(auto_value)
@@ -40,11 +40,7 @@ def main(args, conn=None):
 
     if dres == QDialog.Rejected:
         success = False
-    if conn:
-        conn.send([d.lineEdit.text(), success])
-        conn.close()
-    else:
-        print(d.lineEdit.text(), end='')
+    send_result(conn, d.lineEdit.text(), success)
 
     mute_frozen_streams()
 

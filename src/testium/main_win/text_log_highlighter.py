@@ -1,6 +1,9 @@
 import re
 from PySide6.QtGui import (QColor, QTextCharFormat, QFont, QSyntaxHighlighter)
 
+from gui.open_target import LOG_STYLES, log_rules, FILE_PATTERN
+
+
 def format(color, style=''):
     """Return a QTextCharFormat with the given attributes.
     """
@@ -18,144 +21,18 @@ def format(color, style=''):
     return _format
 
 
-# Syntax styles that can be shared by all languages
-STYLES = {
-    'keyword': format('red', 'bold'),
-    'keyword2': format('green'),
-    'keyword3': format('blue'),
-    'keyword4': format('orange'),
-    'keyword5': format('darkCyan'),
-    'keyword6': format('darkBlue', 'bold'),
-    'timestamp': format('lightGrey', 'small'),
-    'operator': format('darkRed'),
-    'brace': format('darkMagenta'),
-    'defclass': format('black', 'bold'),
-    'string': format('darkslategray'),
-    'string2': format('darkCyan'),
-    'comment': format('darkCyan', 'italic'),
-    'self': format('black', 'italic'),
-    'numbers': format('darkBlue'),
-}
+# Tables in gui/open_target.py; only the QTextCharFormat mapping is Qt.
+STYLES = {name: format(color, style)
+          for name, (color, style) in LOG_STYLES.items()}
 
 
 class TextLogHighlighter (QSyntaxHighlighter):
-    """Syntax highlighter for the Python language.
-    """
-    # Python keywords
-    keywords = [
-        'assert', 'ASSERT', 'Assert'
-        'fail', 'FAIL', 'Fail', 'Failed', 'FAILED',
-        'error', 'ERROR', 'Error',
-        'Error', 'raise'
-    ]
-
-    keywords2 = [
-        'PASS', 'Passed', 'PASSED', 'OK', 'ok'
-    ]
-
-    keywords3 = [
-        'step', 'STEP', 'Step',
-        'True', 'true', 'TRUE',
-        'False', 'false', 'FALSE',
-    ]
-
-    keywords4 = [
-        'WARN', 'warning', 'Warning', 'WARNING',
-        'DEBUG'
-    ]
-
-    keywords5 = [
-        'INFO',
-        'Skipped', 'skipped', 'SKIPPED',
-        'Skip', 'skip', 'SKIP'
-    ]
-    keywords6 = [
-        'None'
-    ]
-
-    # Python operators
-    operators = [
-        '=',
-        # Comparison
-        '==', '!=', '<', '<=', '>', '>=',
-        # Arithmetic
-        r'\+', '-', r'\*', '/', '//', r'\%', r'\*\*',
-        # In-place
-        r'\+=', '-=', r'\*=', '/=', r'\%=',
-        # Bitwise
-        r'\^', r'\|', r'\&', r'\~', '>>', '<<',
-    ]
-
-    # Python braces
-    braces = [
-        r'\{', r'\}', r'\(', r'\)', r'\[', r'\]',
-    ]
+    """Syntax highlighter for the run log."""
 
     def __init__(self, document):
         super().__init__(document)
-
-        rules = []
-
-        # Keyword, operator, and brace rules
-        rules += [(r'\b%s\b' % w, STYLES['keyword'])
-                  for w in TextLogHighlighter.keywords]
-        rules += [(r'\b%s\b' % w, STYLES['keyword2'])
-                  for w in TextLogHighlighter.keywords2]
-        rules += [(r'\b%s\b' % w, STYLES['keyword3'])
-                  for w in TextLogHighlighter.keywords3]
-        rules += [(r'\b%s\b' % w, STYLES['keyword4'])
-                  for w in TextLogHighlighter.keywords4]
-        rules += [(r'\b%s\b' % w, STYLES['keyword5'])
-                  for w in TextLogHighlighter.keywords5]
-        rules += [(r'\b%s\b' % w, STYLES['keyword6'])
-                  for w in TextLogHighlighter.keywords6]
-        rules += [(r'%s' % o, STYLES['operator'])
-                  for o in TextLogHighlighter.operators]
-        rules += [(r'%s' % b, STYLES['brace'])
-                  for b in TextLogHighlighter.braces]
-
-        # All other rules
-        rules += [
-            # 'self'
-            (r'\bself\b', STYLES['self']),
-
-            # Double-quoted string, possibly containing escape sequences
-            (r'"[^"\\]*(\\.[^"\\]*)*"', STYLES['string']),
-            # Single-quoted string, possibly containing escape sequences
-            (r"'[^'\\]*(\\.[^'\\]*)*'", STYLES['string']),
-
-            # # 'def' followed by an identifier
-            # (r'\bdef\b\s*(\w+)', 1, STYLES['defclass']),
-            # # 'class' followed by an identifier
-            # (r'\bclass\b\s*(\w+)', 1, STYLES['defclass']),
-
-            # From '#' until a newline
-            (r'#[^\n]*', STYLES['comment']),
-
-            # Numeric literals
-            (r'\b[+-]?[0-9]+[lL]?\b', STYLES['numbers']),
-            (r'\b[+-]?0[xX][0-9A-Fa-f]+[lL]?\b', STYLES['numbers']),
-            (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b',
-             STYLES['numbers']),
-
-            # Timestamp
-            (r"@@[0-9]*@@", STYLES['timestamp']),
-        ]
-
-        # Build a QRegularExpression for each pattern
-        self.rules = rules
-
-        forbidden = r"[^\s\n\{\[\"]+"
-        self.pattern_file = re.compile(
-            r"(?:[A-Za-z]:\\" + forbidden + "|"   # Windows C:\...
-            r"~" + forbidden + "|"                # ~/...
-            r"\.{0,2}/" + forbidden + "|"         # ./..., ../...
-            r"/" + forbidden + "|"                # /...
-            r"[A-Za-z0-9_\-\.]+/" + forbidden + ")"
-        )
-        # self.format_file = QTextCharFormat()
-        # self.format_file.setUnderlineStyle(QTextCharFormat.SingleUnderline)
-        # self.format_file.setForeground(Qt.blue)
+        self.rules = [(exp, STYLES[name]) for exp, name in log_rules()]
+        self.pattern_file = FILE_PATTERN
 
     def highlightBlock(self, text):
         """Apply syntax highlighting to the given block of text.
@@ -164,9 +41,5 @@ class TextLogHighlighter (QSyntaxHighlighter):
             for match in re.finditer(expression, text):
                 start, end = match.span()
                 self.setFormat(start, end-start, format)
-
-            # for match in self.pattern_file.finditer(text):
-            #     start, end = match.span()
-            #     self.setFormat(start, end-start, self.format_file)
 
         self.setCurrentBlockState(0)

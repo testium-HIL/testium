@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QDockWidget, QFormLayout, QHBoxLayout,
                                QLabel, QLineEdit, QTextEdit, QToolButton,
                                QVBoxLayout, QWidget)
 
-from interpreter.utils import bins
+from gui import open_target
 
 
 class YamlHighlighter(QSyntaxHighlighter):
@@ -101,7 +101,7 @@ class ItemDock(QDockWidget):
         file = self.sequenceFileNameLineEdit.text()
         if not os.path.exists(file):
             return
-        if bins.host_open_path(file):
+        if open_target.open_path(file):
             return
         if sys.platform.startswith("win"):
             subprocess.Popen(f'explorer "{file}"')

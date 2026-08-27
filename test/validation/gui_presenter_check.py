@@ -540,6 +540,149 @@ def main():
     if mview.verbs != ["apply_time_column_preference"]:
         fail(f"effect dispatch: {mview.verbs}")
 
+    # Session presenter: startup decisions, layout migration, save.
+    from gui.session_presenter import SessionPresenter, STATE_VERSION
+
+    path, saved, is_cli = SessionPresenter.initial_log_config("run.log")
+    if not (is_cli and saved and os.path.isabs(path)):
+        fail(f"cli log config: {path}, {saved}, {is_cli}")
+    prefs.settings.log_file = "/tmp/stored.log"
+    path, saved, is_cli = SessionPresenter.initial_log_config("")
+    if is_cli or path != "/tmp/stored.log":
+        fail(f"stored log config: {path}, {is_cli}")
+    if SessionPresenter.startup_file("/nonexistent/x.tum") is not None:
+        fail("missing CLI file must not fall back")
+    real = os.path.join(WORK, "recent.tum")
+    open(real, "w").close()
+    prefs.settings.recent_files = [real]
+    if SessionPresenter.startup_file("") != real:
+        fail("recent file not picked at startup")
+
+    class FakeSessionView:
+        def __init__(self, accept_state):
+            self._accept = accept_state
+            self.calls = []
+
+        def __getattr__(self, name):
+            def call(*a):
+                self.calls.append(name)
+                if name == "restore_state":
+                    return self._accept
+                if name == "save_geometry" or name == "save_state":
+                    return b"blob"
+            return call
+
+    sview = FakeSessionView(False)
+    SessionPresenter(sview).restore_layout()
+    if "apply_default_layout" not in sview.calls:
+        fail(f"unknown state blob must apply the default layout: {sview.calls}")
+    sview = FakeSessionView(True)
+    sp2 = SessionPresenter(sview)
+    sp2.save("/tmp/t.tum")
+    if not {"save_geometry", "save_state", "stash_file_state",
+            "save_column_sizes"} <= set(sview.calls):
+        fail(f"session save calls: {sview.calls}")
+    sp2.restore_layout()
+    if "apply_default_layout" in sview.calls:
+        fail("accepted state blob must not reset the layout")
+    if not isinstance(STATE_VERSION, int):
+        fail("STATE_VERSION missing")
+
+    # Open target: path resolution, marker, highlight tables.
+    from gui import open_target
+
+    if open_target.timestamp_marker(42) != "@@42@@":
+        fail("timestamp marker format changed")
+    rel = os.path.basename(real)
+    if open_target.resolve_log_path(rel, WORK) != os.path.join(WORK, rel):
+        fail("relative log path not joined to the test dir")
+    if open_target.resolve_log_path("missing.txt", WORK) is not None:
+        fail("missing path must resolve to None")
+    rules = open_target.log_rules()
+    if any(style not in open_target.LOG_STYLES for _e, style in rules):
+        fail("log rule references an unknown style")
+    for sample in ("/var/log/x.log", r"C:\Users\a\b.txt", "./rel/f.py"):
+        if not open_target.FILE_PATTERN.search(sample):
+            fail(f"file pattern misses {sample}")
+
+    # Run I/O: message dispatch, line pump, tee guard.
+    from gui import run_io
+
+    routed = []
+    for m in ({"type": "gd_update", "key": "k", "value": 1},
+              {"type": "gd_delete", "key": "k"},
+              {"id": None}, {"id": 3, "status": "started"}):
+        run_io.dispatch_status(
+            m,
+            lambda k, v: routed.append(("up", k, v)),
+            lambda k: routed.append(("del", k)),
+            lambda: routed.append(("fin",)),
+            lambda s: routed.append(("st", s["id"])))
+    if routed != [("up", "k", 1), ("del", "k"), ("fin",), ("st", 3)]:
+        fail(f"status dispatch: {routed}")
+
+    class FakeStream:
+        def read(self):
+            return "a\n\nb\n"
+
+    lines = []
+    run_io.pump_lines(FakeStream(), lines.append)
+    if lines != ["a", "b"]:
+        fail(f"line pump: {lines}")
+
+    class BadOut:
+        def write(self, m):
+            raise OSError("disk full")
+
+    seen = []
+    tee = run_io.LogTee(seen.append, BadOut())
+    tee.writeln("x")
+    if seen != ["x\n"]:
+        fail("tee must survive a file-side write error")
+
+    # Dialog presenter: argv, result protocol, last-value store.
+    from interpreter.test_items.dialog_presenter import (
+        arg_at, send_result, load_last, save_last)
+
+    if arg_at(["a"], 1) is not None or arg_at(["a", "b"], 1) != "b":
+        fail("arg_at broken")
+
+    class FakeConn:
+        def __init__(self):
+            self.sent = None
+            self.closed = False
+
+        def send(self, v):
+            self.sent = v
+
+        def close(self):
+            self.closed = True
+
+    fc = FakeConn()
+    send_result(fc, "res", False)
+    if fc.sent != ["res", False] or not fc.closed:
+        fail(f"send_result: {fc.sent}")
+    if load_last("check", "none yet") != "":
+        fail("load_last must default to ''")
+    save_last("check", "dlg/1", "value1")
+    if load_last("check", "dlg/1") != "value1":
+        fail("last-value round-trip broken")
+    save_last("check", "dlg/1", "")
+    if load_last("check", "dlg/1") != "value1":
+        fail("empty value must keep the previous one")
+
+    # Choices tri-state transitions.
+    from interpreter.test_items.dialog_choices_files.choices_presenter \
+        import bulk_check_target, fold_action
+
+    if bulk_check_target("checked") is not True \
+            or bulk_check_target("unchecked") is not False \
+            or bulk_check_target("partial") is not None:
+        fail("bulk check transitions broken")
+    if fold_action("unchecked") != (False, "unchecked") \
+            or fold_action("partial") != (True, "checked"):
+        fail("fold transitions broken")
+
     # PySide must never have been imported by this chain.
     if any(m.startswith("PySide") for m in sys.modules):
         fail("a PySide module was imported by the presenter chain")

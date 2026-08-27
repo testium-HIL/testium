@@ -2,7 +2,7 @@ import sys
 from multiprocessing import freeze_support
 
 from PySide6.QtWidgets import (QApplication, QDialog, QTableWidgetItem)
-from PySide6.QtCore import Qt, QSettings, QTimer
+from PySide6.QtCore import Qt, QTimer
 
 try:
     from interpreter.test_items.tested_references_files import tested_refs_win
@@ -15,14 +15,10 @@ class TestedRefsWindow(QDialog, tested_refs_win.Ui_Dialog):
         self.setupUi(self)
 
 def main(args, conn=None):
-    from interpreter.utils.settings import host_id
-    SettingsCompagny = 'Testium'
-    # Per-host storage, like TestiumSettings (network home shared by PCs).
-    SettingsApplication = 'testium_ref_item.' + host_id()
-    SettingsLastReference = 'lastReference'
     success = True
     from interpreter.test_items.dialog_presenter import (
-        mute_frozen_streams)
+        AUTO_CLOSE_MS, accepts, arg_at, load_last, mute_frozen_streams,
+        save_last, send_result)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
@@ -34,8 +30,7 @@ def main(args, conn=None):
     d.labelDialog.setText(args[1])
     d.tableReferences.horizontalHeader().setStretchLastSection(True)
 
-    settings = QSettings(SettingsCompagny, SettingsApplication)
-    last_reference = settings.value(SettingsLastReference, '')
+    last_reference = load_last("refs")
 
     last_rows_content = last_reference.split(sep=',')
     args_rows_content = args[2].split(sep=',')
@@ -57,9 +52,11 @@ def main(args, conn=None):
         i += 1
 
     d.tableReferences.setFocus()
-    auto_result = args[3] if len(args) > 3 else None
+    auto_result = arg_at(args, 3)
     if auto_result is not None:
-        QTimer.singleShot(2000, lambda: d.accept() if auto_result.lower() == 'ok' else d.reject())
+        QTimer.singleShot(AUTO_CLOSE_MS,
+                          lambda: d.accept() if accepts(auto_result)
+                          else d.reject())
     dres = d.exec()
 
     if dres == QDialog.Rejected:
@@ -79,18 +76,8 @@ def main(args, conn=None):
 
     result=','.join(row_items)
 
-    if conn:
-        settings.setValue(SettingsLastReference, result)
-        # Flush to disk *before* handing the result back: as soon as the parent
-        # receives it on the pipe it terminates this subprocess (SIGTERM, no
-        # handler), so the QSettings destructor never runs. Without sync() the
-        # write races the kill and is lost — reliably so under Flatpak, where
-        # the .conf is atomically renamed on the slower ~/.var/app overlay.
-        settings.sync()
-        conn.send([result, success])
-        conn.close()
-    else:
-        print(result, end='')
+    save_last("refs", "", result)
+    send_result(conn, result, success)
 
     mute_frozen_streams()
 

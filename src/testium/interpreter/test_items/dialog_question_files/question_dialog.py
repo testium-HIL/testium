@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QTimer
 def main(args, conn):
     try:
         from interpreter.test_items.dialog_presenter import (
-            AUTO_CLOSE_MS, accepts, mute_frozen_streams)
+            AUTO_CLOSE_MS, accepts, arg_at, mute_frozen_streams)
         from interpreter.test_items import dialog_env
         dialog_env.setup()
         app = QApplication(['testium'])
@@ -18,7 +18,7 @@ def main(args, conn):
         msg.setText(args[1])
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        auto_result = args[2] if len(args) > 2 else None
+        auto_result = arg_at(args, 2)
         if auto_result is not None:
             btn = QMessageBox.Yes if accepts(auto_result) else QMessageBox.No
             QTimer.singleShot(AUTO_CLOSE_MS, lambda: msg.button(btn).click())
