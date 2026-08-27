@@ -32,6 +32,10 @@ class StringQueue(object):
     def flush(self):
         pass
 
+    def isatty(self):
+        # Some libraries (uvicorn logging) probe the captured stdout.
+        return False
+
 class BufferedStringQueue(StringQueue):
     def __init__(self, stream_out):
         super().__init__()

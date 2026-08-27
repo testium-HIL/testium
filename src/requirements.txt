@@ -11,3 +11,4 @@ matplotlib
 junit-xml
 lxml
 textual
+nicegui

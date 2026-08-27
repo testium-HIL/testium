@@ -54,3 +54,7 @@ class LogTee:
     def flush(self):
         if self.out:
             self.out.flush()
+
+    def isatty(self):
+        # Some libraries (uvicorn logging) probe the captured stdout.
+        return False

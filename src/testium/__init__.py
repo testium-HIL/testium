@@ -15,6 +15,7 @@ import interpreter.utils.constants as cst
 UI_BACKENDS = {
     "qt": ("main_win.testium_win", "MainWin"),
     "tui": ("tui_win.app", "TuiMain"),
+    "web": ("web_win.app", "WebMain"),
 }
 
 

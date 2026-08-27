@@ -38,6 +38,7 @@ focus; the command and the Python package are named `testium`. The bare
 
 * `testium-hil[qt]`: the Qt GUI (dialog and plot items need it too)
 * `testium-hil[tui]`: the terminal GUI (`testium --ui tui`)
+* `testium-hil[web]`: the browser GUI (`testium --ui web`, shared page on port 8080)
 * `testium-hil[lsp]`: the language server for editor support
 * `testium-hil[all]`: everything above
 
