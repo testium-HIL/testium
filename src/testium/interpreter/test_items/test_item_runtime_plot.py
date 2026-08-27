@@ -47,6 +47,8 @@ class TestItemPlotActionOpen(TestItemPlotAction):
         try:
             gname = self._prms.expanse(self.token)
             lpath = self._prms.expanse(self._log_path)
+            from interpreter.test_items.test_item_dialog_base import require_qt
+            require_qt()
             runtime_plot = importlib.import_module("api.runtime_plot")
             gr = runtime_plot.RuntimePlot(gname, lpath)
             tm.add_plot(gr)

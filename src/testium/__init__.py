@@ -10,6 +10,32 @@ sys.path.append(os.path.abspath(ourpath.parent))
 
 import interpreter.utils.constants as cst
 
+# GUI backends: name -> (module, launcher attribute). Lazy imports keep the
+# core (batch/schema/lsp) free of toolkit dependencies.
+UI_BACKENDS = {
+    "qt": ("main_win.testium_win", "MainWin"),
+}
+
+
+def _load_ui_backend(name):
+    """Launcher for *name*, or for the first importable backend when name
+    is empty. Exits with the install hint when none is available."""
+    import importlib
+    names = [name] if name else list(UI_BACKENDS)
+    for n in names:
+        module, attr = UI_BACKENDS[n]
+        try:
+            return getattr(importlib.import_module(module), attr)
+        except ImportError:
+            continue
+    print(
+        "testium: no GUI backend installed. "
+        "Install with: pip install 'testium-hil[qt]'",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
 def main():
     # Force UTF-8 on stdout/stderr so the runner's output survives a legacy
     # console code page (Windows cp1252 can't encode box-drawing/accented
@@ -82,6 +108,9 @@ def main():
                         help="Python modules search path",
                         nargs='+',
                         default=[])
+    parser.add_argument("-u", "--ui", choices=sorted(UI_BACKENDS),
+                        default='',
+                        help="GUI backend (default: first installed)")
     parser.add_argument("-g", "--dev-debug", "--debug", action='store_true',
                         dest="debug",
                         help="attach a debugger to testium itself "
@@ -138,7 +167,7 @@ def main():
         sys.exit(0 if b.success else 1)
 
     else:
-        from main_win.testium_win import MainWin
+        MainWin = _load_ui_backend(args.ui)
         MainWin(tf, config_files=cf,
                 run=args.run_and_close,
                 log_file=lf,

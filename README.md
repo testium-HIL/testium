@@ -26,14 +26,19 @@ reports in several formats. It runs on Linux and Windows.
 ## Install from PyPI
 
 ```sh
-pip install testium-hil
+pip install 'testium-hil[qt]'
 testium              # GUI mode
 testium -b test.tum  # batch mode
 ```
 
 The PyPI project is named `testium-hil`, after its hardware-in-the-loop
-focus; the command and the Python package are named `testium`. Add the
-language server for editor support with `pip install 'testium-hil[lsp]'`.
+focus; the command and the Python package are named `testium`. The bare
+`pip install testium-hil` installs the toolkit-free core (batch, `schema`,
+`lsp`); extras add the rest:
+
+* `testium-hil[qt]`: the Qt GUI (dialog and plot items need it too)
+* `testium-hil[lsp]`: the language server for editor support
+* `testium-hil[all]`: everything above
 
 ## Pre-built releases
 

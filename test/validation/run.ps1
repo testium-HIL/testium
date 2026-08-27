@@ -139,8 +139,8 @@ switch ($mode.ToLower()) {
             Invoke-Checked 'venv creation' $python @('-m', 'venv', '--system-site-packages', $wheelVenv)
             $pip = Join-Path $wheelVenv 'Scripts\pip.exe'
             Invoke-Checked 'pip upgrade' $pip @('install', '--quiet', '--upgrade', 'pip')
-            # [lsp] extra: validate the wheel in its language-server form
-            Invoke-Checked 'wheel install' $pip @('install', '--quiet', "$wheel[lsp]")
+            # [qt,lsp]: the GUI is an extra; lsp validated with pygls
+            Invoke-Checked 'wheel install' $pip @('install', '--quiet', "$wheel[qt,lsp]")
         }
         $cmd = @((Join-Path $wheelVenv 'Scripts\python.exe'), '-m', 'testium')
     }

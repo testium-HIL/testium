@@ -1,11 +1,20 @@
+import importlib.util
 import multiprocessing
 
 import api.testium as tm
 from interpreter.test_items.test_item import TestItem
+from runtime.tum_except import ETUMRuntimeError
 
 
 def _is_text_mode():
     return tm.text_mode()
+
+
+def require_qt():
+    """Dialog and plot items need PySide6 (core installs ship without it)."""
+    if importlib.util.find_spec("PySide6") is None:
+        raise ETUMRuntimeError(
+            "this item needs PySide6: pip install 'testium-hil[qt]'")
 
 
 def _is_interactive():
@@ -30,6 +39,7 @@ class TestItemDialogBase(TestItem):
 
         Returns the subprocess exit code.
         """
+        require_qt()
         p = _spawn_ctx.Process(target=target, args=(args,))
         p.start()
         while p.is_alive() and not self._is_stopped:
@@ -42,6 +52,7 @@ class TestItemDialogBase(TestItem):
 
         Returns the received value, or None if stopped or if the subprocess crashed.
         """
+        require_qt()
         parent_conn, child_conn = _spawn_ctx.Pipe()
         p = _spawn_ctx.Process(target=target, args=(args, child_conn))
         p.start()
