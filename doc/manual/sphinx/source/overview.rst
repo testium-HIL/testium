@@ -20,8 +20,9 @@ The quickest installation is from PyPI:
 The PyPI project is named ``testium-hil``; the installed command is
 ``testium``. The bare ``pip install testium-hil`` installs the core
 without the GUI (batch mode, ``schema`` and ``lsp`` subcommands); the
-``[qt]`` extra adds the GUI, ``[lsp]`` the language server, ``[all]``
-both. Self-contained binaries (Linux binary, AppImage, Flatpak,
+``[qt]`` extra adds the GUI, ``[tui]`` a terminal GUI
+(``testium --ui tui``), ``[lsp]`` the language server, ``[all]`` all of
+them. Self-contained binaries (Linux binary, AppImage, Flatpak,
 Windows installer) are published on the GitHub releases page.
 
 The tool also generates test reports and lets you customize them.

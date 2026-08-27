@@ -10,3 +10,4 @@ colorama
 matplotlib
 junit-xml
 lxml
+textual

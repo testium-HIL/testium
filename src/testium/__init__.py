@@ -14,6 +14,7 @@ import interpreter.utils.constants as cst
 # core (batch/schema/lsp) free of toolkit dependencies.
 UI_BACKENDS = {
     "qt": ("main_win.testium_win", "MainWin"),
+    "tui": ("tui_win.app", "TuiMain"),
 }
 
 
@@ -28,9 +29,10 @@ def _load_ui_backend(name):
             return getattr(importlib.import_module(module), attr)
         except ImportError:
             continue
+    extra = name if name else "qt"
     print(
-        "testium: no GUI backend installed. "
-        "Install with: pip install 'testium-hil[qt]'",
+        f"testium: no {name or 'GUI'} backend installed. "
+        f"Install with: pip install 'testium-hil[{extra}]'",
         file=sys.stderr,
     )
     sys.exit(2)
