@@ -865,6 +865,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def prefs_apply_font(self):
         f = self.textLog.font()
         f.fromString(prefs.settings.log_font)
+        # The stored font string embeds a stray size; the size preference wins.
+        f.setPointSize(prefs.settings.log_font_size)
         self.textLog.setFont(f)
 
     def prefs_apply_font_size(self):
