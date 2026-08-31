@@ -150,8 +150,11 @@ The recommended workflow:
 
 ### Qt GUI modification
 
-UI files (`*.ui`) are edited in **Qt Creator**. After editing, regenerate
-the corresponding Python and resource files:
+UI files (`*.ui`) are edited in **Qt Creator**. Structural edits
+(renames, deletions, feature flags) may be done directly in the XML,
+provided the file is regenerated in the same commit and still opens in
+Qt Creator. After editing, regenerate the corresponding Python and
+resource files:
 
 ```sh
 scripts/qt_generate.sh

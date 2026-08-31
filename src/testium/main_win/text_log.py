@@ -7,7 +7,7 @@ from PySide6.QtGui import QCursor, QDesktopServices, QFont
 from main_win.text_log_highlighter import TextLogHighlighter
 
 import api.testium as tm
-from interpreter.utils import bins
+from gui import open_target
 
 class QTextLog(QPlainTextEdit):
     def __init__(self, parent):
@@ -60,13 +60,9 @@ class QTextLog(QPlainTextEdit):
         if event.button() == Qt.LeftButton:
             raw_path = self._path_at_pos(event)
             if raw_path is not None:
-                path = os.path.expanduser(raw_path)
-                if not os.path.isabs(path):
-                    if self._test_dir == "":
-                        self._test_dir = os.getcwd()
-                    path = os.path.join(self._test_dir, path)
-                if os.path.exists(path):
-                    if not bins.host_open_path(path):
+                path = open_target.resolve_log_path(raw_path, self._test_dir)
+                if path is not None:
+                    if not open_target.open_path(path):
                         QDesktopServices.openUrl(QUrl.fromLocalFile(path))
                     return  # évite d'insérer du texte si clic
         super().mousePressEvent(event)

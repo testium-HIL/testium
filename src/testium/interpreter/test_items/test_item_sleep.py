@@ -66,6 +66,8 @@ class TestItemSleep(TestItem):
                     self.result.set(TestValue.SUCCESS, f'Sleep {timeout} sec')
                 return
 
+            from interpreter.test_items.test_item_dialog_base import require_qt
+            require_qt()
             from interpreter.test_items.dialog_sleep_files import dialog_sleep
             parent_conn, child_conn = Pipe()
             p=Process(target=dialog_sleep.main,  args=([self.name(), timeout],child_conn))

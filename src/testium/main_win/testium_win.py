@@ -1,17 +1,13 @@
 import sys
 import os
-import shlex
-import subprocess
 import webbrowser
-import hashlib
-import time
 from multiprocessing import Queue
 from threading import Thread
 import shutil
 
 # Qt
 from PySide6 import QtGui
-from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QTextCursor, QKeySequence
+from PySide6.QtGui import QAction, QShortcut, QIcon, QPixmap, QTextCursor, QDesktopServices, QKeySequence
 from PySide6.QtCore import Slot, QUrl, Qt, QTimer, QSize
 
 from PySide6.QtWidgets import (
@@ -30,8 +26,11 @@ from PySide6.QtWidgets import (
     QMenu,
     QVBoxLayout,
     QDialogButtonBox,
+    QProgressDialog,
 )
 from main_win.expression_info import expression_info_button
+from main_win.drawn_icons import (follow_icon, search_icon,
+                                  expression_icon, variables_icon)
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(os.path.join(ourPath, "resources"))
@@ -41,21 +40,19 @@ from main_win.testium_core_win import Ui_MainWindow
 from main_win.text_log import QTextLog
 from main_win.about_win.about_win import Ui_About
 from main_win.preference_win.preference_win import PrefWindow
-from main_win.f1_win.d_f1_win import DialogF1
+from main_win.variables_dock import VariablesDock
+from main_win.item_dock import ItemDock
+from main_win.expression_dock import ExpressionDock
 from main_win.test_tree import QTestTree
 
 from main_win.test_run.thread_output import ThreadTestOutput
 from runtime.string_queue import StringQueue
-from interpreter.process import TestProcess
-from interpreter.utils.test_ctrl import TestSetController
 from interpreter.utils.icons import icon_prefix
-from interpreter.utils import bins
 
 from main_win.test_run.outlog import OutLog
 from main_win.test_run.test_run import ThreadTestStatus
 from main_win import file_dialog
 import interpreter.utils.settings as prefs
-from interpreter.utils.constants import TestItemType as cst
 from runtime.stdout_redirect import stdio_redir
 import api.testium as tm
 from interpreter.utils.test_init import (
@@ -63,10 +60,17 @@ from interpreter.utils.test_init import (
     locate_report_file,
 )
 from interpreter.utils.version import get_testium_version
-from runtime.tum_except import ETUMFileError, ETUMRuntimeError
-from main_win.test_controller_service import TestControllerService
-from main_win.test_runner import TestRunner, TestState
-from main_win.test_file_manager import TestFileManager
+from gui.run_presenter import RunPresenter, TestState
+from gui.protocols import RunUiState
+from main_win.qt_scheduler import QtScheduler
+from gui.debug_presenter import (DebugPresenter, item_menu_state,
+                                 breakpoint_condition_change)
+from gui.preferences_presenter import apply_preference_changes
+from gui.session_presenter import SessionPresenter
+from gui import open_target
+from gui.file_presenter import FilePresenter
+from gui.search_presenter import SearchNavigator
+from gui.tree_presenter import FileStateStore, FILE_STATES_MAX
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -86,7 +90,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     ):
         super().__init__()
         self.setupUi(self)
-        self.textLog = self.create_text_log(self.frame1)
+        self.textLog = self.create_text_log(self.logViewFrame)
         self.verticalLayout_2.addWidget(self.textLog)
 
         self._setup_icons()
@@ -101,27 +105,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.config_files = config_files
         self.recentFileActs = []
         self.debug = debug
-        self.test_proc = None
-        self.ts_controller = None
-        self.test_service = None
         self.threadTestStatus = None
         self._signals_connected = False
-        self.run_exit_code = -1  # -1 = test not yet completed
 
-        self.timer = QTimer()
-        self.timer.setSingleShot(False)
-        self.timer.stop()
-        self.timer.setInterval(100)
-
-        self.timerBlink = QTimer()
-        self.timerBlink.setSingleShot(False)
-        self.timerBlink.stop()
-        self.timerBlink.setInterval(1000)
-        self.timerPause = QTimer()
-        self.timerPause.setSingleShot(False)
-        self.timerPause.stop()
-        self.timerPause.setInterval(500)
-        self.timerPause.state = False
         self.iconBlinkGreen = QIcon()
         self.iconBlinkGreen.addPixmap(QPixmap(icon_prefix() + "/green.png"))
         self.iconBlinkRed = QIcon()
@@ -132,9 +118,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threads_queue = Queue()
         self.status_queue = Queue()
 
-        # Managers
-        self.runner = TestRunner(self)
-        self.file_manager = TestFileManager(self)
+        # Presenters / managers
+        self._file_states = FileStateStore()
+        self.scheduler = QtScheduler(self)
+        self.runner = RunPresenter(self, self.scheduler,
+                                   lambda: self.test_service,
+                                   self.threads_queue)
+        self.runner.runandclose = runandclose
+        self.debugger = DebugPresenter(self, lambda: self.test_service)
+        self.session = SessionPresenter(self)
+        self.file_manager = FilePresenter(
+            self, self.status_queue, config_files, defines,
+            max_recent=MainWindow.MaxRecentFiles)
 
         self.runner.set_blink_green()
 
@@ -143,38 +138,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Persistence
         self.pref_win = PrefWindow(self)
 
-        lastLog = prefs.settings.log_file
-        self._cli_log_file = self.logFileName != ""
-        if self.logFileName == "":
-            self.editLogFilePath.setText(lastLog)
-            self.logFileName = lastLog
-            if prefs.settings.log_file_saved:
-                self.buttLogFileSaved.setChecked(True)
-        else:
-            if not os.path.isabs(self.logFileName):
-                self.logFileName = os.path.join(os.getcwd(), self.logFileName)
+        self.logFileName, log_saved, self._cli_log_file = \
+            self.session.initial_log_config(self.logFileName)
+        if log_saved:
             self.buttLogFileSaved.setChecked(True)
         self.editLogFilePath.setText(self.logFileName)
 
-        geo_settings = prefs.settings.value(
-            prefs.SettingsItem("geometry", bytearray), bytearray()
-        )
-        if geo_settings:
-            self.restoreGeometry(geo_settings)
+        self.session.restore_geometry()
 
-        # Built before restoreState so its position (docked/floating) is
-        # part of the saved window state.
+        # Built before restoreState so their positions are part of the
+        # saved window state.
         self._build_step_bar()
+        self._build_panels_bar()
+        self.variablesDock = VariablesDock(self)
+        self.itemDock = ItemDock(self)
+        self.expressionDock = ExpressionDock(self)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.itemDock)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.variablesDock)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.expressionDock)
 
-        state_settings = prefs.settings.value(
-            prefs.SettingsItem("state", bytearray), bytearray()
-        )
-        if state_settings:
-            self.restoreState(state_settings)
-        # Force-show: settings saved by previous versions hold the bar in
-        # its old hidden-at-idle state.
+        self.session.restore_layout()
+        # Nesting: panels can be stacked in both orientations inside an
+        # area, not only along the area's own axis.
+        self.setDockNestingEnabled(True)
+        # Set after restoreState: the blob restores corner ownership too.
+        # Side columns own the bottom corners so a dock dropped in the
+        # bottom area sits under the tree.
+        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.stepBar.setVisible(True)
         self._update_step_bar_style()
+        self._build_view_menu()
 
         self.actionStart_test.setDisabled(True)
         self.actionShow_Results.setDisabled(True)
@@ -196,26 +190,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         self._search_matches = []
-        self._search_idx = 0
+        self._search_nav = SearchNavigator()
         self._build_search_bar()
         self.shortcut_find = QShortcut(
             QKeySequence.Find, self, activated=self._toggle_search
         )
 
+        # Tree header buttons: follow the running step, open the search.
+        self.buttFollowRun = QToolButton(self.frame_3)
+        self.buttFollowRun.setIcon(follow_icon())
+        self.buttFollowRun.setCheckable(True)
+        self.buttFollowRun.setAutoRaise(True)
+        self.buttFollowRun.setToolTip(
+            "Scroll the tree with the running step; scrolling by hand "
+            "disengages")
+        self.buttFollowRun.toggled.connect(self.treeTests.set_follow)
+        self.treeTests.follow_disengaged.connect(
+            lambda: self._set_follow_button_silent(False))
+        self.buttSearch = QToolButton(self.frame_3)
+        self.buttSearch.setIcon(search_icon())
+        self.buttSearch.setAutoRaise(True)
+        self.buttSearch.setToolTip("Search steps (Ctrl+F)")
+        self.buttSearch.clicked.connect(self._toggle_search)
+        self.horizontalLayout_9.insertWidget(2, self.buttFollowRun)
+        self.horizontalLayout_9.insertWidget(3, self.buttSearch)
+
         self.actionRefresh_test.setDisabled(True)
 
-        # Signal connections
-        self.buttLogFilePath.pressed.connect(self.on_buttLogFilePath_clicked)
-        self.buttClearLog.pressed.connect(self.on_buttClearLog_clicked)
-        self.buttGoBottom.pressed.connect(self.on_buttGoBottom_clicked)
+        # Signal connections. clicked (release), not pressed: standard button
+        # behavior; connectSlotsByName does not bind these undecorated slots.
+        self.buttLogFilePath.clicked.connect(self.on_buttLogFilePath_clicked)
+        self.buttClearLog.clicked.connect(self.on_buttClearLog_clicked)
+        self.buttGoBottom.clicked.connect(self.on_buttGoBottom_clicked)
         self.editLogFilePath.editingFinished.connect(self.on_configLog_changed)
         self.buttLogFileSaved.toggled.connect(self.on_configLogSaved_changed)
-        self.buttLogFileNone.toggled.connect(self.on_configLogNone_changed)
-        self.timer.timeout.connect(self.runner.on_timer_event)
-        self.timerBlink.timeout.connect(self.runner.on_timer_blink)
-        self.timerBlink.timeout.connect(self.runner.on_timer_count)
-        self.timerPause.timeout.connect(self.runner.on_timer_pause)
+        self.buttLogFileSaved.toggled.connect(self.editLogFilePath.setEnabled)
+        self.buttLogFileSaved.toggled.connect(self.buttLogFilePath.setEnabled)
+        self.editLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
+        self.buttLogFilePath.setEnabled(self.buttLogFileSaved.isChecked())
         self.treeTests.itemSelectionChanged.connect(self.on_testSelectionChanged)
+        self.treeTests.itemClicked.connect(self.on_treeItemClicked)
         if prefs.settings.dbl_click_enabled:
             self.treeTests.setExpandsOnDoubleClick(False)
             self.treeTests.itemDoubleClicked.connect(self.on_testItemDblClicked)
@@ -224,7 +238,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.treeTests.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeTests.customContextMenuRequested.connect(
             self.on_testTreeContextMenu)
-        QApplication.instance().lastWindowClosed.connect(self.on_exiting)
 
         self.prefs_apply_font()
         self.prefs_apply_font_size()
@@ -232,7 +245,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Recent files menu
         for i in range(MainWindow.MaxRecentFiles):
             self.recentFileActs.append(
-                QAction(self, visible=False, triggered=self.file_manager.on_open_recent_file)
+                QAction(self, visible=False, triggered=self.on_open_recent_file)
             )
         self.separatorAct = self.menuFile.addSeparator()
         # Hover shows the full path (menus hide action tooltips by default).
@@ -248,8 +261,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.about_win.labelVersion.setText(get_testium_version())
         self.d_about_win.setModal(True)
 
-        self.d_f1_win = DialogF1(self)
-
         self.stream = StringQueue()
         stdio_redir.redirect(self.stream)
         self.threadOutput = ThreadTestOutput(self.stream, self.threads_queue)
@@ -258,32 +269,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.out_log = OutLog()
         self.out_log.logToBeAppended.connect(self.on_logToBeAppended)
         self.redirectStdToTextLog(self.out_log)
-        self.testFile = test_file
 
         self.threadTestStatus = ThreadTestStatus(self.status_queue, debug=self.debug)
         self.threadTestStatus.start()
 
-        self.update_from_prefs()
-
         self.reportFileName = locate_report_file(self.reportFileName)
 
-        last_files = prefs.settings.recent_files
-        ret = False
-        if test_file != "":
-            if not os.path.isabs(test_file):
-                test_file = os.path.join(os.getcwd(), test_file)
-            if os.path.isfile(test_file):
-                ret = self.file_manager.load(test_file)
-        elif (len(last_files) > 0) and os.path.isfile(last_files[0]):
-            ret = self.file_manager.load(last_files[0])
-
-        if ret:
+        start_file = self.session.startup_file(test_file)
+        if start_file and self.file_manager.load(start_file):
             self.restore_file_state()
 
         self.threadTestStatus.testSetIsFinished.connect(self.runner.on_run_finished)
         self.threadTestStatus.statusToBeUpdated.connect(self.treeTests.updateStatus)
-        self.threadTestStatus.gdUpdated.connect(self.d_f1_win.gd_var_updated)
-        self.threadTestStatus.gdDeleted.connect(self.d_f1_win.gd_var_deleted)
+        self.threadTestStatus.gdUpdated.connect(self.variablesDock.gd_var_updated)
+        self.threadTestStatus.gdDeleted.connect(self.variablesDock.gd_var_deleted)
         self.reconnect_signals()
 
         if runandclose:
@@ -322,7 +321,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return QTextLog(parent)
 
     def create_tree(self):
-        self.treeTests = QTestTree(self.widget)
+        self.treeTests = QTestTree(self.centralColumn)
         self.treeTests.setEnabled(True)
         sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -332,16 +331,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.treeTests.paused.connect(self.on_paused)
         self.verticalLayout.addWidget(self.treeTests)
 
-    def remove_tree(self):
-        self.verticalLayout.removeWidget(self.treeTests)
-        del self.treeTests
-        self.treeTests = None
-
     # ---- test-tree search ---------------------------------------------------
 
     def _build_search_bar(self):
         """Find bar (Ctrl+F): highlight + navigate matches; Name/Type/Doc pick fields."""
-        self.searchBar = QWidget(self.widget)
+        self.searchBar = QWidget(self.centralColumn)
         lay = QHBoxLayout(self.searchBar)
         lay.setContentsMargins(2, 2, 2, 2)
         lay.setSpacing(4)
@@ -424,7 +418,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.stepBar.addAction(action)
         # The step actions belong to the debug mode: shown (and their
         # shortcuts active) only when Debug is checked.
-        self._set_step_actions_visible(self.actionDebugOutput.isChecked())
+        self.set_step_actions_visible(self.actionDebugOutput.isChecked())
 
         self.addToolBar(Qt.TopToolBarArea, self.stepBar)
         # Fires on undock and on re-dock after a drag, so every move ends
@@ -432,6 +426,270 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stepBar.topLevelChanged.connect(
             lambda _: self._update_step_bar_style())
         self._update_step_bar_style()
+
+    def _build_panels_bar(self):
+        """Separate bar with the panel-visibility buttons."""
+        self.actionVariables = QAction("Variables", self)
+        self.actionVariables.setIcon(variables_icon())
+        self.actionVariables.setToolTip("Show the Variables panel")
+        self.actionVariables.triggered.connect(
+            self.on_actionVariables_triggered)
+        self.actionExpression = QAction("Expression", self)
+        self.actionExpression.setIcon(expression_icon())
+        self.actionExpression.setToolTip("Show the Expression panel")
+        self.actionExpression.triggered.connect(
+            self.on_actionExpression_triggered)
+        self.actionTestInformation.setToolTip("Show the Step info panel")
+        self.panelsBar = QToolBar("Panels", self)
+        self.panelsBar.setObjectName("panelsBar")
+        self.panelsBar.setIconSize(self.toolBar.iconSize())
+        self.panelsBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.panelsBar.addAction(self.actionTestInformation)
+        self.panelsBar.addAction(self.actionVariables)
+        self.panelsBar.addAction(self.actionExpression)
+        # First launch: between the main bar and the Run bar.
+        self.insertToolBar(self.stepBar, self.panelsBar)
+
+    def _build_view_menu(self):
+        for dock, icon_name in ((self.logDockWidget, "document"),
+                                (self.DocDockWidget, "note"),
+                                (self.itemDock, "info")):
+            action = dock.toggleViewAction()
+            icon = QIcon()
+            icon.addPixmap(QPixmap(icon_prefix() + f"/{icon_name}.png"))
+            action.setIcon(icon)
+            self.menuView.addAction(action)
+        action = self.variablesDock.toggleViewAction()
+        action.setIcon(variables_icon())
+        self.menuView.addAction(action)
+        action = self.expressionDock.toggleViewAction()
+        action.setIcon(expression_icon())
+        self.menuView.addAction(action)
+        self.menuView.addSeparator()
+        reset = self.menuView.addAction("Reset layout")
+        reset.triggered.connect(self._apply_default_layout)
+
+    def _apply_default_layout(self):
+        """Default arrangement: log right (~38% width); doc, item and
+        variables tabbed below it, doc on top."""
+        docks = (self.logDockWidget, self.DocDockWidget,
+                 self.itemDock, self.variablesDock, self.expressionDock)
+        for dock in docks:
+            dock.setFloating(False)
+            dock.show()
+        self.addDockWidget(Qt.RightDockWidgetArea, self.logDockWidget)
+        self.splitDockWidget(self.logDockWidget, self.DocDockWidget,
+                             Qt.Vertical)
+        self.tabifyDockWidget(self.DocDockWidget, self.itemDock)
+        self.tabifyDockWidget(self.itemDock, self.variablesDock)
+        self.tabifyDockWidget(self.variablesDock, self.expressionDock)
+        self.DocDockWidget.raise_()
+        self.resizeDocks([self.logDockWidget],
+                         [int(self.width() * 0.38)], Qt.Horizontal)
+        self.resizeDocks([self.logDockWidget, self.DocDockWidget],
+                         [int(self.height() * 0.55),
+                          int(self.height() * 0.35)], Qt.Vertical)
+        self.stepBar.setVisible(True)
+
+    @property
+    def run_exit_code(self):
+        return self.runner.run_exit_code
+
+    # --- Process triad and file state live on the file presenter ----------
+
+    @property
+    def test_proc(self):
+        return self.file_manager.test_proc
+
+    @property
+    def ts_controller(self):
+        return self.file_manager.ts_controller
+
+    @property
+    def test_service(self):
+        return self.file_manager.test_service
+
+    @property
+    def testFile(self):
+        return self.file_manager.test_file
+
+    @testFile.setter
+    def testFile(self, value):
+        self.file_manager.test_file = value
+
+    # --- FileView implementation (driven by gui/file_presenter.py) --------
+
+    def begin_load(self):
+        progress = QProgressDialog("Starting test process…", None, 0, 0, self)
+        progress.setWindowTitle("Loading")
+        progress.setWindowFlags(
+            Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setMinimumWidth(320)
+        progress._force_close = False
+        progress.closeEvent = (
+            lambda e: e.accept() if progress._force_close else e.ignore())
+        progress.show()
+        self._load_progress = progress
+
+    def set_load_phase(self, text):
+        self._load_progress.setLabelText(text)
+
+    def pump(self):
+        QApplication.processEvents()
+
+    def end_load(self):
+        self._load_progress._force_close = True
+        self._load_progress.close()
+        self._load_progress = None
+
+    def show_loaded_test(self, test_data, gd_vars, test_dir):
+        self.treeTests.clear()
+        self._reset_search()
+        QApplication.processEvents()
+        self.treeTests.loadTestRecursively(
+            self.treeTests.invisibleRootItem(), test_data)
+        self.treeTests.setFoldDefault()
+        self.treeTests.updateTreeSkipState(self.test_service)
+        self.variablesDock.load_initial_vars(gd_vars)
+        self.sync_debug_output_action(gd_vars)
+        self.checkSelect.setChecked(True)
+        self.statusBar().showMessage("Test file loaded", 10000)
+        self.textLog.set_test_dir(test_dir)
+        self.actionStart_test.setEnabled(True)
+        # Step into from idle starts the run paused on its first item.
+        self.actionStep_into.setEnabled(True)
+        self.actionRefresh_test.setEnabled(True)
+        self.show_checkboxes()
+
+    def show_load_failure(self):
+        self.statusBar().showMessage("No test file could be loaded", 10000)
+        self.treeTests.clear()
+        # Keep Refresh available to retry after fixing the file.
+        self.actionStart_test.setDisabled(True)
+        self.actionStep_into.setDisabled(True)
+        self.actionRefresh_test.setEnabled(True)
+
+    def set_window_file(self, path):
+        self.setWindowTitle(self.mainWindowTitle + " - " + path)
+
+    def update_recent_files(self, files):
+        numRecentFiles = min(len(files), MainWindow.MaxRecentFiles)
+        for i in range(numRecentFiles):
+            text = "&%d %s" % (i + 1, self._stripped_name(files[i]))
+            self.recentFileActs[i].setText(text)
+            self.recentFileActs[i].setToolTip(files[i])
+            self.recentFileActs[i].setData(files[i])
+            self.recentFileActs[i].setVisible(True)
+        for j in range(numRecentFiles, MainWindow.MaxRecentFiles):
+            self.recentFileActs[j].setVisible(False)
+        self.separatorAct.setVisible(numRecentFiles > 0)
+
+    def set_variables_service(self, service):
+        self.variablesDock.set_service(service)
+        self.expressionDock.set_service(service)
+
+    def snapshot_tree_states(self):
+        return self.treeTests.getItemStates()
+
+    def restore_tree_states(self, states):
+        self.treeTests.restoreItemStates(
+            states, self.test_service,
+            apply_check=prefs.settings.show_checkboxes)
+
+    def begin_tree_swap(self):
+        self.disconnect_signals()
+
+    def end_tree_swap(self):
+        self.reconnect_signals()
+
+    # --- RunView implementation (driven by gui/run_presenter.py) ----------
+
+    def apply_run_ui(self, state: RunUiState):
+        running = state.running
+        self.actionOpenTest.setEnabled(not running)
+        self.actionExit.setEnabled(not running)
+        self.actionPreferences.setEnabled(not running)
+        self.actionRefresh_test.setEnabled(not running)
+        self.actionSave_report.setEnabled(not running)
+        # Show Results stays available during the run (log grows live).
+        self.actionShow_Results.setEnabled(True)
+        self.logSettingsBox.setEnabled(not running)
+        self.actionStop_test.setEnabled(running)
+        for action in (self.actionStep_over, self.actionStep_into,
+                       self.actionStep_out, self.actionRerun_step):
+            action.setEnabled(state.steps_enabled)
+        if not running:
+            self.actionStep_into.setEnabled(self.actionStart_test.isEnabled())
+            if prefs.settings.show_checkboxes:
+                self.checkSelect.setEnabled(True)
+            self.checkFold.setEnabled(True)
+        else:
+            self.checkSelect.setDisabled(True)
+            self.checkFold.setDisabled(True)
+
+    def set_start_action(self, text, icon):
+        if text is not None:
+            self.actionStart_test.setText(text)
+        ic = QIcon()
+        ic.addPixmap(QPixmap(icon_prefix() + f"/{icon}.png"))
+        self.actionStart_test.setIcon(ic)
+
+    def set_status_light(self, color):
+        self.buttBlink.setIcon({"green": self.iconBlinkGreen,
+                                "red": self.iconBlinkRed,
+                                "gray": self.iconBlinkGray}[color])
+
+    def set_elapsed(self, text):
+        self.label_runtime.setText(text)
+
+    def append_log(self, text):
+        self.textLog.appendPlainText(text)
+
+    def clear_log(self):
+        self.textLog.clear()
+
+    def show_transient_message(self, text):
+        self.statusBar().showMessage(text, 10000)
+
+    def can_start(self):
+        return self.actionStart_test.isEnabled()
+
+    def test_file(self):
+        return self.testFile
+
+    def log_config(self):
+        return (self.editLogFilePath.text(),
+                self.buttLogFileSaved.isChecked())
+
+    def set_log_file_name(self, path):
+        self.logFileName = path
+
+    def report_config(self):
+        return (self.reportFileName, self.report_type, self.report_pattern)
+
+    def attach_log_sink(self, handle):
+        self.out_log.set(handle)
+
+    def detach_log_sink(self):
+        self.out_log.reset()
+
+    def read_captured(self):
+        return self.stream.read()
+
+    def reset_run_marks(self):
+        self.treeTests.clearGlobalSuccess()
+        self.treeTests.clearAllStatus()
+
+    def clear_current_marks(self):
+        self.treeTests.clearHighlights()
+
+    def run_succeeded(self):
+        return self.treeTests.getGlobalSuccess()
+
+    def close_window(self):
+        self.on_actionExit_triggered()
 
     def _update_step_bar_style(self):
         """Top area: main-toolbar look (large icons + text). Left/right/
@@ -474,37 +732,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._search_matches = self.treeTests.search(
             self.searchEdit.text(), self._search_fields()
         )
-        self._search_idx = 0
+        self._search_nav.set_matches(len(self._search_matches))
         if self._search_matches:
-            self._goto_match(0)
+            self._goto_match()
         else:
             self._update_search_count()
 
     def _update_search_count(self):
-        n = len(self._search_matches)
-        if n == 0:
-            self.searchCount.setText(
-                "0/0" if self.searchEdit.text().strip() else ""
-            )
-        else:
-            self.searchCount.setText("{}/{}".format(self._search_idx + 1, n))
+        self.searchCount.setText(self._search_nav.count_text(
+            bool(self.searchEdit.text().strip())))
 
-    def _goto_match(self, idx):
+    def _goto_match(self):
         if not self._search_matches:
             return
-        self._search_idx = idx % len(self._search_matches)
-        it = self._search_matches[self._search_idx]
+        it = self._search_matches[self._search_nav.index]
         self.treeTests.scrollToItem(it)
         self.treeTests.setCurrentItem(it)
         self._update_search_count()
 
     def _search_next(self):
         if self._search_matches:
-            self._goto_match(self._search_idx + 1)
+            self._search_nav.next()
+            self._goto_match()
 
     def _search_prev(self):
         if self._search_matches:
-            self._goto_match(self._search_idx - 1)
+            self._search_nav.prev()
+            self._goto_match()
 
     def _close_search(self):
         if self.treeTests is not None:
@@ -512,53 +766,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.treeTests.setFocus()
         self.searchBar.setVisible(False)
         self._search_matches = []
+        self._search_nav.clear()
 
     def _reset_search(self):
         """New test file loaded: drop stale matches and hide the bar."""
         self._search_matches = []
-        self._search_idx = 0
+        self._search_nav.clear()
         if hasattr(self, "searchBar"):
             self.searchBar.setVisible(False)
             self.searchCount.setText("")
 
-    # Tree states and log-file choice are stored per test file, one settings
-    # key per file: two instances on different files never clobber each other.
-    FileStatesMax = 20
+    # Per-test-file states live in gui/tree_presenter.py; these
+    # wrappers feed it the widget data.
+    FileStatesMax = FILE_STATES_MAX
 
     def _file_state_key(self, path):
-        digest = hashlib.sha1(
-            os.path.normcase(os.path.abspath(path)).encode()).hexdigest()
-        return "itemstates." + digest[:12]
+        return self._file_states.key(path)
 
     def stash_file_state(self, test_file):
-        entry = [os.path.normcase(os.path.abspath(test_file)), time.time(),
-                 self.treeTests.getItemStates(),
-                 self.editLogFilePath.text(),
-                 self.buttLogFileSaved.isChecked()]
-        prefs.settings.set_value(
-            prefs.SettingsItem(self._file_state_key(test_file), list), entry)
-        self._trim_file_states()
+        self._file_states.stash(test_file,
+                                self.treeTests.getItemStates(),
+                                self.editLogFilePath.text(),
+                                self.buttLogFileSaved.isChecked())
 
     def _trim_file_states(self):
-        names = prefs.settings.option_names("itemstates.")
-        if len(names) <= self.FileStatesMax:
-            return
-
-        def saved_at(name):
-            entry = prefs.settings.value(prefs.SettingsItem(name, list), [])
-            return entry[1] if len(entry) >= 2 else 0
-
-        for name in sorted(names, key=saved_at)[:len(names) - self.FileStatesMax]:
-            prefs.settings.remove_value(name)
+        self._file_states.trim()
 
     def restore_file_state(self):
         if self.testFile is None:
             return
-        entry = prefs.settings.value(
-            prefs.SettingsItem(self._file_state_key(self.testFile), list), [])
-        if len(entry) < 5:
+        entry = self._file_states.restore(self.testFile)
+        if entry is None:
             return
-        states, log_file, log_saved = entry[2], entry[3], entry[4]
+        states, log_file, log_saved = entry
         if not self._cli_log_file:
             self.editLogFilePath.setText(log_file)
             self.logFileName = log_file
@@ -590,6 +830,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def prefs_apply_font(self):
         f = self.textLog.font()
         f.fromString(prefs.settings.log_font)
+        # The stored font string embeds a stray size; the size preference wins.
+        f.setPointSize(prefs.settings.log_font_size)
         self.textLog.setFont(f)
 
     def prefs_apply_font_size(self):
@@ -598,25 +840,45 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.textLog.setFont(f)
 
     def save_settings(self):
-        prefs.settings.set_value(
-            prefs.SettingsItem("geometry", bytearray), bytearray(self.saveGeometry())
-        )
-        prefs.settings.set_value(
-            prefs.SettingsItem("state", bytearray), bytearray(self.saveState())
-        )
-        if self.testFile:
-            self.stash_file_state(self.testFile)
+        self.session.save(self.testFile)
+
+    # --- SessionView implementation (driven by gui/session_presenter.py) --
+
+    def restore_geometry(self, blob):
+        self.restoreGeometry(blob)
+
+    def restore_state(self, blob, version):
+        return self.restoreState(blob, version)
+
+    def apply_default_layout(self):
+        self._apply_default_layout()
+
+    def hide_doc_pane(self):
+        self.DocDockWidget.hide()
+
+    def hide_log_pane(self):
+        self.logDockWidget.hide()
+
+    def save_geometry(self):
+        return self.saveGeometry()
+
+    def save_state(self, version):
+        return self.saveState(version)
+
+    def save_column_sizes(self):
         self.treeTests.saveSizes()
-        prefs.settings.sync()
 
     def closeEvent(self, event):
         self.on_exiting()
         event.accept()
 
     def on_exiting(self):
+        # closeEvent can fire more than once (runandclose paths call close()).
+        if getattr(self, "_exited", False):
+            return
+        self._exited = True
         try:
-            if self.runner.state == TestState.IDLE:
-                self.save_settings()
+            self.save_settings()
             self.file_manager.clear_process()
         finally:
             self.threadTestStatus.stop()
@@ -643,30 +905,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.reconnect_signals()
             self.checkSelect.setDisabled(True)
 
-    def update_from_prefs(self):
-        self.hide_doc_pane()
-        self.hide_log_pane()
-
-    def hide_doc_pane(self):
-        if prefs.settings.hide_doc_pane:
-            self.DocDockWidget.hide()
-        else:
-            self.DocDockWidget.show()
-
-    def hide_log_pane(self):
-        if prefs.settings.hide_log_pane:
-            self.logDockWidget.hide()
-        else:
-            self.logDockWidget.show()
-
-    def update_f1_window(self, tree_item):
-        self.d_f1_win.ui.typeLineEdit.setText(tree_item.test_type)
-        self.d_f1_win.ui.sequenceFileNameLineEdit.setText(tree_item.seq_filename)
-        if tree_item.content is not None and tree_item.content != "":
-            self.d_f1_win.ui.TestContentEdit.setText(tree_item.content)
-        else:
-            self.d_f1_win.ui.TestContentEdit.setText("")
-
     def _stripped_name(self, fullFileName):
         fname = os.path.basename(fullFileName)
         fdir = os.path.dirname(fullFileName)
@@ -685,14 +923,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionOpenTest_triggered(self):
-        self.file_manager.on_open_test()
+        d = ""
+        if self.testFile is not None:
+            d = os.path.dirname(self.testFile)
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Open the test file", d,
+            "testium file (*.tum);;All Files (*)",
+            options=file_dialog.options())
+        if file_name:
+            self.file_manager.reload(file_name)
+
+    def on_open_recent_file(self):
+        action = self.sender()
+        if action:
+            self.file_manager.reload(action.data())
 
     @Slot()
     def on_actionStart_test_triggered(self):
         self.runner.on_start_test()
-
-    def on_runFinished(self):
-        self.runner.on_run_finished()
 
     @Slot()
     def on_actionStop_test_triggered(self):
@@ -725,18 +973,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionPreferences_triggered(self):
         result = self.pref_win.exec()
         if result == QDialog.Accepted:
-            self.update_from_prefs()
-            if self.pref_win.isChanged(prefs.settings.SettingsShowCheckboxes):
-                self.show_checkboxes()
-            if self.pref_win.isChanged(prefs.settings.SettingsDblClickEnabled):
-                if prefs.settings.dbl_click_enabled:
-                    self.treeTests.itemDoubleClicked.connect(self.on_testItemDblClicked)
-                else:
-                    self.treeTests.itemDoubleClicked.disconnect()
-            if self.pref_win.isChanged(prefs.settings.SettingsLogFont):
-                self.prefs_apply_font()
-            if self.pref_win.isChanged(prefs.settings.SettingsLogFontSize):
-                self.prefs_apply_font_size()
+            apply_preference_changes(self.pref_win.presenter, self)
+
+    # Effect verbs from gui/preferences_presenter.CHANGE_EFFECTS.
+
+    def apply_dbl_click_preference(self):
+        if prefs.settings.dbl_click_enabled:
+            self.treeTests.itemDoubleClicked.connect(
+                self.on_testItemDblClicked)
+        else:
+            self.treeTests.itemDoubleClicked.disconnect()
+
+    def apply_time_column_preference(self):
+        self.treeTests.set_time_column_visible(
+            prefs.settings.show_time_column)
 
     def on_testTreeContextMenu(self, pos):
         """Per-item debug actions. Options that do not apply are shown
@@ -744,39 +994,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         item = self.treeTests.itemAt(pos)
         if item is None or self.test_service is None:
             return
-        is_py_func = item.test_type == cst.TYPE_PY_FUNCTION.item_name
+        types = []
+        p = item
+        while p is not None:
+            types.append(p.test_type)
+            p = p.parent()
+        state = item_menu_state(
+            item.test_type, item.isDebugAttach(), item._no_breakpoint,
+            item._is_skipped, self.runner.state == TestState.PAUSED, types)
         menu = QMenu(self.treeTests)
         attach = menu.addAction("Wait for IDE debugger (py_func)")
         attach.setCheckable(True)
-        attach.setChecked(is_py_func and item.isDebugAttach())
-        attach.setEnabled(is_py_func)
+        attach.setChecked(state.attach_checked)
+        attach.setEnabled(state.attach_enabled)
         condition = menu.addAction("Breakpoint condition…")
-        condition.setEnabled(not item._no_breakpoint)
+        condition.setEnabled(state.condition_enabled)
         jump = menu.addAction("Jump to this item")
-        jump.setEnabled(self.runner.state == TestState.PAUSED
-                        and not item._is_skipped
-                        and not self._in_parallel(item))
+        jump.setEnabled(state.jump_enabled)
         chosen = menu.exec(self.treeTests.viewport().mapToGlobal(pos))
         if chosen is attach:
             enabled = attach.isChecked()
-            self.test_service.set_debug_attach(item.id, enabled)
+            self.debugger.set_debug_attach(item.id, enabled)
             item.setDebugAttachState(enabled)
         elif chosen is condition:
             self._edit_breakpoint_condition(item)
         elif chosen is jump:
-            try:
-                self.test_service.jump_to(item.id)
-            except ETUMRuntimeError as e:
-                self.statusBar().showMessage(str(e), 10000)
-
-    def _in_parallel(self, item):
-        p = item
-        while p is not None:
-            if p.test_type in (cst.TYPE_PARALLEL.item_name,
-                               cst.TYPE_PARALLEL_BRANCH.item_name):
-                return True
-            p = p.parent()
-        return False
+            self.debugger.jump_to(item.id)
 
     def _edit_breakpoint_condition(self, item):
         dlg = QDialog(self)
@@ -800,39 +1043,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         edit.setFocus()
         if dlg.exec() != QDialog.Accepted:
             return
-        text = edit.text().strip()
-        if text:
-            item.setBreakpointState(True, text)
-            self.test_service.add_breakpoint(item.id, condition=text)
-        elif item.isBreakpoint():
-            # Emptied condition: back to a plain breakpoint.
-            item.setBreakpointState(True)
-            self.test_service.add_breakpoint(item.id)
+        change = breakpoint_condition_change(item.isBreakpoint(), edit.text())
+        if change is False:
+            return
+        item.setBreakpointState(True, change)
+        self.debugger.add_breakpoint(item.id, condition=change)
 
-    def _set_step_actions_visible(self, visible):
+    # --- DebugView implementation (driven by gui/debug_presenter.py) ------
+
+    def set_step_actions_visible(self, visible):
         for action in (self.actionStep_over, self.actionStep_into,
                        self.actionStep_out, self.actionRerun_step):
             action.setVisible(visible)
 
+    def debug_output_checked(self):
+        return self.actionDebugOutput.isChecked()
+
+    def set_debug_output_checked(self, checked):
+        self.actionDebugOutput.blockSignals(True)
+        self.actionDebugOutput.setChecked(checked)
+        self.actionDebugOutput.blockSignals(False)
+
+    # ----------------------------------------------------------------------
+
     @Slot(bool)
     def on_actionDebugOutput_toggled(self, checked):
-        prefs.settings.debug_output = checked
-        self._set_step_actions_visible(checked)
-        if self.test_service is not None:
-            self.test_service.set_gd_var("test_debug", bool(checked))
+        self.debugger.on_debug_output_toggled(checked)
 
     def sync_debug_output_action(self, gd_vars):
-        """Show the effective test_debug value; the preference is unchanged."""
-        effective = bool(gd_vars.get("test_debug", False))
-        if effective != self.actionDebugOutput.isChecked():
-            self.actionDebugOutput.blockSignals(True)
-            self.actionDebugOutput.setChecked(effective)
-            self.actionDebugOutput.blockSignals(False)
-            self._set_step_actions_visible(effective)
+        self.debugger.sync_debug_output(gd_vars)
 
     @Slot()
     def on_actionRefresh_test_triggered(self):
-        target = self.testFile or getattr(self, "_attempted_file", None)
+        target = self.testFile or self.file_manager.attempted_file
         if target:
             self.file_manager.reload(target)
 
@@ -855,7 +1098,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage(
             "Opening the logfile (" + s + "): " + self.logFileName, 100000
         )
-        if not bins.host_open_path(self.logFileName):
+        if not open_target.open_path(self.logFileName):
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.logFileName))
 
     @Slot()
@@ -875,8 +1118,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @Slot()
     def on_actionTestInformation_triggered(self):
-        if not self.d_f1_win.isVisible():
-            self.d_f1_win.show()
+        self._show_panel(self.itemDock)
+
+    def on_actionVariables_triggered(self):
+        self._show_panel(self.variablesDock)
+
+    def on_actionExpression_triggered(self):
+        self._show_panel(self.expressionDock)
+
+    def _set_follow_button_silent(self, checked):
+        self.buttFollowRun.blockSignals(True)
+        self.buttFollowRun.setChecked(checked)
+        self.buttFollowRun.blockSignals(False)
+
+    @staticmethod
+    def _show_panel(dock):
+        # Hidden, or tabbed behind (empty visible region): bring it to
+        # the front. Already on top: nothing — the panel closes from its
+        # title bar.
+        if not dock.isVisible() or dock.visibleRegion().isEmpty():
+            dock.show()
+            dock.raise_()
 
     def on_buttLogFilePath_clicked(self):
         if self.editLogFilePath.text() != "":
@@ -919,35 +1181,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         items = self.treeTests.selectedItems()
         if len(items) > 0:
             doc = items[0].doc
-            tmstmp = items[0].timestamp()
             self.textEditTestDoc.setText("<b>" + items[0].name + ":</b><br>")
             if str(doc) != "":
                 self.textEditTestDoc.append(doc)
-            if tmstmp > 0:
-                text = self.textLog.toPlainText()
-                index = text.find(f"@@{tmstmp}@@")
-                if index != -1:
-                    cursor = self.textLog.textCursor()
-                    cursor.setPosition(index)
-                    self.textLog.setTextCursor(cursor)
-                    block_number = cursor.blockNumber()
-                    scrollbar = self.textLog.verticalScrollBar()
-                    scrollbar.setValue(block_number)
+            self.itemDock.show_item(items[0])
+            self._scroll_log_to_item(items[0])
 
-            self.update_f1_window(items[0])
-            if self.d_f1_win.isVisible():
-                self.d_f1_win.raise_()
+    def _scroll_log_to_item(self, item):
+        tmstmp = self.treeTests.item_timestamp(item)
+        if tmstmp <= 0:
+            return
+        cursor = self.textLog.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        self.textLog.setTextCursor(cursor)
+        if self.textLog.find(open_target.timestamp_marker(tmstmp)):
+            cursor = self.textLog.textCursor()
+            ln = cursor.block().blockNumber()
+            self.textLog.verticalScrollBar().setValue(ln)
+            cursor.clearSelection()
+            self.textLog.setTextCursor(cursor)
 
-            if tmstmp > 0:
-                cursor = self.textLog.textCursor()
-                cursor.movePosition(QTextCursor.Start)
-                self.textLog.setTextCursor(cursor)
-                if self.textLog.find(f"@@{tmstmp}@@"):
-                    cursor = self.textLog.textCursor()
-                    ln = cursor.block().blockNumber()
-                    self.textLog.verticalScrollBar().setValue(ln)
-                    cursor.clearSelection()
-                    self.textLog.setTextCursor(cursor)
+    def on_treeItemClicked(self, item, _column):
+        # Selection change does not fire when the same item is clicked
+        # again: reposition the log on every click.
+        self._scroll_log_to_item(item)
 
     def on_testItemDblClicked(self, item, col):
         isBrkpointCol = item.setBreakpointIfCol(col)
@@ -958,22 +1215,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.test_service.del_breakpoint(item.id)
             return
         if (self.logFileName is not None) and os.access(self.logFileName, os.R_OK):
-            ln = tm.line_number("@@{}@@".format(item.timestamp()), self.logFileName)
+            ln = tm.line_number(
+                open_target.timestamp_marker(
+                    self.treeTests.item_timestamp(item)),
+                self.logFileName)
             if ln > 0:
                 self._open_in_editor(self.logFileName, ln + 1)
 
     def _open_in_editor(self, path, line):
-        """Open path at line via the configured editor template ({file}/{line}).
-        Empty template or failure falls back to opening the file without line."""
-        tmpl = prefs.settings.editor_cmd
-        if tmpl:
-            try:
-                argv = [p.format(file=path, line=line) for p in shlex.split(tmpl)]
-                subprocess.Popen(bins.host_console_command(argv, os.path.dirname(path) or "."))
-                return
-            except (KeyError, ValueError, IndexError, OSError):
-                pass
-        if not bins.host_open_path(path):
+        # Cascade in gui/open_target.py; URL opening is the toolkit fallback.
+        if not open_target.open_path(path, line):
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_spacePressed(self):
@@ -986,8 +1237,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_F1Pressed(self):
         item = self.treeTests.currentItem()
-        self.update_f1_window(item)
-        self.d_f1_win.setVisible(True)
+        if item is not None:
+            self.itemDock.show_item(item)
+        self.variablesDock.show()
+        self.variablesDock.raise_()
+        self.variablesDock.filter_edit.setFocus()
 
     def on_checkFoldChanged(self):
         self.disconnect_signals()
@@ -1020,23 +1274,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_configLogSaved_changed(self):
         prefs.settings.log_file_saved = self.buttLogFileSaved.isChecked()
 
-    def on_configLogNone_changed(self):
-        prefs.settings.log_file_saved = not self.buttLogFileNone.isChecked()
-
     def on_logToBeAppended(self, m):
         self.textLog.moveCursor(QtGui.QTextCursor.End)
         self.textLog.insertPlainText(m)
-
-    # --- Blink delegates (kept for backward compatibility with treeTests signal) ---
-
-    def setBlinkGreen(self):
-        self.runner.set_blink_green()
-
-    def setBlinkRed(self):
-        self.runner.set_blink_red()
-
-    def setBlinkGray(self):
-        self.runner.set_blink_gray()
 
 
 def MainWin(

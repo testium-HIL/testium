@@ -126,10 +126,9 @@ case "$MODE" in
             echo "Creating wheel venv at $WHEEL_VENV"
             python3 -m venv --system-site-packages "$WHEEL_VENV"
             "$WHEEL_VENV/bin/pip" install --quiet --upgrade pip
-            # Install with the [lsp] extra so the wheel channel is validated in
-            # its language-server-capable form (pulls pygls), matching how a
-            # user enables `testium lsp` from a wheel: pip install "testium-hil[lsp]".
-            "$WHEEL_VENV/bin/pip" install --quiet "${WHEEL}[lsp]"
+            # [qt,lsp]: the GUI is an extra (bare install = toolkit-free
+            # core) and the lsp channel is validated with pygls.
+            "$WHEEL_VENV/bin/pip" install --quiet "${WHEEL}[qt,lsp]"
         fi
         CMD=("$WHEEL_VENV/bin/python" -m testium)
         ;;
@@ -273,6 +272,25 @@ if [ "$MODE" = "source" ]; then
     GUI_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
     [ -x "$GUI_PY" ] || GUI_PY="$VENV_PYTHON"
     "$GUI_PY" "$SCRIPT_DIR/gui_state_check.py"
+fi
+
+# ---------- GUI purity check (source only) ------------------------------------
+# The presenter layer (src/testium/gui) must stay toolkit-free.
+if [ "$MODE" = "source" ]; then
+    echo "-- GUI purity check ($MODE)"
+    PUR_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$PUR_PY" ] || PUR_PY="$VENV_PYTHON"
+    "$PUR_PY" "$SCRIPT_DIR/gui_purity_check.py"
+fi
+
+# ---------- GUI presenter check (source only) ---------------------------------
+# The run presenter drives fake views/schedulers/services: state machine,
+# log rotation, exit code — without any toolkit import.
+if [ "$MODE" = "source" ]; then
+    echo "-- GUI presenter check ($MODE)"
+    PRE_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$PRE_PY" ] || PRE_PY="$VENV_PYTHON"
+    "$PRE_PY" "$SCRIPT_DIR/gui_presenter_check.py"
 fi
 
 # ---------- settings check (source only) --------------------------------------

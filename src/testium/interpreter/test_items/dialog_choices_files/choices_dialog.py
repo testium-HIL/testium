@@ -1,35 +1,21 @@
 import sys
 import os
 from multiprocessing import freeze_support
-from itertools import chain
 
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
                                QCheckBox, QHBoxLayout)
-from PySide6.QtCore import Qt, QSettings, QTimer, QSize
+from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QFont, QFontInfo
 from PySide6.QtWidgets import QTreeWidgetItem
 
 # try:
 from interpreter.test_items.dialog_choices_files import choices_dialog_win
+from interpreter.utils import tree_states
+from interpreter.test_items.dialog_choices_files import choices_presenter
 
 # except:
 #     import choices_dialog_win
-
-
-def __iter__QTreeWidgetItem(self):
-    for item in chain(*map(iter, self.children())):
-        yield item
-    yield self
-
-
-def childrenQTreeWidgetItem(self):
-    return [self.child(i) for i in range(self.childCount())]
-
-
-QTreeWidgetItem.name = ""
-QTreeWidgetItem.__iter__ = __iter__QTreeWidgetItem
-QTreeWidgetItem.children = childrenQTreeWidgetItem
 
 
 class ChoicesTreeItem(QTreeWidgetItem):
@@ -100,23 +86,28 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
     def connect_checked(self):
         self.choicesView.itemChanged.connect(self.on_testChecked)
 
+    @staticmethod
+    def _state_name(state):
+        return {Qt.Checked: "checked", Qt.Unchecked: "unchecked"}.get(
+            state, "partial")
+
     def on_selectDeselectAll(self):
-        state = self.checkSelect.checkState()
+        target = choices_presenter.bulk_check_target(
+            self._state_name(self.checkSelect.checkState()))
+        if target is None:
+            return
         self.choicesView.blockSignals(True)
         try:
-            if state == Qt.Checked:
-                self.updateTreeCheckState(self.root, True)
-            elif state == Qt.Unchecked:
-                self.updateTreeCheckState(self.root, False)
+            self.updateTreeCheckState(self.root, target)
         finally:
             self.choicesView.blockSignals(False)
 
     def on_checkFoldChanged(self):
-        if self.checkFold.checkState() != Qt.Unchecked:
-            self.foldAll(True)
+        fold, pin = choices_presenter.fold_action(
+            self._state_name(self.checkFold.checkState()))
+        self.foldAll(fold)
+        if pin != "unchecked":
             self._set_silent(self.checkFold, Qt.Checked)
-        else:
-            self.foldAll(False)
 
     def on_itemFoldChanged(self):
         self._set_silent(self.checkFold, Qt.PartiallyChecked)
@@ -154,17 +145,11 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
             if sub_choices is not None:
                 self.populate_tree(tree_item, sub_choices)
 
-    def __foldRecursively(self, tree_item, is_fold):
-        for i in range(tree_item.childCount()):
-            if tree_item.child(i).childCount() > 0:
-                tree_item.child(i).setExpanded(not is_fold)
-                self.__foldRecursively(tree_item.child(i), is_fold)
-
     def foldAll(self, is_fold):
         # Blocked: a bulk fold must not flip checkFold to PartiallyChecked.
         self.choicesView.blockSignals(True)
         try:
-            self.__foldRecursively(self.root, is_fold)
+            tree_states.fold_recursively(self.root, is_fold)
         finally:
             self.choicesView.blockSignals(False)
 
@@ -177,75 +162,35 @@ class ChoicesDialog(QDialog, choices_dialog_win.Ui_Dialog):
         self._set_silent(self.checkSelect, Qt.PartiallyChecked)
 
     def updateTreeCheckState(self, tree_item, is_checked):
-        # treat the case of the invisible root
+        state = Qt.Checked if is_checked else Qt.Unchecked
         if tree_item is self.root:
             for i in range(self.root.childCount()):
-                self.updateTreeCheckState(self.root.child(i), is_checked)
+                tree_states.cascade_check(self.root.child(i), state)
         else:
-            if is_checked:
-                tree_item.setCheckState(0, Qt.Checked)
-            else:
-                tree_item.setCheckState(0, Qt.Unchecked)
-
-            for i in range(tree_item.childCount()):
-                self.updateTreeCheckState(tree_item.child(i), is_checked)
+            tree_states.cascade_check(tree_item, state)
 
     def checked_state(self, parent=None):
-        if parent is None:
-            return self.checked_state(self.root)
-
-        sub_choices = []
-        for i in range(parent.childCount()):
-            sub_choices.append(self.checked_state(parent.child(i)))
-
-        if parent is self.root:
-            res = sub_choices
-        else:
-            res = {
-                "name": parent.name,
-                "checked": Qt.Checked == parent.checkState(0),
-            }
-            if len(sub_choices) > 0:
-                res.update({"choices": sub_choices})
-
-        return res
+        return choices_presenter.checked_state(
+            self.root, lambda item: Qt.Checked == item.checkState(0),
+            is_root=True)
 
     def apply_checked(self, choice, parent=None):
-        if parent is None:
-            self.apply_checked(choice, self.root)
-            return
-
-        if not isinstance(choice, list):
-            return
-
-        if len(choice) != parent.childCount():
-            return
-
-        for i in range(parent.childCount()):
-            if not isinstance(choice[i], dict):
-                return
-            if choice[i].get("checked", True) == True:
-                parent.child(i).setCheckState(0, Qt.Checked)
-            else:
-                parent.child(i).setCheckState(0, Qt.Unchecked)
-
-            sub_choices = choice[i].get("choices", None)
-            if sub_choices is not None:
-                self.apply_checked(sub_choices, parent.child(i))
-
+        choices_presenter.apply_checked(
+            choice, self.root,
+            lambda item, checked: item.setCheckState(
+                0, Qt.Checked if checked else Qt.Unchecked))
 
 def main(args, conn=None):
-    from interpreter.utils.settings import host_id
-    SettingsCompagny = "Testium"
-    # Per-host storage, like TestiumSettings (network home shared by PCs).
-    SettingsApplication = "testium_choices_dlg_" + args[0] + "." + host_id()
-    SettingsLastChoices = "last_choice"
     success = True
+    from interpreter.test_items.dialog_presenter import (
+        AUTO_CLOSE_MS, accepts, arg_at, load_last, mute_frozen_streams,
+        save_last, send_result)
     from interpreter.test_items import dialog_env
     dialog_env.setup()
     app = QApplication(['testium'])
     d = ChoicesDialog()
-    d.setFixedSize(800, 600)
+    d.resize(800, 600)
+    d.setMinimumSize(500, 400)
     d.setWindowFlags(Qt.WindowStaysOnTopHint)
     d.setWindowTitle(args[0])
     d.labelDialog.setText(args[1])
@@ -255,17 +200,16 @@ def main(args, conn=None):
     d.populate_tree(d.root, args[2])
     d.foldAll(False)
 
-    settings = QSettings(SettingsCompagny, SettingsApplication)
-    last_choice = settings.value(SettingsLastChoices, "")
-
-    d.apply_checked(last_choice)
+    d.apply_checked(load_last("choices", args[0]))
 
     d.connect_checked()
 
     d.choicesView.setFocus()
-    auto_result = args[4] if len(args) > 4 else None
+    auto_result = arg_at(args, 4)
     if auto_result is not None:
-        QTimer.singleShot(2000, lambda: d.accept() if auto_result.lower() == 'ok' else d.reject())
+        QTimer.singleShot(AUTO_CLOSE_MS,
+                          lambda: d.accept() if accepts(auto_result)
+                          else d.reject())
     dres = d.exec()
 
     if dres == QDialog.Rejected:
@@ -275,48 +219,10 @@ def main(args, conn=None):
 
     result = d.checked_state()
 
-    if conn:
-        if result:
-            # An empty tree yields [] — keep the previous selection instead
-            # of locking every next dialog to its all-checked default.
-            settings.setValue(SettingsLastChoices, result)
-        # Flush before sending: the parent terminates this subprocess as soon
-        # as it reads the result, so the QSettings destructor never runs and
-        # the write would race the kill (lost under Flatpak — see the
-        # tested-references dialog for the full rationale).
-        settings.sync()
-        conn.send([result, success])
-        conn.close()
-    else:
-        print(result, end="")
+    save_last("choices", args[0], result)
+    send_result(conn, result, success)
 
-    if hasattr(sys, "frozen"):
-        # all standard streams are replaced by dummy one to avoid cx_freeze flushing bug.
-        class dummyStream:
-            """dummyStream behaves like a stream but does nothing."""
-
-            def __init__(self):
-                pass
-
-            def write(self, data):
-                pass
-
-            def read(self, data):
-                pass
-
-            def flush(self):
-                pass
-
-            def close(self):
-                pass
-
-        # and now redirect all default streams to this dummyStream:
-        sys.stdout = dummyStream()
-        sys.stderr = dummyStream()
-        sys.stdin = dummyStream()
-        sys.__stdout__ = dummyStream()
-        sys.__stderr__ = dummyStream()
-        sys.__stdin__ = dummyStream()
+    mute_frozen_streams()
 
 
 if __name__ == "__main__":

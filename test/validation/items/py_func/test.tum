@@ -346,13 +346,15 @@
             name: hold the debug port
             key: $(test)_PASS
             file: $(test_path)$(psep)py_func.py
-            func_name: hold_port
+            func_name: hold_ports
             context_id: dbg_hold
             param:
+                # Scan window of handle.py (_DEBUG_PORT_SCAN)
                 - 5699
+                - 20
             expected_result: True
         # Fails fast whether debugpy is installed on the host interpreter
-        # (listen fails: port busy) or not (install message) — never blocks
+        # (every scanned port busy) or not (install message) — never blocks
         # waiting for an attach.
         - py_func:
             name: debug on a busy port (explicit failure)

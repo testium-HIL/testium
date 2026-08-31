@@ -9,7 +9,6 @@ EXE_RCC=pyside6-rcc
 UIFILES="main_win/testium_core_win.ui"
 UIFILES+=" main_win/about_win/about_win.ui"
 UIFILES+=" main_win/preference_win/preference_core_win.ui"
-UIFILES+=" main_win/f1_win/f1_win_core.ui"
 UIFILES+=" interpreter/test_items/dialog_choices_files/choices_dialog_win.ui"
 UIFILES+=" interpreter/test_items/dialog_image_files/dialog_image_win.ui"
 UIFILES+=" interpreter/test_items/dialog_note_files/dialog_note_win.ui"
@@ -19,7 +18,6 @@ UIFILES+=" interpreter/test_items/tested_references_files/tested_refs_win.ui"
 
 RCFILES="main_win/resources/testium_core_win.qrc"
 RCFILES+=" main_win/resources/about_win.qrc"
-RCFILES+=" main_win/resources/f1_win.qrc"
 
 for f in ${UIFILES}
 do

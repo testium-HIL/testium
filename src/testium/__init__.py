@@ -10,6 +10,31 @@ sys.path.append(os.path.abspath(ourpath.parent))
 
 import interpreter.utils.constants as cst
 
+# GUI backends: name -> (module, launcher attribute). Lazy imports keep
+# the core (batch/schema/lsp) free of toolkit dependencies; the registry
+# is the extension point for a future non-Qt view.
+UI_BACKENDS = {
+    "qt": ("main_win.testium_win", "MainWin"),
+}
+
+
+def _load_ui_backend():
+    """Launcher of the first importable backend; exits with the install
+    hint when none is available."""
+    import importlib
+    for module, attr in UI_BACKENDS.values():
+        try:
+            return getattr(importlib.import_module(module), attr)
+        except ImportError:
+            continue
+    print(
+        "testium: no GUI backend installed. "
+        "Install with: pip install 'testium-hil[qt]'",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
 def main():
     # Force UTF-8 on stdout/stderr so the runner's output survives a legacy
     # console code page (Windows cp1252 can't encode box-drawing/accented
@@ -138,7 +163,7 @@ def main():
         sys.exit(0 if b.success else 1)
 
     else:
-        from main_win.testium_win import MainWin
+        MainWin = _load_ui_backend()
         MainWin(tf, config_files=cf,
                 run=args.run_and_close,
                 log_file=lf,

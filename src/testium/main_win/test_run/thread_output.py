@@ -1,5 +1,7 @@
 from PySide6.QtCore import (QThread)
 
+from gui import run_io
+
 
 class ThreadTestOutput(QThread):
 
@@ -13,16 +15,10 @@ class ThreadTestOutput(QThread):
         self._is_stopped = True
 
     def run(self):
-        """ read the stream and print it in the log window line by line
-        """
-
+        """Read the stream and queue it line by line for the log window."""
         while not self._is_stopped:
             try:
-                lines=self._stream.read().splitlines()
-                for line in lines:
-                    if len(line) >= 1:
-                        self._queue.put(line)
-
-                QThread.msleep(100)
-            except:
-                QThread.msleep(100)
+                run_io.pump_lines(self._stream, self._queue.put)
+            except Exception:
+                pass
+            QThread.msleep(100)

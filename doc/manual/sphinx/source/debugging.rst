@@ -5,7 +5,7 @@ Debugging your tests
 
 testium provides four complementary tools to debug a test campaign:
 breakpoints and step-by-step execution to control the flow, the
-variables window to inspect the data, the Debug output switch for
+Variables panel to inspect the data, the Debug output switch for
 verbose diagnostics, and an IDE debugger attach for the Python code of
 ``py_func`` items.
 
@@ -61,8 +61,11 @@ affected.
 Inspecting variables
 ^^^^^^^^^^^^^^^^^^^^
 
-**F1** opens the variables window: the global dictionary, filterable,
-editable while the test is paused or between runs.
+**F1** shows the Variables panel: the global dictionary, filterable,
+editable while the test is paused or between runs. The panel is a dock
+like Log and Test doc: it can be closed, moved to any side, placed
+below the tree or tabbed; the View menu and the toolbar button bring
+it back.
 
 The expression field below the table evaluates a Python expression
 against the current variables, also while paused on a breakpoint.

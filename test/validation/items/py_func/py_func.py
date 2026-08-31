@@ -62,12 +62,15 @@ def return_nothing():
 def return_explicit_none():
     return None
 
-def hold_port(port):
-    # Keeps a listening socket alive in the persistent context so a later
-    # debug item fails fast on debugpy.listen (port already bound).
+def hold_ports(first, count):
+    # Holds the whole scan window so the debug item cannot fall back to a
+    # free port and wait for an IDE.
     import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("127.0.0.1", int(port)))
-    s.listen(1)
-    tm.setgd("_dbg_port_holder", s)
+    holders = []
+    for port in range(int(first), int(first) + int(count)):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("localhost", port))
+        s.listen(1)
+        holders.append(s)
+    tm.setgd("_dbg_port_holder", holders)
     return True

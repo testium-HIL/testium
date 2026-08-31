@@ -12,36 +12,41 @@ main:
         - unittest:
             name: Unittest item
             test_file: dummy/unittest_str.py
-            doc: Unittest test
+            doc: Runs each test method of <code>dummy/unittest_str.py</code> as a sub-step.
 
         - group:
             name: Set test variables for Linux
+            doc: Sets the terminal prompt for <b>Linux</b>; skipped elsewhere.
             condition: <| "$(os)" == "Linux" |>
             steps:
 
             - let:
                 name: Set test variables for Linux
+                doc: Stores the Linux prompt in <code>terminal_prompt</code>.
                 values:
                     - terminal_prompt: $(linux_prompt)
 
         - group:
             name: Set test variables for Windows
+            doc: Sets the terminal prompt for <b>Windows</b>; skipped elsewhere.
             condition: <| "$(os)" == "Windows" |>
             steps:
 
             - let:
                 name: Set test variables for Windows
+                doc: Stores the Windows prompt in <code>terminal_prompt</code>.
                 values:
                     - terminal_prompt: $(windows_prompt)
 
         - group:
             name: Console test group
+            doc: Opens a terminal console, runs a command, <b>closes</b> it.
             steps:
 
             - console:
                 name: Console creation
                 console_name: consname
-                doc: Opening the console
+                doc: Opens a terminal console on the test directory.
                 steps:
                     - open:
                         protocol: terminal
@@ -50,22 +55,26 @@ main:
             - console:
                 name: Console read_until with timeout
                 console_name: consname
+                doc: Waits for the prompt, up to <b>10 s</b>.
                 steps:
                     - read_until: {expected: "$(terminal_prompt)", timeout: 10}
 
             - console:
                 name: Console write
                 console_name: consname
+                doc: Sends the command <code>echo 0</code>.
                 steps:
                     - writeln: echo 0
 
             - sleep:
                 name: sleep item
+                doc: Waits while the command completes.
                 timeout: 5
 
             - console:
                 name: Console read_until immediate
                 console_name: consname
+                doc: Reads the command echo and its output.
                 steps:
 {% if os == "Windows" %}
                     - read_until: {expected: "echo 0", timeout: 1}
@@ -75,45 +84,55 @@ main:
             - console:
                 name: Console read_until immediate (2)
                 console_name: consname
+                doc: Reads the prompt following the output.
                 steps:
                     - read_until: {expected: "$(terminal_prompt)", timeout: 1}
 
             - console:
                 name: Console closure
                 console_name: consname
+                doc: Closes the console.
                 steps:
                     - close: consname
 
         - loop:
             name: cycle item
+            doc: Runs its steps three times.
             iterator : 3
             steps:
                 - unittest:
                     name: Unittest item
+                    doc: Runs <code>test_01_pass</code> from <code>dummy/dummy.py</code>.
                     test_file: dummy/dummy.py
                     test_method: test_01_pass
                 - sleep:
                     name: sleep item
+                    doc: Waits one second between iterations.
                     timeout: 1
                 - loop:
                     name: cycle item
+                    doc: Nested cycle, three iterations per outer one.
                     iterator : 3
                     steps:
                         - unittest:
                             name: Unittest item
+                            doc: Runs <code>test_01_pass</code> from <code>dummy/dummy.py</code>.
                             test_file: dummy/dummy.py
                             test_method: test_01_pass
                         - sleep:
                             name: sleep item
+                            doc: Waits one second between iterations.
                             timeout: 1
 
                         - py_func:
                             name: func item
+                            doc: Calls <code>donothing()</code> from <code>dummy/dummy.py</code>.
                             file: dummy/dummy.py
                             func_name: donothing
 
         - dialog_choices:
             name: Choices
+            doc: Asks the operator to pick entries from a two-level tree.
             question: Select the items you want
             icon: $(test_directory)/../../src/testium/main_win/resources/black/document.png
             choices:
@@ -141,30 +160,37 @@ main:
 
         - dialog_image:
             name: dialog image item
+            doc: Shows <code>image.jpg</code> and waits for confirmation.
             question: click ok if you see the image
             filename: image.jpg
 
         - sleep:
             name: sleep item
+            doc: Waits three seconds behind a countdown dialog.
             timeout: 3
             dialog: true
 
         - git:
             name: Testium repo
+            doc: Records the revision of the repository holding the test.
             repo: $(test_directory)
 
         - group:
             name: group item
+            doc: Two one-second sleeps run in sequence.
             steps:
                 - sleep:
                     name: sleep item
+                    doc: Waits one second.
                     timeout: 1
                 - sleep:
                     name: sleep item
+                    doc: Waits one second.
                     timeout: 1
 
         - dialog_references:
             name: dialog_reference item
+            doc: Asks the operator for the tested reference.
             question: click ok
 #            reference:
 #                - ref 1
@@ -173,14 +199,17 @@ main:
 
         - dialog_value:
             name: dialog_value item
+            doc: Asks the operator for a free-text value.
             question: enter something and click ok
 
         - dialog_message:
             name: dialog_message item
+            doc: Shows a message and waits for OK.
             question: click ok
 
         - dialog_question:
             name: dialog_question item
+            doc: Asks a yes/no question.
             question: click yes
 
 report:

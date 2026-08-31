@@ -2,6 +2,8 @@ from time import sleep
 import importlib
 from PySide6.QtCore import (Signal, QThread)
 
+from gui import run_io
+
 
 class ThreadTestStatus(QThread):
     statusToBeUpdated = Signal(dict)
@@ -19,28 +21,19 @@ class ThreadTestStatus(QThread):
         if self.__debug:
             self.debugpy = importlib.import_module("debugpy")
         stopping = False
-        try:
-            while True:
-                while not self._status_queue.empty():
-                    m = self._status_queue.get()
-                    msg_type = m.get("type")
-                    if msg_type == "gd_update":
-                        self.gdUpdated.emit(m["key"], m["value"])
-                    elif msg_type == "gd_delete":
-                        self.gdDeleted.emit(m["key"])
-                    elif "id" in m and m["id"] is None:
-                        self.testSetIsFinished.emit()
-                    else:
-                        self.statusToBeUpdated.emit(m)
-                if stopping:
-                    break
-                if self.__to_be_stopped:
-                    stopping = True
-                sleep(0.1)
-
-        finally:
-            pass
-            #self.testSetIsFinished.emit()
+        while True:
+            while not self._status_queue.empty():
+                run_io.dispatch_status(
+                    self._status_queue.get(),
+                    self.gdUpdated.emit,
+                    self.gdDeleted.emit,
+                    self.testSetIsFinished.emit,
+                    self.statusToBeUpdated.emit)
+            if stopping:
+                break
+            if self.__to_be_stopped:
+                stopping = True
+            sleep(0.1)
 
     def stop(self):
         self.__to_be_stopped = True

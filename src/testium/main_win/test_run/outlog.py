@@ -1,41 +1,26 @@
-'''
-Created on 4 nov. 2013
-
-@author: francois.d
-'''
-
-from PySide6 import QtGui
 from PySide6.QtCore import QObject, Signal
 
+from gui import run_io
 
-import sys
 
 class OutLog(QObject):
     logToBeAppended = Signal(str)
 
     def __init__(self, out=None):
         super().__init__(None)
-        self.out = out
+        self._tee = run_io.LogTee(self.logToBeAppended.emit, out)
 
     def set(self, file_handle):
-        self.out = file_handle
+        self._tee.set(file_handle)
 
     def reset(self):
-        self.out = None
+        self._tee.reset()
 
     def write(self, m):
-        self.logToBeAppended.emit(m)
-
-        if self.out:
-            try:
-                self.out.write(m)
-            except (UnicodeEncodeError, ValueError, OSError):
-                # never kill the capture thread on a file-side write error
-                pass
+        self._tee.write(m)
 
     def writeln(self, m=""):
-        self.write(m + "\n")
+        self._tee.writeln(m)
 
     def flush(self):
-        if self.out:
-            self.out.flush()
+        self._tee.flush()
