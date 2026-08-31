@@ -10,30 +10,26 @@ sys.path.append(os.path.abspath(ourpath.parent))
 
 import interpreter.utils.constants as cst
 
-# GUI backends: name -> (module, launcher attribute). Lazy imports keep the
-# core (batch/schema/lsp) free of toolkit dependencies.
+# GUI backends: name -> (module, launcher attribute). Lazy imports keep
+# the core (batch/schema/lsp) free of toolkit dependencies; the registry
+# is the extension point for a future non-Qt view.
 UI_BACKENDS = {
     "qt": ("main_win.testium_win", "MainWin"),
-    "tui": ("tui_win.app", "TuiMain"),
-    "web": ("web_win.app", "WebMain"),
 }
 
 
-def _load_ui_backend(name):
-    """Launcher for *name*, or for the first importable backend when name
-    is empty. Exits with the install hint when none is available."""
+def _load_ui_backend():
+    """Launcher of the first importable backend; exits with the install
+    hint when none is available."""
     import importlib
-    names = [name] if name else list(UI_BACKENDS)
-    for n in names:
-        module, attr = UI_BACKENDS[n]
+    for module, attr in UI_BACKENDS.values():
         try:
             return getattr(importlib.import_module(module), attr)
         except ImportError:
             continue
-    extra = name if name else "qt"
     print(
-        f"testium: no {name or 'GUI'} backend installed. "
-        f"Install with: pip install 'testium-hil[{extra}]'",
+        "testium: no GUI backend installed. "
+        "Install with: pip install 'testium-hil[qt]'",
         file=sys.stderr,
     )
     sys.exit(2)
@@ -111,9 +107,6 @@ def main():
                         help="Python modules search path",
                         nargs='+',
                         default=[])
-    parser.add_argument("-u", "--ui", choices=sorted(UI_BACKENDS),
-                        default='',
-                        help="GUI backend (default: first installed)")
     parser.add_argument("-g", "--dev-debug", "--debug", action='store_true',
                         dest="debug",
                         help="attach a debugger to testium itself "
@@ -170,7 +163,7 @@ def main():
         sys.exit(0 if b.success else 1)
 
     else:
-        MainWin = _load_ui_backend(args.ui)
+        MainWin = _load_ui_backend()
         MainWin(tf, config_files=cf,
                 run=args.run_and_close,
                 log_file=lf,

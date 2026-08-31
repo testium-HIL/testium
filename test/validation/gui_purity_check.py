@@ -15,8 +15,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.abspath(os.path.join(HERE, "..", "..", "src", "testium"))
 
-FORBIDDEN_GUI = ("PySide6", "PyQt5", "PyQt6", "textual", "rich",
-                 "nicegui", "main_win", "tui_win", "web_win")
+FORBIDDEN_GUI = ("PySide6", "PyQt5", "PyQt6", "main_win")
 FORBIDDEN_DIALOG = FORBIDDEN_GUI + ("gui",)
 
 

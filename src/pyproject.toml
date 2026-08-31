@@ -39,13 +39,11 @@ Repository = "https://github.com/testium-HIL/testium"
 # The bare install is the toolkit-free core (batch, schema, lsp server
 # code); each GUI backend is an extra.
 qt = ["pyside6"]
-tui = ["textual>=0.60"]
-web = ["nicegui>=2.0"]
 # `pip install "testium-hil[lsp]"` adds the language-server dependencies. The
 # stdio-only LSP server (`testium lsp`) reuses the schema export from the
 # core install; pygls is the only marginal cost.
 lsp = ["pygls>=1.3"]
-all = ["testium-hil[qt,tui,web,lsp]"]
+all = ["testium-hil[qt,lsp]"]
 
 [project.scripts]
 testium = "testium:main"
