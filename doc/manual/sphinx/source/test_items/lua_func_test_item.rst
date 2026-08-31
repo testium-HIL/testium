@@ -38,7 +38,9 @@ The ``lua_func`` test item is of the form:
 **Attributes**
 
 Besides the common test item attributes, the ``lua_func`` item has specific attributes;
-``file`` and ``func_name`` are mandatory.
+``file`` and ``func_name`` are mandatory. Both are resolved on every
+execution: in a loop, a ``$( )`` value can select a different function
+per iteration.
 
 * ``file``: the script file name that contains the function to be executed.
   Only Lua script format is supported.

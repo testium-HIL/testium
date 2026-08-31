@@ -77,7 +77,8 @@ If not provided, the log is written to a temporary folder.
 
 Defines one or more variables in the form ``VARIABLE1=value1 VARIABLE2=value2 ..."``.
 Then, these variables are available from the test scripts, using the :ref:`global variables<sec_global_variables>`
-*testium* feature.
+*testium* feature. A define overrides a configuration file value; values
+derived from the overridden variable follow.
 
 .. _sec_p_param:
 

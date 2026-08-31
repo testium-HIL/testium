@@ -77,16 +77,16 @@ is automatically loaded, if present in the test directory.
 Files loading
 ^^^^^^^^^^^^^^^^^^
 
-The ``YAML`` configuration files variables are stored as declared;
-``$( )`` and ``<| |>`` in their values resolve when the value is used.
-A value derived from another variable therefore follows later
-redefinitions (``let``, ``-d``, API). The variables are accessible from
-TUM tests description files and also from
+The configuration file variables are added to the global variables at
+load time and stored as declared: ``$( )`` and ``<| |>`` in their
+values are resolved when the value is used. In the example above,
+``parameter4`` follows a later redefinition of ``parameter1``. The
+variables are accessible from TUM test files and from
 :ref:`python<sec_py_func_item>` and :ref:`lua<sec_py_func_item>`
-function test items. A variable set to ``null`` is defined: ``$(x)``
-expands to ``None``.
+function test items.
 
-See more details :ref:`below<sec_global_variables>`.
+The resolution rules are detailed in
+:ref:`when values are resolved<sec_resolution_time>`.
 
 .. _sec_global_variables:
 
@@ -240,6 +240,42 @@ their pattern.
             - expanse_index: $(expanse_index_$(expanse_select))
             - expanse_table: $(expanse_table_$(expanse_select))
             - expanse_eval: <|$(expanse_index) == 1|>
+
+A ``let`` evaluates its values when the item runs and stores the
+results. Each pair sees the pairs written above it, as in the example.
+
+.. _sec_resolution_time:
+
+When values are resolved
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: yaml
+    :caption: param.yaml
+
+    base_port: 5699
+    url: localhost:$(base_port)
+
+.. code-block:: yaml
+    :caption: test steps
+
+    - let: {name: Change the port, values: [base_port: 6000]}
+    - console:
+        name: c
+        command: ping $(url)     # url is "localhost:6000" here
+
+* Item attributes and configuration file values are resolved when they
+  are used, on every execution.
+* A redefinition (``let``, ``-d``, :ref:`API<sec_python_helper_library>`) applies
+  to every later use, including values derived from the redefined
+  variable, as ``url`` above.
+* A ``let`` value is the exception: it is evaluated when the ``let``
+  runs and the result is stored. It does not change when its source
+  variables change later.
+* A variable set to ``null`` is defined: ``$(x)`` expands to ``None``.
+* Resolved at load time: item ``name``, ``doc`` and ``skipped``, the
+  ``unittest``/``pytest`` ``test_file`` and ``test_method``, file paths
+  (configuration files, includes) and the
+  :ref:`jinja templates<sec_templates>`.
 
 Test Items
 --------------------

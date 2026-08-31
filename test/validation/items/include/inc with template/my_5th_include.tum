@@ -1,0 +1,9 @@
+# Structural use of an include argument: expand() resolves the value at
+# load time, explicitly.
+{% set _cfg = expand(cfg_arg) %}
+- let: {name: Store structural value, key: $(test)_PASS, values: [inclusion5: "{{ _cfg.choices | length }}"]}
+- check:
+    name: Include argument used structurally via expand (PASS)
+    key: $(test)_PASS
+    values:
+      - <| $(inclusion5) == 2 |>

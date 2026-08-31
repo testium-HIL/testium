@@ -62,7 +62,9 @@ Inspecting variables
 ^^^^^^^^^^^^^^^^^^^^
 
 **F1** shows the Variables panel: the global dictionary, filterable,
-editable while the test is paused or between runs. The panel is a dock
+editable while the test is paused or between runs. Editing a variable
+also changes the values derived from it (see
+:ref:`when values are resolved<sec_resolution_time>`). The panel is a dock
 like Log and Test doc: it can be closed, moved to any side, placed
 below the tree or tabbed; the View menu and the toolbar button bring
 it back.

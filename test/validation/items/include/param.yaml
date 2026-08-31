@@ -5,3 +5,6 @@ test_parameter: My first include test parameter
 # Config-declared include argument, redefined by a let in test.tum.
 inc4: Balavoine
 Balavoine_inc: frozen_value
+
+# Structured value passed as an include argument (expand() fixture).
+inc5_config: '<| {"choices": [{"name": "a"}, {"name": "b"}]} |>'

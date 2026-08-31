@@ -35,6 +35,14 @@ def gd_generation():
     return _generation
 
 
+def resolve_text(value):
+    """Expand a $()/<| |> template value with the registered resolver
+    (identity before env_init). Serves the jinja expand() helper."""
+    if _resolver is None:
+        return value
+    return _resolver(value)
+
+
 def invalidate_cache():
     """Signal a direct global_dict mutation: resolved values are stale."""
     global _generation

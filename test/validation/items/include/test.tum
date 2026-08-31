@@ -18,3 +18,5 @@
     key: $(test)_PASS
     values:
       - <| "$(inclusion4)" == "Dalida" |>
+
+- !include {file: $(inc_with_template)/my_5th_include.tum, cfg_arg: $(inc5_config)}

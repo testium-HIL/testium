@@ -3,7 +3,8 @@ version 0.5.0
 - Configuration file variables follow later redefinitions (let, -d,
   API): they are resolved when used, no longer frozen at load.
 - Include arguments are passed to templates as declared and resolve at
-  run time, independent of the load order.
+  run time, independent of the load order. To use an argument's value
+  inside the template itself, resolve it with expand().
 - py_func and lua_func file and function names and the console protocol
   re-expand on every execution (loops, re-runs).
 - A variable set to null is defined: $(x) expands to None.

@@ -81,7 +81,9 @@ There is no possibility to access the report features in that mode.
 **Attributes**
 
 Besides the common test item attributes, the ``py_func`` item has specific attributes;
-``file`` and ``func_name`` are mandatory.
+``file`` and ``func_name`` are mandatory. Both are resolved on every
+execution: in a loop, a ``$( )`` value can select a different function
+per iteration.
 
 * ``file``: the script file name that contains the function to be executed.
   Only python script format is supported.

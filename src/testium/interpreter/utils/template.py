@@ -14,7 +14,26 @@ from runtime.tum_except import ETUMSyntaxError
 # Jinja compilation is the expensive step; render (variable substitution) stays
 # per-call. Cache is keyed on path + mtime + size so an edited file recompiles.
 _ENV = Environment()
+# expand(x): explicit load-time resolution of a $()/<| |> value, for
+# structural use of an include argument ({% if %}, attribute access).
+_ENV.globals["expand"] = globdict.resolve_text
 _template_cache = {}  # abspath -> (mtime_ns, size, compiled_template)
+
+
+def _expand_hint(message, variables):
+    """Hint appended to a template error when a variable holds unresolved
+    $()/<| |> text and the error looks like a structural use of it."""
+    if "str object" not in str(message):
+        return ""
+    unresolved = [k for k, v in variables.items()
+                  if isinstance(v, str) and ("$(" in v or "<|" in v)]
+    if not unresolved:
+        return ""
+    return ("A variable holds unresolved $( )/<| |> text (include "
+            "arguments are passed as declared): "
+            + ", ".join(sorted(unresolved))
+            + ". To use its value in the template, resolve it with "
+            "expand(<name>).\n")
 
 
 class _RenderedStream(io.StringIO):
@@ -85,11 +104,15 @@ def template_to_test(filename: str, params: dict, verbatim: dict = None):
     except UndefinedError as e:
         raise ETUMSyntaxError(
             f"Undefined template variable: {e.message}\n"
-            f"Define it in a param file, a '-d' define or the include "
-            f"parameters.",
+            + _expand_hint(e.message, variables)
+            + "Define it in a param file, a '-d' define or the include "
+            "parameters.",
             filename)
     except TemplateError as e:
-        raise ETUMSyntaxError(f"Template rendering error: {e.message}", filename)
+        raise ETUMSyntaxError(
+            f"Template rendering error: {e.message}\n"
+            + _expand_hint(str(e.message), variables),
+            filename)
     except Exception as e:
         # Catch any other unexpected errors
         raise ETUMSyntaxError(

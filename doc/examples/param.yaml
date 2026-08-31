@@ -4,12 +4,18 @@
 #**************************************************************************** -->
 windows_prompt: >
 linux_prompt: $
-sequence: tm.tum
+sequence: seq.tum
 
 # loops parameters
 global_loop_param_list: [["one", "two", "three"], [1, 2, 3]]
 global_loop_param_txt: ['one', 'two', 'three']
 global_loop_param_num: [1, 2, 3]
+
+# Sequence example: seq_message is resolved when used, so it follows a
+# later redefinition of seq_greeting.
+seq_greeting: hello
+seq_message: $(seq_greeting) world
+seq_timeout: 12
 
 # Plot parameters
 plot_log_path: /tmp/testium_plot/$(testrun_date)/$(testrun_time)/

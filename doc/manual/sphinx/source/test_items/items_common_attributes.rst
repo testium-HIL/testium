@@ -193,6 +193,7 @@ Store result
 
 The ``store_result`` attribute stores the test result into a named global variable,
 making it available to subsequent test items via ``$(variable_name)``.
+Like a ``let``, it stores a concrete value, evaluated when the item runs.
 
 If the test item returns a value (e.g. ``py_func``, ``json_rpc``), that value is stored.
 If ``process_result`` is also specified, the stored value is the post-processed result.

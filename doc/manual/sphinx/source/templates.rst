@@ -1,26 +1,29 @@
 
+.. _sec_templates:
+
 Templates
 ---------------------------
 
 *testium* embeds the `jinja2 <https://jinja.palletsprojects.com>`_ template engine. It allows extensive customization of
 test files and makes test scripts reusable.
 
+Templates are rendered at load time.
+
 In the main test file
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The *testium* main test files are always passed through the jinja template engine.
 
-The parameters passed to jinja are all the variables contained into the
-:ref:`configuration files<sec_configuration_files>` plus the
-:ref:`built-in values<sec_global_variables_builtin>`.
+The variables available to jinja are the
+:ref:`configuration file<sec_configuration_files>` entries plus the
+:ref:`built-in values<sec_global_variables_builtin>`. Jinja receives
+their resolved values, as they are at load time.
 
 In ``!include`` directive
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In addition to basic inclusion, ``!include`` accepts parameters.
-These parameters replace the corresponding ``{{ keyword }}`` placeholders in the included file.
-
-See examples below.
+In addition to basic inclusion, ``!include`` accepts arguments.
+These arguments replace the corresponding ``{{ keyword }}`` placeholders in the included file.
 
 .. code-block:: yaml
     :caption: including a template
@@ -45,15 +48,37 @@ See examples below.
         name: {{ inclusion_parameter_1 }}
     - {{ inclusion_parameter_2 }}:
         name: test_3
-    # The following construction is not allowed and will fail to load:
-    - test_item:
-        name: {{ $(inclusion)_parameter_3 }}
 
-Include arguments are passed to the template as declared: a ``$( )`` or
-``<| |>`` argument is written as text into the included file and
-resolves when the items run, with the value in force at that moment.
-Variables referenced directly in the template (``{{ var }}``,
-``{% if var %}``) receive their current values at load time. To test an
-argument's value in a ``{% if %}``, reference the global variable
-instead of the argument.
+Include arguments and resolution time
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. code-block:: yaml
+    :caption: calling file
+
+    - !include {file: bench.tum, cfg: $(bench_config)}
+
+.. code-block:: yaml+jinja
+    :caption: bench.tum
+
+    {% set _cfg = expand(cfg) %}
+    {% if _cfg.mode == "fast" %}
+    - sleep: {name: warmup, timeout: 0.1}
+    {% endif %}
+
+    - py_func:
+        name: run bench
+        file: bench.py
+        func_name: run
+        param:
+            - {{ cfg }}
+
+* An argument is passed to the template as declared: ``{{ cfg }}``
+  writes the text ``$(bench_config)`` into the file.
+* That text is resolved when the item runs, with the value in force at
+  that moment. A later redefinition of ``bench_config`` applies.
+* ``expand(value)`` resolves ``$( )`` and ``<| |>`` at load time. Use
+  it to access the value inside the template itself: attribute access,
+  ``{% if %}``, ``{% for %}``. ``expand()`` exists only in templates.
+* Mixing the two syntaxes in one expression is not allowed:
+  ``{{ $(inclusion)_parameter }}`` fails to load. Write the ``$( )``
+  part as text and let it resolve at run time.

@@ -35,3 +35,12 @@ Here is a basic example of file inclusion:
 
             #include can also be inserted directly within the steps list
             - !include included_file.tum
+
+An include can also carry arguments for the included file:
+
+.. code-block:: yaml
+
+    - !include {file: included_file.tum, sensor: sensor_A}
+
+The arguments feed the jinja template of the included file; their
+resolution time is described in :ref:`templates<sec_templates>`.

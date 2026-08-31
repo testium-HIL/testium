@@ -24,4 +24,10 @@ main:
             exit_condition:
                 value: <| $(variable) >= 3 |>
 
-        - !include {file: seq2.tum, is_dialog: True, sleep_timeout: 12, func_para: truc}
+# Include arguments are passed as declared: $(seq_message) resolves when
+# the py_func runs, so it sees the redefinition below.
+        - let:
+            name: Redefine the greeting
+            values:
+                - seq_greeting: goodbye
+        - !include {file: seq2.tum, is_dialog: True, sleep_timeout: $(seq_timeout), func_param: $(seq_message)}

@@ -1,12 +1,17 @@
+# expand() resolves an argument at load time, for structural use in the
+# template; {{ sleep_timeout }} written in an item resolves at run time.
+{% set _timeout = expand(sleep_timeout) %}
 
 - sleep:
     name: Sleep {{ sleep_timeout }} sec
     timeout: {{ sleep_timeout }}
     dialog: {{ is_dialog }}
 
+{% if _timeout > 5 %}
 - dialog_message:
     name: dialog_message item
     question: value is {{ sleep_timeout }}
+{% endif %}
 
 - py_func:
     name: function test item

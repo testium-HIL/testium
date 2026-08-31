@@ -48,6 +48,9 @@ for k in SUPPORTED_API:
 def gd(name, default=None):
     """Return a value from the testium global dictionary.
 
+    A value declared with ``$( )`` or ``<| |>`` is returned resolved,
+    with the variables in force at call time.
+
     The value is accessible from any test item and from any ``py_func``
     subprocess, regardless of the ``context_id`` used.
 

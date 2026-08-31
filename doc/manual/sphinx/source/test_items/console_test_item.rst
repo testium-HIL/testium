@@ -57,7 +57,8 @@ Open step accepts the following attribute:
 * ``protocol``: Setting of the console protocol; supported protocols are listed
   in the table below
 * The other attributes depend on the protocol in use and are listed
-  in the table below
+  in the table below. The protocol and connection parameters are
+  resolved on every execution of the open action.
 
 .. table:: console protocols
     :widths: 20, 30, 50
