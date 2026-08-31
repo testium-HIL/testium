@@ -91,3 +91,14 @@
     key: $(test)_PASS
     values:
         - <| $(test_overwrite_me) == False |>
+- let:
+    name: A null value is a definition
+    key: $(test)_PASS
+    values:
+        - nullable: null
+
+- check:
+    name: Check null value expansion (PASS)
+    key: $(test)_PASS
+    values:
+        - <| $(nullable) == None |>

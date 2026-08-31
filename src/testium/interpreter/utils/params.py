@@ -366,23 +366,31 @@ def warn_once(key, message, debug_hint=None):
         tm.print_debug(debug_hint)
 
 
+_NOT_FOUND = object()
+
+
 def _operate_param(glob, parent):
     """This function checks if glog exists in the global dict or
     if it is a loop variable.
     """
-    treated = True
     if (glob == "loop_param") and (parent is not None):
         g = getLoopParam(parent)
+        treated = g is not None
     elif (glob == "loop_index") and (parent is not None):
         g = getLoopIndex(parent)
+        treated = g is not None
     elif (glob == "loop_index_inverse") and (parent is not None):
         g = getInverseLoopIndex(parent)
+        treated = g is not None
     elif (glob == "loop_count") and (parent is not None):
         g = getLoopCount(parent)
+        treated = g is not None
     else:
-        g = globdict.gd(glob)
-    if g is None:
-        treated = False
+        # Resolved read: a stored $()/<| |> template follows the current
+        # globals. A key set to None counts as defined.
+        g = globdict.resolve_gd(glob, _NOT_FOUND)
+        treated = g is not _NOT_FOUND
+    if not treated:
         g = glob
     return treated, g
 

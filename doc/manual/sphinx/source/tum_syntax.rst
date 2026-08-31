@@ -77,9 +77,14 @@ is automatically loaded, if present in the test directory.
 Files loading
 ^^^^^^^^^^^^^^^^^^
 
-The ``YAML`` configuration files variables are evaluated directly and accessible from TUM
-tests description files and also from :ref:`python<sec_py_func_item>`
-and :ref:`lua<sec_py_func_item>` function test items.
+The ``YAML`` configuration files variables are stored as declared;
+``$( )`` and ``<| |>`` in their values resolve when the value is used.
+A value derived from another variable therefore follows later
+redefinitions (``let``, ``-d``, API). The variables are accessible from
+TUM tests description files and also from
+:ref:`python<sec_py_func_item>` and :ref:`lua<sec_py_func_item>`
+function test items. A variable set to ``null`` is defined: ``$(x)``
+expands to ``None``.
 
 See more details :ref:`below<sec_global_variables>`.
 

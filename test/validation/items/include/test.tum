@@ -10,3 +10,11 @@
 
 - let: {name: Declare param for inclusion, values: [inc: Dali, Dali_inc: Dalida]}
 - !include {file: $(inc_with_template)/my_3d_include.tum, dd: $(inc)}
+
+- let: {name: Redefine config-declared include argument, key: $(test)_PASS, values: [inc4: Dali]}
+- !include {file: $(inc_with_template)/my_4th_include.tum, dd4: $(inc4)}
+- check:
+    name: Include argument follows the redefinition (PASS)
+    key: $(test)_PASS
+    values:
+      - <| "$(inclusion4)" == "Dalida" |>

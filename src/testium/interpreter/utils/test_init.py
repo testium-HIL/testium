@@ -98,14 +98,10 @@ def yamltodict(param_file, silent=True):
         tm.print_info(f"The YAML file '{param_file}' is empty.")
         return
 
-    # update the global dict with raw data
+    # Values are stored as declared; $()/<| |> resolve when the value is
+    # used, so later redefinitions propagate.
     globdict.global_dict.update(dp)
-
-    # Apply variables expansion
-    for i in range(10):
-        for key, val in dp.items():
-            val = expanse(val)
-            dp.update({key: val})
+    globdict.invalidate_cache()
 
     if not silent:
         if not tm.debug_enabled():
@@ -113,11 +109,8 @@ def yamltodict(param_file, silent=True):
         else:
             tm.print_debug(f'"{param_file}" loading:')
             for k, v in dp.items():
-                tm.print_debug(f"  {k}: {v}")
+                tm.print_debug(f"  {k}: {v}   (as declared)")
             tm.print_debug(f"done.")
-
-    # Finalize the global dict update
-    globdict.global_dict.update(dp)
 
 
 def _feed_gd_with_params(param_file, silent=True):
@@ -180,6 +173,8 @@ def env_init():
     # The registered function only serves the <| ... |> pattern: warn there
     # on failure (other evaluate() callers are speculative).
     eval_func_init(lambda val: evaluate(val, _warn_on_failure=True))
+    # Read-side resolution of stored $()/<| |> templates.
+    globdict.set_resolver(expanse)
     _constants_init()
 
 
@@ -258,6 +253,7 @@ def restore_gd(dict):
     # clear_recursively would empty its nested objects in place.
     globdict.global_dict.update(copy.deepcopy(dict))
     globdict.global_dict.update(sticky)
+    globdict.invalidate_cache()
 
 
 def test_run_init():

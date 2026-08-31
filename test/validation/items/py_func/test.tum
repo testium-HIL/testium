@@ -362,3 +362,27 @@
             file: $(test_path)$(psep)py_func.py
             func_name: donothing
             debug: true
+
+- group:
+    name: function name follows the loop variable
+    steps:
+        - loop:
+            name: fn variants
+            key: $(test)_PASS
+            iterator: [variant_a, variant_b]
+            steps:
+                - let:
+                    name: select variant
+                    key: $(test)_PASS
+                    values:
+                        - fn_variant: $(loop_param)
+                - py_func:
+                    name: run variant
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)py_func.py
+                    func_name: $(fn_variant)
+        - py_func:
+            name: both variants ran
+            key: $(test)_PASS
+            file: $(test_path)$(psep)py_func.py
+            func_name: check_variants

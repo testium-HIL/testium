@@ -252,7 +252,8 @@ def cleanup_instances(instances):
 
 setgd = globdict.setgd
 delgd = globdict.delgd
-gd = globdict.gd
+# Resolved read: a stored $()/<| |> template yields its current value.
+gd = globdict.resolve_gd
 
 # Keep backward compatibility
 addConsole = add_console

@@ -49,3 +49,11 @@ See examples below.
     - test_item:
         name: {{ $(inclusion)_parameter_3 }}
 
+Include arguments are passed to the template as declared: a ``$( )`` or
+``<| |>`` argument is written as text into the included file and
+resolves when the items run, with the value in force at that moment.
+Variables referenced directly in the template (``{{ var }}``,
+``{% if var %}``) receive their current values at load time. To test an
+argument's value in a ``{% if %}``, reference the global variable
+instead of the argument.
+

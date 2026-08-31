@@ -74,3 +74,21 @@ def hold_ports(first, count):
         holders.append(s)
     tm.setgd("_dbg_port_holder", holders)
     return True
+
+
+def _mark_variant(name):
+    tm.setgd("variants_seen", (tm.gd("variants_seen") or []) + [name])
+
+
+def variant_a():
+    _mark_variant("a")
+
+
+def variant_b():
+    _mark_variant("b")
+
+
+def check_variants():
+    seen = tm.gd("variants_seen")
+    if seen != ["a", "b"]:
+        raise Exception(f"variants seen: {seen}")

@@ -3,6 +3,7 @@ import os
 from sys import exc_info
 from jinja2 import Environment
 from jinja2.exceptions import TemplateSyntaxError, TemplateError, UndefinedError
+from interpreter.utils import globdict
 from interpreter.utils.yaml_load import print_yaml
 from runtime.tum_except import ETUMSyntaxError
 
@@ -48,8 +49,13 @@ def _compiled_template(filename: str):
     return template
 
 
-def template_to_test(filename: str, params: list):
+def template_to_test(filename: str, params: dict, verbatim: dict = None):
     """ Function which processes an eventual jinja2 template to a test file
+
+    *params* entries are resolved against the live global dict (jinja
+    needs concrete values for ``{{ }}`` and ``{% %}``); *verbatim*
+    entries (include arguments) are passed as declared and resolve when
+    the items run.
     """
     # Compile (cached) — a syntax error in the template surfaces here.
     try:
@@ -67,8 +73,13 @@ def template_to_test(filename: str, params: list):
 
     # Render into memory (no temp file).
     try:
-        params["include_directory"] = os.path.dirname(os.path.abspath(filename))
-        rendered = j2_template.render(params)
+        variables = {k: globdict.resolve_gd(k, v)
+                     for k, v in params.items()}
+        if verbatim:
+            variables.update(verbatim)
+        variables["include_directory"] = \
+            os.path.dirname(os.path.abspath(filename))
+        rendered = j2_template.render(variables)
     except TemplateSyntaxError as e:
         raise ETUMSyntaxError(f"Template syntax error: {e.message}", filename)
     except UndefinedError as e:

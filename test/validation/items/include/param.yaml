@@ -1,3 +1,7 @@
 # inc_no template: "inc no template"     # Both commented parma cannot be handled as this configuration file is loaded dynamically 
 # inc_with_template: "inc with template" # through the template mechanism
 test_parameter: My first include test parameter
+
+# Config-declared include argument, redefined by a let in test.tum.
+inc4: Balavoine
+Balavoine_inc: frozen_value

@@ -93,11 +93,13 @@ class TestItemConsoleOpen(TestItemConsoleAction):
             status_queue,
             filename=filename,
         )
-        self._protocol = self._prms.getParam("protocol", required=True)
+        # Raw template: re-expanded on every execution.
+        self._protocol_raw = self._prms.getParam("protocol", required=True)
+        self._protocol = None
 
     @test_run
     def execute(self):
-        self._protocol = self._prms.expanse(self._protocol)
+        self._protocol = self._prms.expanse(self._protocol_raw)
         if not (self._protocol in ["telnet", "ssh", "rawtcp", "serial", "terminal"]):
             self.result.set(
                 TestValue.FAILURE,

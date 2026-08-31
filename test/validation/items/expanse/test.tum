@@ -5,6 +5,7 @@
       - <| $(expanse_index) == 1 |>
       - <| $(expanse_table)[$(expanse_index)] == 9012 |>
       - <| $(expanse_eval) == True |>
+      - <| "$(expanse_derived)" == "blo_suffix" |>
 
 - let:
     name: Dynamic variables expansion
@@ -22,6 +23,8 @@
       - <| $(expanse_index) == 0 |>
       - <| $(expanse_table)[$(expanse_index)] == "abcd" |>
       - <| $(expanse_eval) == False |>
+      # Config-declared value resolved at use: follows the let above.
+      - <| "$(expanse_derived)" == "bla_suffix" |>
 
 - let:
     name: Complex variables expansion

@@ -4,7 +4,6 @@ import api.testium as tm
 from interpreter.utils.params import expanse
 from runtime.tum_except import ETUMFileError
 from interpreter.utils.template import template_to_test
-from copy import copy
 from interpreter.utils.globdict import global_dict
 from interpreter.utils.yaml_load import yaml_load, YAML_BASE_LOADER
 
@@ -59,16 +58,12 @@ class TUMLoaderRawIncludes(TUMLoaderNoIncludes):
                 f'no file at "{filename}".',
                 self._src_name)
 
-        # Copy of the global dict content to be passed as parameter
-        gd_copy = copy(global_dict)
-
-        if not isinstance(p, str):
-            # Case where there are template explicit params
-            for k, v in p.items():
-                gd_copy.update({k: expanse(v)})
+        # Include arguments are passed as declared: a $()/<| |> argument
+        # is baked as text and resolves when the items run.
+        args = p if not isinstance(p, str) else None
 
         # Processes eventual jinja2 template
-        tmpf = template_to_test(filename, gd_copy)
+        tmpf = template_to_test(filename, global_dict, args)
 
         # load the yaml test file (with potential includes)
         data = yaml_load(tmpf, filename, TUMLoader)

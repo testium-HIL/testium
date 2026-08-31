@@ -1,0 +1,3 @@
+# The dd4 argument is passed as declared: $(inc4) resolves when this let
+# runs, so the redefinition in test.tum applies.
+- let: {name: Test param inclusion 4, key: $(test)_PASS, values: [inclusion4: $({{ dd4 }}_inc)]}

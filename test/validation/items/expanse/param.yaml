@@ -10,3 +10,6 @@ expanse_index: $(expanse_index_$(expanse_select))
 expanse_table: $(expanse_table_$(expanse_select))
 
 expanse_eval: <|$(expanse_index) == 1|>
+
+# Derived value: follows later redefinitions of expanse_select.
+expanse_derived: $(expanse_select)_suffix

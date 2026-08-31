@@ -79,8 +79,9 @@ class TestItemLuaFunc(TestItem):
             TestValue.FAILURE, "an exception occured during function execution."
         )
         try:
-            self.file_name = self._prms.expanse(self.file_name)
-            self.func_name = self._prms.expanse(self.func_name)
+            # Locals: the raw templates must survive re-executions.
+            file_name = self._prms.expanse(self.file_name)
+            func_name = self._prms.expanse(self.func_name)
             param_list = self._prms.getParamFromList(self.params)
             pl = self._prms.expanse(param_list)
             print("Parameters list:")
@@ -100,7 +101,7 @@ Is the lua environnment well defined in the "LUA_PATH" and "LUA_CPATH" variables
                     )
 
             try:
-                success, ret = engine.func_call(self.file_name, self.func_name, pl)
+                success, ret = engine.func_call(file_name, func_name, pl)
             finally:
                 if not persistent:
                     engine.stop()
