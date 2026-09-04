@@ -22,14 +22,17 @@ def _load_ui_backend():
     """Launcher of the first importable backend; exits with the install
     hint when none is available."""
     import importlib
-    for module, attr in UI_BACKENDS.values():
+    errors = []
+    for name, (module, attr) in UI_BACKENDS.items():
         try:
             return getattr(importlib.import_module(module), attr)
-        except ImportError:
-            continue
+        except ImportError as e:
+            errors.append(f"  [{name}] {e}")
+    # The import error is shown: a missing transitive dependency would
+    # otherwise be indistinguishable from a missing backend.
     print(
         "testium: no GUI backend installed. "
-        "Install with: pip install 'testium-hil[qt]'",
+        "Install with: pip install 'testium-hil[qt]'\n" + "\n".join(errors),
         file=sys.stderr,
     )
     sys.exit(2)
