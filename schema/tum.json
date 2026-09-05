@@ -203,6 +203,9 @@
           "description": "Line ending appended by 'writeln': 'lf', 'crlf' or 'cr'.",
           "default": "lf"
         },
+        "dialect": {
+          "description": "Shell dialect used by 'exec': 'sh', 'cmd', 'powershell' or 'none'. Default: guessed from the shell for 'terminal' and 'ssh', 'none' for the device protocols."
+        },
         "log": {
           "description": "Path to a log file capturing the console traffic."
         },
@@ -330,6 +333,83 @@
         "expected"
       ]
     },
+    "console_exec": {
+      "description": "exec",
+      "oneOf": [
+        {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "description": "Command line to run (single line). The console's shell runs it and testium waits for an appended unique marker: the action succeeds when the command is finished."
+        },
+        {
+          "type": "object",
+          "description": "exec",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "Display name shown in the GUI tree and reports."
+            },
+            "doc": {
+              "description": "Free-form documentation; surfaced in tooltips."
+            },
+            "skipped": {
+              "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+            },
+            "key": {
+              "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+            },
+            "stop_on_failure": {
+              "description": "If true, abort the surrounding container on failure."
+            },
+            "execute_on_stop": {
+              "description": "If true, run this step even when its container is being stopped (cleanup)."
+            },
+            "process_result": {
+              "description": "Post-evaluation expression applied to the test result."
+            },
+            "store_result": {
+              "description": "Global-dict key in which to store the test result."
+            },
+            "expected_result": {
+              "description": "Expected outcome; the step is failed if it doesn't match."
+            },
+            "no_fail": {
+              "description": "If truthy, never report a FAILURE for this step."
+            },
+            "report": {
+              "description": "Per-step reporting override."
+            },
+            "condition": {
+              "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+            },
+            "steps": {
+              "description": "Children (for container items).",
+              "type": "array"
+            },
+            "seq_filename": {
+              "description": "(internal) source .tum file of this step; injected by the loader."
+            },
+            "cmd": {
+              "description": "Command line to run (single line). The console's shell runs it and testium waits for an appended unique marker: the action succeeds when the command is finished."
+            },
+            "timeout": {
+              "description": "Seconds before giving up. Negative means infinite.",
+              "default": -1
+            },
+            "mute": {
+              "description": "If true, don't echo received bytes to testium's stdout/log.",
+              "default": false
+            }
+          },
+          "required": [
+            "cmd"
+          ]
+        }
+      ]
+    },
     "console": {
       "type": "object",
       "description": "Console",
@@ -393,6 +473,9 @@
               },
               "read_until": {
                 "$ref": "#/$defs/console_read_until"
+              },
+              "exec": {
+                "$ref": "#/$defs/console_exec"
               }
             }
           }

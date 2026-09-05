@@ -81,6 +81,8 @@ class Console(object):
         self._pending = b''
         # Line ending appended by writeln.
         self.newline = '\n'
+        # Shell dialect used by the exec action ('none': not a shell).
+        self.dialect = 'none'
         self.string_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+' '+self.name+']'
 
     def __del__(self):

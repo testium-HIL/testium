@@ -33,7 +33,9 @@ main:
                 - read_until : {expected: "tutu", timeout: -4.5, mute: true}
                 - write: something
                 - writeln: tutu
-                - close : 
+                - exec: ls -l
+                - exec: {cmd: make all, timeout: 30, mute: true}
+                - close :
 
         - json_rpc:
             name: JSONRPC console Query
