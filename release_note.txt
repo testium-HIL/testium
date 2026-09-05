@@ -1,4 +1,4 @@
-version 0.6.0
+version 0.6
 ==============
 - console: new exec action — runs a shell command and waits for its
   completion via an injected unique marker; works for local shells,
@@ -13,7 +13,7 @@ version 0.6.0
 - console: stop requests are honored during timeout-0 reads.
 - console: raw TCP and unbuffered serial reads honor their timeout.
 
-version 0.5.0
+version 0.5
 ==============
 - Configuration file variables follow later redefinitions (let, -d,
   API): they are resolved when used, no longer frozen at load.
