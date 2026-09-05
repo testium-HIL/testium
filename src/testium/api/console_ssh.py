@@ -548,9 +548,7 @@ class SshConsole(Console):
     def write(self, characters, mute=False):
         """Write a set of characters into the SSH session"""
         self._ensure_open()
-        if self.echo_on and not mute:
-            ech = "" if characters.strip(' ').endswith("\n") else "\n"
-            print(("[>" + self.name + "] : " + characters), end=ech)
+        self._mirror_write(characters, mute)
         self.session.write(characters)
 
     def readchar(self, timeout):
@@ -561,20 +559,29 @@ class SshConsole(Console):
         except pexpect.exceptions.TIMEOUT:
             return None
 
+    def read_available(self, timeout):
+        """Read every available byte from the SSH session"""
+        self._ensure_open()
+        try:
+            return self.session.read_nonblocking(size=self.session.maxread,
+                                                 timeout=timeout)
+        except pexpect.exceptions.TIMEOUT:
+            return None
+
     def readline(self):
         """Read until a \r\n is found."""
         self._ensure_open()
         return self.session.readline()
 
     def read_nowait(self, mute=False):
-        """Read a single character from the SSH session"""
+        """Read what already arrived from the SSH session"""
         self._ensure_open()
         try:
             st = self.session.read_nonblocking(size=self.session.maxread, timeout=0)
         except pexpect.TIMEOUT:
-            return ""
+            st = b""
 
-        s = st.decode("utf-8", errors="replace")
+        s = self._pending_text() + st.decode("utf-8", errors="replace")
         if not mute:
             date_str = str(datetime.now()).split(".")[0].split(" ")[1]
             self.stream.write("[{} {}]".format(date_str, self.name) + s)

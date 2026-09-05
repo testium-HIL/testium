@@ -38,34 +38,43 @@ class RawTCPConsole(Console):
                     f"failed: {e}")
 
     def close(self):
-        try:
-            if self.sock != None:
+        if self.sock is not None:
+            try:
                 self.sock.close()
-                self.sock = None
-            self.isOpened = False
-        except:
-            pass
+            except OSError:
+                pass
+            self.sock = None
+        self.isOpened = False
 
     def set_read_timeout(self, timeout):
         if self.stimeout != timeout:
             self.sock.settimeout(timeout)
             self.stimeout = timeout
 
-    def readchar(self, timeout):
-        c = ''.encode()
+    def _recv(self, size):
+        """b'' when nothing arrived in time; clear error on a broken link."""
         try:
-            c = self.sock.recv(1)
-        except:
-            pass
-        return c
+            return self.sock.recv(size)
+        except (socket.timeout, BlockingIOError):
+            return b''
+        except OSError as e:
+            raise ETUMRuntimeError(
+                "Raw TCP read on console '{}' ({}:{}) failed: {}".format(
+                    self.name, self.address, self.port, e)) from None
+
+    def readchar(self, timeout):
+        return self._recv(1)
+
+    def read_available(self, timeout):
+        self.set_read_timeout(timeout)
+        return self._recv(4096)
 
     def read_nowait(self, mute=False):
         self._ensure_open()
-        s = ''.encode()
         self.sock.settimeout(0)
         self.stimeout = 0
-        s = self.sock.recv(4096)
-        st = s.decode(self.encoding, errors='replace')
+        st = self._pending_text() + self._recv(4096).decode(
+            self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]
             self.stream.write('[{} {}]'.format(date_str, self.name)+st)
@@ -73,8 +82,6 @@ class RawTCPConsole(Console):
 
     def write(self, s, mute=False):
         self._ensure_open()
-        if self.echo_on and not mute:
-            ech = '' if s.strip(' ').endswith('\n') else '\n'
-            print(('[>' + self.name + '] : ' + s), end=ech)
+        self._mirror_write(s, mute)
         res = self.sock.sendall(s.encode(self.encoding))
         return res

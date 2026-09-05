@@ -3,9 +3,10 @@ import sys
 import os
 import re
 import errno
+import codecs
+import time
 from queue import Queue, Empty
 from time import sleep
-import collections
 import serial
 import threading
 
@@ -44,6 +45,15 @@ class BytesStore(object):
             else:
                 return None
 
+    def get_available(self, block=False, timeout=None):
+        """Every buffered byte at once; b'' when nothing arrived in time."""
+        with self.cond:
+            if block and len(self.items) == 0:
+                self.cond.wait(timeout)
+            items = self.items
+            self.items = b''
+            return items
+
     def getAll(self):
         with self.cond:
             items = self.items
@@ -67,6 +77,8 @@ class Console(object):
         self.encoding = "utf-8"
         self.echo_on = echoOn
         self.write_delay = write_delay
+        # Bytes read past a read_until match, served before the transport.
+        self._pending = b''
         self.string_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+' '+self.name+']'
 
     def __del__(self):
@@ -136,32 +148,67 @@ class Console(object):
 
         return True
 
-    def _compute_char(self, data):
-        c = data.decode(self.encoding, errors='replace')
-        # if not self._is_valid_character(c):
-        #    c = ''
-        return c
-
     # Max chars of the buffer tail scanned in regex mode (bounds cost/memory).
     REGEX_WINDOW = 65536
 
-    def _feed_match(self, data, search_deques, match_deques, matches):
-        """Append *data* to each window; return the first matched pattern or None."""
-        matched = None
-        for sd, md, m in zip(search_deques, match_deques, matches):
-            sd.append(data)
-            if matched is None and sd == md:
-                matched = m
-        return matched
+    def read_available(self, timeout):
+        """One chunk of available bytes; None or b'' when nothing arrived.
+        Default: a single readchar, so external subclasses keep working."""
+        return self.readchar(timeout)
 
-    def _search_regex(self, read_data, compiled):
-        """Search the buffer tail with each regex; return the first hit's text or None."""
-        tail = read_data[-self.REGEX_WINDOW:]
-        for p in compiled:
-            m = p.search(tail)
-            if m is not None:
-                return m.group(0)
-        return None
+    def _next_chunk(self, timeout):
+        """Bytes pushed back by a previous read, else a transport chunk."""
+        if self._pending:
+            data, self._pending = self._pending, b''
+            return data
+        return self.read_available(timeout)
+
+    def _push_back(self, data):
+        """Return bytes read past a match; served first by the next read."""
+        self._pending = data + self._pending
+
+    def _pending_text(self):
+        """Drain the pushed-back bytes as text (for read_nowait)."""
+        data, self._pending = self._pending, b''
+        return data.decode(self.encoding, errors='replace')
+
+    def _emit_line(self):
+        self.string_buffer = self.string_buffer.replace('\r\n', '\n')
+        self.string_buffer = self.string_buffer.replace('\r', '')
+        self.stream.write(self.string_buffer)
+        date_str = str(datetime.now()).split('.')[0].split(' ')[1]
+        self.string_buffer = '[{} {}]'.format(date_str, self.name)
+
+    def _display(self, text, final=False):
+        """Append *text* to the dated line buffer, flushing complete lines
+        (one dated header per line, as the GUI log expects)."""
+        parts = text.split('\n')
+        for part in parts[:-1]:
+            self.string_buffer += part + '\n'
+            self._emit_line()
+        self.string_buffer += parts[-1]
+        if final and parts[-1] != '':
+            self.string_buffer += '\n'
+            self._emit_line()
+
+    def _find_match(self, read_data, prev_len, matches, compiled):
+        """Earliest match end in *read_data*, or None. Sets self._matched."""
+        end = None
+        if compiled is not None:
+            tail = read_data[-self.REGEX_WINDOW:]
+            offset = len(read_data) - len(tail)
+            for p in compiled:
+                m = p.search(tail)
+                if m is not None and (end is None or offset + m.end() < end):
+                    end = offset + m.end()
+                    self._matched = m.group(0)
+        else:
+            for m in matches:
+                pos = read_data.find(m, max(0, prev_len - len(m) + 1))
+                if pos != -1 and (end is None or pos + len(m) < end):
+                    end = pos + len(m)
+                    self._matched = m
+        return end
 
     def read_until(self, match, timeout=None, return_data=False, mute=False,
                    should_stop=None, regex=False):
@@ -198,11 +245,7 @@ class Console(object):
                     "empty".format(
                         idx, matches))
 
-        if timeout is None:
-            timeout = 1000000
-
         compiled = None
-        search_deques = match_deques = None
         if regex:
             # 'matches' are regular expressions; succeed on the first hit.
             compiled = []
@@ -212,106 +255,72 @@ class Console(object):
                 except re.error as e:
                     raise ETUMRuntimeError(
                         "Invalid regular expression {!r}: {}".format(m, e)) from None
-        else:
-            # One fixed-length rolling window per literal pattern.
-            search_deques = [collections.deque(maxlen=len(m)) for m in matches]
-            match_deques = [collections.deque(m) for m in matches]
         self._matched = None
 
-        # In case of a timeout equal to zero, it must be looped until the
-        # buffer is empty
-        # Otherwise we are waiting for the timeout to rise
-        if timeout < TIMEOUT_NULL:
+        # A multi-byte sequence split across chunks decodes once complete.
+        decoder = codecs.getincrementaldecoder(self.encoding)('replace')
+
+        # timeout == 0: return what is buffered now; otherwise wait for the
+        # match up to the deadline (forever when timeout is None), polling in
+        # short reads so a stop request is honored within STOP_POLL_INTERVAL.
+        drain = timeout is not None and timeout < TIMEOUT_NULL
+        deadline = None
+        if drain:
             self.set_read_timeout(0)
-            data = self.readchar(0)
-
-            while (status < 0) and ((data is not None) and (data != b'')):
-
-                data = self._compute_char(data)
-
-                if data != '':
-                    if not mute:
-                        self.string_buffer += data
-                    read_data += data
-
-                    if regex:
-                        matched = self._search_regex(read_data, compiled)
-                    else:
-                        matched = self._feed_match(data, search_deques, match_deques, matches)
-                    if matched is not None:
-                        status = 0
-                        self._matched = matched
-                        if (not mute) and (data != '\n'):
-                            self.string_buffer += '\n'
-
-                    if data == '\n' or (status >= 0):
-                        # the datas are written line by line for display optimisation in GUI mode
-                        if not mute:
-                            self.string_buffer = self.string_buffer.replace('\r\n', '\n')
-                            self.string_buffer = self.string_buffer.replace('\r', '')
-                            self.stream.write(self.string_buffer)
-
-                        date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-                        self.string_buffer = '[{} {}]'.format(date_str, self.name)
-
-                if status < 0:
-                    data = self.readchar(0)
-
-        # Timeout different than zero
         else:
-            # Poll in short chunks so a stop request is honored within
-            # STOP_POLL_INTERVAL, regardless of the per-protocol blocking
-            # behavior of readchar().
+            if timeout is not None:
+                deadline = time.monotonic() + timeout
             self.set_read_timeout(STOP_POLL_INTERVAL)
 
-            time_is_out = threading.Event()
-            timer = threading.Timer(timeout, lambda: time_is_out.set())
-            timer.start()
+        while status < 0:
+            if should_stop is not None and should_stop():
+                break
+            if drain:
+                raw = self._next_chunk(0)
+                if raw is None or raw == b'':
+                    break
+            else:
+                if deadline is not None and time.monotonic() >= deadline:
+                    break
+                raw = self._next_chunk(STOP_POLL_INTERVAL)
+                if raw is None or raw == b'':
+                    continue
 
-            try:
-                while (status < 0) and (not time_is_out.is_set()):
-                    if should_stop is not None and should_stop():
-                        break
+            chunk = decoder.decode(raw)
+            if chunk == '':
+                continue
+            prev_len = len(read_data)
+            read_data += chunk
 
-                    data = self.readchar(STOP_POLL_INTERVAL)
-                    if data is not None:
-                        data = self._compute_char(data)
-                        if data != '':
-                            if not mute:
-                                self.string_buffer += data
-                            read_data += data
-
-                            if regex:
-                                matched = self._search_regex(read_data, compiled)
-                            else:
-                                matched = self._feed_match(data, search_deques, match_deques, matches)
-                            if matched is not None:
-                                status = 0
-                                self._matched = matched
-                                if (not mute) and (data != '\n'):
-                                    self.string_buffer += '\n'
-
-                            if data == '\n' or (status >= 0):
-                                # the datas are written line by line for display optimisation in GUI mode
-                                if not mute:
-                                    self.string_buffer = self.string_buffer.replace('\r\n', '\n')
-                                    self.string_buffer = self.string_buffer.replace('\r', '')
-                                    self.stream.write(self.string_buffer)
-
-                                date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-                                self.string_buffer = '[{} {}]'.format(date_str, self.name)
-            finally:
-                timer.cancel()
+            end = self._find_match(read_data, prev_len, matches, compiled)
+            if end is None:
+                if not mute:
+                    self._display(chunk)
+                continue
+            status = 0
+            # The stream stays positioned right after the match: bytes read
+            # past it are pushed back for the next read.
+            extra = read_data[end:]
+            if extra or decoder.getstate()[0]:
+                self._push_back(extra.encode(self.encoding)
+                                + decoder.getstate()[0])
+            read_data = read_data[:end]
+            if not mute:
+                self._display(chunk[:end - prev_len], final=True)
 
         if return_data:
             return status, read_data
         return status
 
+    def _mirror_write(self, characters, mute):
+        """Local display of what is sent, when echoOn is set."""
+        if self.echo_on and not mute:
+            ech = '' if characters.strip(' ').endswith('\n') else '\n'
+            print(('[>' + self.name + '] : ' + characters), end=ech)
+
     def write(self, characters, mute=False):
         self._ensure_open()
-        if self.echo_on and not mute:
-            ech = '' if characters.strip(" ").endswith('\n') else '\n'
-            print(('[>' + self.name + '] : ' + characters), end=ech)
+        self._mirror_write(characters, mute)
         if self.write_delay != 0:
             for char in characters:
                 self.port.write(char.encode(self.encoding))
@@ -378,12 +387,21 @@ class TelnetConsole(Console):
     def readchar(self, timeout):
         return self.port.expect([re.compile(b'.{1}', re.DOTALL), ], timeout)[2]
 
+    def read_available(self, timeout):
+        # First byte through expect (drives the telnet negotiation), then
+        # whatever else already arrived.
+        first = self.readchar(timeout)
+        if first is None or first == b'':
+            return first
+        return first + self.port.read_very_eager()
+
     def readline(self):
         return self.read_until('\n', return_data=True)[1]
 
     def read_nowait(self, mute=False):
         self._ensure_open()
-        st = self.port.read_very_eager().decode(self.encoding, errors='replace')
+        st = self._pending_text() + self.port.read_very_eager().decode(
+            self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]
             self.stream.write('[{} {}]'.format(date_str, self.name)+st)
@@ -541,21 +559,45 @@ class SerialConsole(Console):
         if not self.bufferize:
             self.port.timeout = timeout
 
+    def _check_reader(self):
+        if not self._thd.is_alive() and not self.stop.is_set():
+            raise ETUMRuntimeError(
+                "cannot read serial console '{}' ({}): its background reader "
+                "thread is not running".format(self.name, self.port_id))
+
     def readchar(self, timeout):
         if not self.isOpened:
             raise ETUMRuntimeError(
                 "serial console '{}' ({}) is not open".format(self.name, self.port_id))
         if self.bufferize:
-            if not self._thd.is_alive() and not self.stop.isSet():
-                raise ETUMRuntimeError(
-                    "cannot read serial console '{}' ({}): its background reader "
-                    "thread is not running".format(self.name, self.port_id))
+            self._check_reader()
             if timeout < TIMEOUT_NULL:
                 return self.rx_queue.get(block=False)
             else:
                 return self.rx_queue.get(block=True, timeout=timeout)
 
         return self.port.read(1)
+
+    def read_available(self, timeout):
+        if not self.isOpened:
+            raise ETUMRuntimeError(
+                "serial console '{}' ({}) is not open".format(self.name, self.port_id))
+        if self.bufferize:
+            self._check_reader()
+            return self.rx_queue.get_available(block=timeout >= TIMEOUT_NULL,
+                                               timeout=timeout)
+        self.port.timeout = timeout
+        first = self.port.read(1)
+        if first == b'':
+            return first
+        waiting = self.port.in_waiting
+        return first + (self.port.read(waiting) if waiting else b'')
+
+    def _push_back(self, data):
+        if self.bufferize:
+            self.rx_queue.pushBack(data)
+        else:
+            super()._push_back(data)
 
     def flush(self):
         self.port.flush()
@@ -565,17 +607,15 @@ class SerialConsole(Console):
             raise ETUMRuntimeError(
                 "serial console '{}' ({}) is not open".format(self.name, self.port_id))
         if self.bufferize:
-            if not self._thd.is_alive() and not self.stop.isSet():
-                raise ETUMRuntimeError(
-                    "cannot read serial console '{}' ({}): its background reader "
-                    "thread is not running".format(self.name, self.port_id))
+            self._check_reader()
             st = self.rx_queue.getAll().decode(self.encoding, errors='replace')
             if not mute:
                 date_str = str(datetime.now()).split('.')[0].split(' ')[1]
                 self.stream.write('[{} {}]'.format(date_str, self.name)+st)
             return st
 
-        st = self.port.read(self.port.inWaiting()).decode(self.encoding, errors='replace')
+        st = self._pending_text() + self.port.read(
+            self.port.in_waiting).decode(self.encoding, errors='replace')
         if not mute:
             date_str = str(datetime.now()).split('.')[0].split(' ')[1]
             self.stream.write('[{} {}]'.format(date_str, self.name)+st)
@@ -693,11 +733,22 @@ class LoggedConsole(Console):
         except Empty:
             return None
 
+    def read_available(self, timeout):
+        first = self.readchar(timeout)
+        if first is None:
+            return None
+        data = first
+        try:
+            while True:
+                data += self.rx_queue.get_nowait()
+        except Empty:
+            return data
+
     def read_nowait(self, mute=False):
         if self.log_fd is None:
             raise ConnectionAbortedError(
                 "console '{}' closed while reading".format(self.name))
-        chars = ''
+        chars = self._pending_text()
         for _ in range(self.rx_queue.qsize()):
             chars = chars + self.rx_queue.get().decode(self.encoding, errors='replace')
 
