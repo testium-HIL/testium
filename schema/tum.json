@@ -199,6 +199,10 @@
           "description": "Inter-character write delay in ms (slow devices).",
           "default": 0
         },
+        "newline": {
+          "description": "Line ending appended by 'writeln': 'lf', 'crlf' or 'cr'.",
+          "default": "lf"
+        },
         "log": {
           "description": "Path to a log file capturing the console traffic."
         },

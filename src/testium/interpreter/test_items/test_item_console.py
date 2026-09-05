@@ -56,6 +56,8 @@ class TestItemConsoleOpen(TestItemConsoleAction):
               doc="Transport: 'telnet', 'ssh', 'rawtcp', 'serial' or 'terminal'."),
         Param("write_delay", default=0,
               doc="Inter-character write delay in ms (slow devices)."),
+        Param("newline", default="lf",
+              doc="Line ending appended by 'writeln': 'lf', 'crlf' or 'cr'."),
         Param("log", doc="Path to a log file capturing the console traffic."),
         Param("overwrite_log", default=True,
               doc="If true, truncate the log file at open; else append."),
@@ -114,6 +116,15 @@ class TestItemConsoleOpen(TestItemConsoleAction):
         )
         log = self._prms.getParam("log", processed=True)
         erase_log = self._prms.getParam("overwrite_log", default=True, processed=True)
+        newline = self._prms.getParam("newline", default="lf", processed=True)
+        newline_chars = {"lf": "\n", "crlf": "\r\n", "cr": "\r"}.get(newline)
+        if newline_chars is None:
+            self.result.set(
+                TestValue.FAILURE,
+                '"newline" is {!r}; it can only be "lf", "crlf" or '
+                '"cr"'.format(newline),
+            )
+            return
 
         if self._protocol == "telnet":
             telnet_host = self._prms.getParam(
@@ -254,6 +265,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
                 )
 
             cons.stream = stdio_redir.stream
+            cons.newline = newline_chars
             cons.open()
             # Register only after a successful open: a console whose open failed
             # must stay unreachable so later actions report a clean "not open"
@@ -359,7 +371,7 @@ class TestItemConsoleWriteLn(TestItemConsoleAction):
         try:
             msg = self._prms.expanse(self._prms.getData())
             cons = self.get_console()
-            cons.write(str(msg) + "\n")
+            cons.writeln(str(msg))
             self.result.set(result=TestValue.SUCCESS)
             self.result.reported = {"data": msg}
         except ETUMRuntimeError as e:

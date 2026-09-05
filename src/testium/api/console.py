@@ -79,6 +79,8 @@ class Console(object):
         self.write_delay = write_delay
         # Bytes read past a read_until match, served before the transport.
         self._pending = b''
+        # Line ending appended by writeln.
+        self.newline = '\n'
         self.string_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+' '+self.name+']'
 
     def __del__(self):
@@ -317,6 +319,9 @@ class Console(object):
         if self.echo_on and not mute:
             ech = '' if characters.strip(' ').endswith('\n') else '\n'
             print(('[>' + self.name + '] : ' + characters), end=ech)
+
+    def writeln(self, characters, mute=False):
+        return self.write(characters + self.newline, mute)
 
     def write(self, characters, mute=False):
         self._ensure_open()
