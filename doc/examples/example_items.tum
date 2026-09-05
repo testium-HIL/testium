@@ -53,40 +53,29 @@ main:
                         terminal_path: $(test_directory)
 
             - console:
-                name: Console read_until with timeout
+                name: Console exec
                 console_name: consname
-                doc: Waits for the prompt, up to <b>10 s</b>.
+                doc: Runs <code>echo 0</code> and waits for its completion.
                 steps:
-                    - read_until: {expected: "$(terminal_prompt)", timeout: 10}
+                    - exec: echo 0
 
             - console:
-                name: Console write
+                name: Console exec with check
                 console_name: consname
-                doc: Sends the command <code>echo 0</code>.
+                doc: Runs a command, checks its output with <code>process_result</code>.
                 steps:
-                    - writeln: echo 0
-
-            - sleep:
-                name: sleep item
-                doc: Waits while the command completes.
-                timeout: 5
+                    - exec:
+                        cmd: echo "console demo"
+                        timeout: 10
+                        process_result: "'demo' in r'''$(result)'''"
 
             - console:
-                name: Console read_until immediate
+                name: Console write and read_until
                 console_name: consname
-                doc: Reads the command echo and its output.
+                doc: Manual synchronization, for consoles that are not a shell.
                 steps:
-{% if os == "Windows" %}
-                    - read_until: {expected: "echo 0", timeout: 1}
-{% endif %}
-                    - read_until: {expected: "0", timeout: 1}
-
-            - console:
-                name: Console read_until immediate (2)
-                console_name: consname
-                doc: Reads the prompt following the output.
-                steps:
-                    - read_until: {expected: "$(terminal_prompt)", timeout: 1}
+                    - writeln: echo "marker"
+                    - read_until: {expected: marker, timeout: 5}
 
             - console:
                 name: Console closure
