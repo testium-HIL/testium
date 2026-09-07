@@ -154,7 +154,7 @@ ssh -L 5678:localhost:5678 bench-host
 * `debugpy is not installed on the host interpreter used by testium
   (python_bin)...`: install debugpy as in step 1, with the exact
   interpreter used by testium (check the `python_bin` global in the
-  variables window (F1); if it points to a venv, install into that
+  Variables panel (F1); if it points to a venv, install into that
   venv).
 * `debugpy could not listen on localhost:5678 (...). Is the port
   free?`: another program (or another testium run) holds the port; set
@@ -170,7 +170,7 @@ ssh -L 5678:localhost:5678 bench-host
 ## Where to go next
 
 * Manual, "Debugging your tests" chapter: breakpoints, step-by-step
-  execution, variables window and debug output.
+  execution, Variables panel and debug output.
 * Manual, `py_func` chapter: the `debug` attribute reference, the
   `context_id` execution model and the interpreter environment
   variables.
