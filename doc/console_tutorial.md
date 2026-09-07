@@ -118,6 +118,13 @@ terminal:
 
 ```yaml
                 - open:
+                    protocol: terminal
+                    shell: pwsh
+                    dialect: powershell
+```
+
+```yaml
+                - open:
                     protocol: serial
                     serial_port: /dev/ttyUSB0
                     serial_baudrate: 115200
