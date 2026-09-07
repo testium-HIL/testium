@@ -107,11 +107,13 @@ exchanged text out of the log.
 The `open` action takes two parameters that matter beyond the local
 terminal:
 
-* `dialect`: the shell family `exec` speaks — `sh`, `cmd`,
-  `powershell` or `none`. It is guessed for the `terminal` and `ssh`
-  protocols; the device protocols (telnet, rawtcp, serial) default to
-  `none`, where `exec` refuses with a clear message: use `writeln` +
-  `read_until` there.
+* `dialect`: the shell family `exec` speaks — `sh` (also fine for zsh,
+  fish, busybox), `cmd`, `powershell` or `none`. It is guessed for the
+  `terminal` and `ssh` protocols; the device protocols (telnet, rawtcp,
+  serial) default to `none`, where `exec` refuses with a clear message:
+  use `writeln` + `read_until` there. Set it yourself when the guess is
+  wrong: a Linux shell on a serial port (`sh`), an ssh server on a
+  Windows machine (`powershell`).
 * `newline`: the line ending `writeln` appends — `lf` (default),
   `crlf` or `cr`. Serial modems and some network equipment expect
   `crlf`.
