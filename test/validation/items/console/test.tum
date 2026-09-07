@@ -95,15 +95,12 @@
         - read_until: {expected: HelloConsole, timeout: 0.2}
 
 - console:
-    name: Console read_until process result
+    name: Console exec process result
+    doc: exec synchronizes on its own marker, no OS branch needed.
     console_name: term
     key: $(test)_PASS
     steps:
-        - writeln: echo "HelloConsole is PASS" && echo "endOfCmd"
-{% if os == "Windows" %}
-        - read_until: {expected: echo "endOfCmd", timeout: 1}
-{% endif %}
-        - read_until: {expected: endOfCmd, timeout: 1, process_result: "'Hello' in r'''$(result)''' and 'PASS' in r'''$(result)''' "}
+        - exec: {cmd: echo "HelloConsole is PASS", timeout: 5, process_result: "'Hello' in r'''$(result)''' and 'PASS' in r'''$(result)''' "}
 
 {% if os == "Linux" %}
 - console:
@@ -155,6 +152,60 @@
     key: $(test)_FAIL
     steps:
         - read_until: {expected: 'never_\d{4}', regex: true, timeout: 1}
+
+# --- exec: command with completion marker ----------------------------------
+
+- console:
+    name: Console exec scalar form
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - exec: echo exec_scalar_ok
+
+- console:
+    name: Console exec chained keeps the stream clean
+    doc: Each exec reads its own output; no marker or output of the first may leak into the second.
+    console_name: term
+    key: $(test)_PASS
+    steps:
+        - exec: {cmd: echo exec_first, timeout: 5, process_result: "'exec_first' in r'''$(result)'''"}
+        - exec: {cmd: echo exec_second, timeout: 5, process_result: "'exec_second' in r'''$(result)''' and 'exec_first' not in r'''$(result)'''"}
+
+- console:
+    name: Console open without dialect
+    doc: dialect 'none' on purpose; exec must refuse with a clear message.
+    console_name: device
+    key: $(test)_PASS
+    steps:
+        - open:
+            protocol: terminal
+            terminal_path: $(test_directory)
+            dialect: none
+
+- console:
+    name: Console exec without dialect (explicit failure)
+    console_name: device
+    key: $(test)_FAIL
+    steps:
+        - exec: echo refused
+
+- console:
+    name: Console without dialect closure
+    console_name: device
+    key: $(test)_PASS
+    steps:
+        - close: device
+
+- console:
+    name: Console exec timeout (explicit failure)
+    console_name: term
+    key: $(test)_FAIL
+    steps:
+{% if os == "Windows" %}
+        - exec: {cmd: ping -n 6 127.0.0.1 >NUL, timeout: 1}
+{% else %}
+        - exec: {cmd: sleep 5, timeout: 1}
+{% endif %}
 
 # --- Explicit error reporting for .tum misconfigurations -------------------
 # These exercise the clean-failure paths: a misconfigured console must FAIL

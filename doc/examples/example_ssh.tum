@@ -15,22 +15,17 @@ main:
                     ssh_user: "francois"
 
         - console:
-            name: Console read
+            name: Console commands
             console_name: consname
-            doc: Opening the console
+            doc: Runs commands over ssh and checks a file content.
             steps:
-                - writeln: rm -f /tmp/toto.txt && echo done
-                - read_until: {expected: "done", timeout: 10}
-                - read_until: {expected: "$ ", timeout: 1}
-                - writeln: touch /tmp/toto.txt && echo done
-                - read_until: {expected: "done", timeout: 10}
-                - read_until: {expected: "$ ", timeout: 1}
-                - writeln: echo "blablabla" >> /tmp/toto.txt && echo done
-                - read_until: {expected: "done", timeout: 10}
-                - read_until: {expected: "$ ", timeout: 1}
-                - writeln: cat /tmp/toto.txt  && echo done
-                - read_until: {expected: "done", timeout: 10}
-                - read_until: {expected: "$ ", timeout: 1}
+                - exec: rm -f /tmp/toto.txt
+                - exec: touch /tmp/toto.txt
+                - exec: echo "blablabla" >> /tmp/toto.txt
+                - exec:
+                    cmd: cat /tmp/toto.txt
+                    timeout: 10
+                    process_result: "'blablabla' in r'''$(result)'''"
 
         - console:
             name: Console deletion

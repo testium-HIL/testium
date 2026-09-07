@@ -22,7 +22,7 @@ import subprocess
 import sys
 
 EXPECTED_ACTIONS = {
-    "console": ("open", "close", "write", "writeln", "read_until"),
+    "console": ("open", "close", "write", "writeln", "read_until", "exec"),
     "plot": ("open", "close", "add", "export"),
     "json_rpc": ("open", "close", "query", "receive"),
 }

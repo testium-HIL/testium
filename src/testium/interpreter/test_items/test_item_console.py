@@ -56,6 +56,12 @@ class TestItemConsoleOpen(TestItemConsoleAction):
               doc="Transport: 'telnet', 'ssh', 'rawtcp', 'serial' or 'terminal'."),
         Param("write_delay", default=0,
               doc="Inter-character write delay in ms (slow devices)."),
+        Param("newline", default="lf",
+              doc="Line ending appended by 'writeln': 'lf', 'crlf' or 'cr'."),
+        Param("dialect",
+              doc="Shell dialect used by 'exec': 'sh', 'cmd', 'powershell' or "
+                  "'none'. Default: guessed from the shell for 'terminal' and "
+                  "'ssh', 'none' for the device protocols."),
         Param("log", doc="Path to a log file capturing the console traffic."),
         Param("overwrite_log", default=True,
               doc="If true, truncate the log file at open; else append."),
@@ -114,6 +120,24 @@ class TestItemConsoleOpen(TestItemConsoleAction):
         )
         log = self._prms.getParam("log", processed=True)
         erase_log = self._prms.getParam("overwrite_log", default=True, processed=True)
+        newline = self._prms.getParam("newline", default="lf", processed=True)
+        newline_chars = {"lf": "\n", "crlf": "\r\n", "cr": "\r"}.get(newline)
+        if newline_chars is None:
+            self.result.set(
+                TestValue.FAILURE,
+                '"newline" is {!r}; it can only be "lf", "crlf" or '
+                '"cr"'.format(newline),
+            )
+            return
+        dialect = self._prms.getParam("dialect", default=None, processed=True)
+        if dialect is not None and dialect not in ("sh", "cmd", "powershell",
+                                                   "none"):
+            self.result.set(
+                TestValue.FAILURE,
+                '"dialect" is {!r}; it can only be "sh", "cmd", "powershell" '
+                'or "none"'.format(dialect),
+            )
+            return
 
         if self._protocol == "telnet":
             telnet_host = self._prms.getParam(
@@ -254,6 +278,12 @@ class TestItemConsoleOpen(TestItemConsoleAction):
                 )
 
             cons.stream = stdio_redir.stream
+            cons.newline = newline_chars
+            if dialect is None:
+                dialect = console_sync.guess_dialect(
+                    self._protocol,
+                    terminal_shell if self._protocol == "terminal" else None)
+            cons.dialect = dialect
             cons.open()
             # Register only after a successful open: a console whose open failed
             # must stay unreachable so later actions report a clean "not open"
@@ -359,7 +389,7 @@ class TestItemConsoleWriteLn(TestItemConsoleAction):
         try:
             msg = self._prms.expanse(self._prms.getData())
             cons = self.get_console()
-            cons.write(str(msg) + "\n")
+            cons.writeln(str(msg))
             self.result.set(result=TestValue.SUCCESS)
             self.result.reported = {"data": msg}
         except ETUMRuntimeError as e:
@@ -461,6 +491,105 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
             )
 
 
+class TestItemConsoleExec(TestItemConsoleAction):
+
+    PARAMS = ParamSet(
+        Param("cmd", required=True,
+              doc="Command line to run (single line). The console's shell "
+                  "runs it and testium waits for an appended unique marker: "
+                  "the action succeeds when the command is finished."),
+        Param("timeout", default=-1,
+              doc="Seconds before giving up. Negative means infinite."),
+        Param("mute", default=False,
+              doc="If true, don't echo received bytes to testium's stdout/log."),
+    )
+    # Scalar body accepted: '- exec: make all' is '- exec: {cmd: make all}'.
+    BODY_PARAM = "cmd"
+
+    def __init__(
+        self, action_name, dict_item, parent=None, status_queue=None, filename=""
+    ):
+        if not isinstance(dict_item, dict):
+            dict_item = {"cmd": dict_item}
+        super().__init__(
+            action_name,
+            cst.TYPE_CONSOLE_ACTION,
+            dict_item,
+            parent,
+            status_queue,
+            filename=filename,
+        )
+
+    @test_run
+    def execute(self):
+        cmdline = str(self._prms.getParam("cmd", required=True, processed=True))
+        exec_timeout = float(self._prms.getParam("timeout", default=-1,
+                                                 processed=True))
+        mute = self._prms.getParam("mute", default=False, processed=True)
+        if exec_timeout < 0:
+            exec_timeout = None
+        if "\n" in cmdline or "\r" in cmdline:
+            self.result.set(
+                TestValue.FAILURE,
+                "'cmd' must be a single line; a multi-line command would "
+                "desynchronize the console stream",
+            )
+            return
+
+        try:
+            cons = self.get_console()
+            dialect = getattr(cons, "dialect", "none")
+            if dialect not in console_sync.DIALECTS:
+                self.result.set(
+                    TestValue.FAILURE,
+                    f"console '{self.token['console_name']}' has no shell "
+                    f"dialect: 'exec' needs one. Open it with dialect: sh, "
+                    f"cmd or powershell — or synchronize with writeln and "
+                    f"read_until.",
+                )
+                return
+            marker = console_sync.new_marker_id()
+            cons.writeln(console_sync.wrap_command(cmdline, marker, dialect),
+                         mute=mute)
+            status, data = cons.read_until(
+                [console_sync.completion_regex(marker)], timeout=exec_timeout,
+                return_data=True, mute=mute, should_stop=self.isStopped,
+                regex=True,
+            )
+            if status == 0:
+                data = console_sync.strip_marker(data, marker)
+                self.result.set(TestValue.SUCCESS)
+                self.result.value = data
+            elif self.isStopped():
+                self.result.set(
+                    result=TestValue.FAILURE,
+                    message="Command aborted on stop request",
+                )
+            else:
+                msg = "Command {!r} did not finish".format(cmdline)
+                if exec_timeout is not None:
+                    msg += " within {:g}s".format(exec_timeout)
+                if data:
+                    msg += "; received tail: {!r}".format(data[-200:])
+                self.result.set(result=TestValue.FAILURE, message=msg)
+            self.result.reported = {"data": "" if mute else data}
+            # The result is put in global dir
+            tm.setgd("cn_" + self.parent()._name, data)
+
+        except ETUMRuntimeError as e:
+            # Expected console error (e.g. console not open): clear one-liner.
+            msg = f"Console '{self.token['console_name']}': impossible to run the command ({e._message})"
+            self.result.set(result=TestValue.FAILURE, message=msg)
+            print(msg)
+        except Exception as e:
+            # Unexpected error: keep the full traceback for diagnosis.
+            print(traceback.format_exc())
+            self.result.set(
+                result=TestValue.FAILURE,
+                message=f"Console '{self.token['console_name']}': impossible to run the command ({e})",
+            )
+
+
 class TestItemConsole(TestItemActions):
 
     PARAMS = ParamSet(
@@ -476,6 +605,7 @@ class TestItemConsole(TestItemActions):
         "write": TestItemConsoleWrite,
         "writeln": TestItemConsoleWriteLn,
         "read_until": TestItemConsoleReadUntil,
+        "exec": TestItemConsoleExec,
     }
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):
@@ -487,6 +617,9 @@ class TestItemConsole(TestItemActions):
 
         global console
         console = importlib.import_module("api.console")
+
+        global console_sync
+        console_sync = importlib.import_module("api.console_sync")
 
         if not sys.platform.startswith("win"):
             global console_ssh
