@@ -5,13 +5,12 @@ Five minutes from zero to a passing test.
 ## Install
 
 ```sh
-pip install 'testium-hil[qt]'
+pip install testium-hil
 testium --version
 ```
 
 The PyPI project is named `testium-hil`; the installed command is
-`testium`. The bare `testium-hil` (without `[qt]`) is the batch-only
-core. For other installation methods (pre-built binaries, source
+`testium`. For other installation methods (pre-built binaries, source
 checkout), see the README.
 
 ## Your first test

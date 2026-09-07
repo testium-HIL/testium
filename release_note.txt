@@ -1,5 +1,7 @@
 version 0.6
 ==============
+- pip install testium-hil installs everything: GUI and language
+  server included, the [qt]/[lsp]/[all] extras are removed.
 - console: new exec action — runs a shell command and waits for its
   completion via an injected unique marker; works for local shells,
   ssh and nested shells.

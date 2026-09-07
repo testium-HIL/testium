@@ -31,8 +31,8 @@ def _load_ui_backend():
     # The import error is shown: a missing transitive dependency would
     # otherwise be indistinguishable from a missing backend.
     print(
-        "testium: no GUI backend installed. "
-        "Install with: pip install 'testium-hil[qt]'\n" + "\n".join(errors),
+        "testium: the GUI could not start. "
+        "Reinstall with: pip install testium-hil\n" + "\n".join(errors),
         file=sys.stderr,
     )
     sys.exit(2)
@@ -66,7 +66,7 @@ def main():
         except ImportError as e:
             print(
                 f"testium lsp: language server dependencies missing ({e.name}). "
-                "Install with: pip install 'testium-hil[lsp]'",
+                "Reinstall with: pip install testium-hil",
                 file=sys.stderr,
             )
             sys.exit(2)

@@ -63,14 +63,7 @@ A committed copy of this schema, ``schema/tum.json``, is kept at the root of
 the source repository for tools that read a file instead of running the
 command (yaml-language-server, external linters, AI assistants).
 
-The language server is included in the pre-built binary, Flatpak and AppImage
-releases. For a source or wheel installation, pull the optional ``lsp``
-dependencies:
-
-.. code-block:: text
-    :caption: enable the language server for a wheel / source install
-
-    pip install 'testium[lsp]'
+The language server is installed with *testium* in every channel.
 
 Installing the VSCode / VSCodium extension
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -11,8 +11,8 @@ Given the channel's testium invocation as argv (e.g. ``flatpak run
      a frozen build that lost the declarative ``ACTIONS`` registry.
   2. ``<cmd> lsp`` starts a real language server: it must answer an LSP
      ``initialize`` request with a capabilities result and must NOT report the
-     pygls dependency as missing. This catches a channel that forgot to bundle
-     the ``[lsp]`` extra.
+     pygls dependency as missing. This catches a channel that forgot to
+     bundle pygls.
 
 Exits non-zero (with a diagnostic) on the first failure so the validation run
 fails loudly. Used by ``run.sh`` before launching the main suite.
@@ -140,7 +140,7 @@ def check_lsp(cmd):
 
     if b"dependencies missing" in stdout + stderr:
         fail("`lsp` reports the pygls dependency missing — this channel did "
-             "not bundle the [lsp] extra.")
+             "not bundle pygls.")
 
     responses = {f.get("id"): f for f in _parse_frames(stdout) if "id" in f}
     init = responses.get(1)

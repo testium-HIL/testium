@@ -26,19 +26,14 @@ reports in several formats. It runs on Linux and Windows.
 ## Install from PyPI
 
 ```sh
-pip install 'testium-hil[qt]'
+pip install testium-hil
 testium              # GUI mode
 testium -b test.tum  # batch mode
 ```
 
 The PyPI project is named `testium-hil`, after its hardware-in-the-loop
-focus; the command and the Python package are named `testium`. The bare
-`pip install testium-hil` installs the toolkit-free core (batch, `schema`,
-`lsp`); extras add the rest:
-
-* `testium-hil[qt]`: the Qt GUI (dialog and plot items need it too)
-* `testium-hil[lsp]`: the language server for editor support
-* `testium-hil[all]`: everything above
+focus; the command and the Python package are named `testium`. The
+install includes the GUI and the language server.
 
 ## Pre-built releases
 
@@ -202,14 +197,8 @@ JSON Schema of `.tum` files: point yaml-language-server at it
 (`yaml.schemas` setting, local path or the raw GitHub URL) for
 completion and validation in any YAML-capable editor.
 
-The server is bundled in every pre-built release (wheel, binary, Flatpak,
-AppImage). For a source / wheel install, install the language-server
-extra:
-
-```sh
-pip install 'testium-hil[lsp]'             # from PyPI / a wheel
-pip install -e /path/to/testium/src[lsp]   # from a source checkout
-```
+The server is installed with testium in every channel (PyPI, binary,
+Flatpak, AppImage).
 
 A VSCode / VSCodium client extension (`testium_assist`) wraps `testium lsp`;
 the schema is built from testium itself, so new item types and parameters
