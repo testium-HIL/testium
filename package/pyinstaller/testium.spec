@@ -60,6 +60,7 @@ a = Analysis(
                    "py_func.func_call",
                    "api",
                    "api.console",
+                   "api.console_sync",
                    "api.termconsole",
                    "api.console_ssh",
                    "api.raw_tcp_console",
