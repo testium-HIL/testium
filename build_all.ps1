@@ -76,7 +76,10 @@ Write-Host "Installing build tools"
 & $venvPy -m pip install --quiet --upgrade build pyinstaller "pygls>=1.3"
 
 # Keep the committed schema in sync with the version being built.
-& $venvPy (Join-Path $root 'src\testium') schema | Set-Content -Encoding utf8 (Join-Path $root 'schema\tum.json')
+# .NET writer: utf8 without BOM and LF endings (Set-Content -Encoding utf8
+# writes a BOM under PowerShell 5, which json.load rejects).
+$schemaJson = ((& $venvPy (Join-Path $root 'src\testium') schema) -join "`n") + "`n"
+[System.IO.File]::WriteAllText((Join-Path $root 'schema\tum.json'), $schemaJson, (New-Object System.Text.UTF8Encoding $false))
 Write-Host "schema/tum.json regenerated"
 
 # ---------- 1. wheel ----------
