@@ -57,7 +57,7 @@ def _debug_attach(port):
                 f"{port + _DEBUG_PORT_SCAN - 1} are all busy. Change the "
                 "'py_func_debug_port' global.")
         if chosen != port:
-            print(f"py_func: port {port} is busy — debugpy will listen on "
+            print(f"py_func: port {port} is busy. debugpy will listen on "
                   f"localhost:{chosen}; point your IDE attach configuration "
                   "at this port")
         try:
@@ -70,14 +70,14 @@ def _debug_attach(port):
         _debug_bound_port = chosen
     elif port != _debug_bound_port:
         print(f"py_func: debug port already bound on localhost:"
-              f"{_debug_bound_port} in this persistent process — ignoring "
+              f"{_debug_bound_port} in this persistent process; ignoring "
               f"py_func_debug_port={port}")
 
     if debugpy.is_client_connected():
         print("py_func: debugger already attached.")
     else:
         print(f"py_func waiting for the debugger on localhost:"
-              f"{_debug_bound_port} — attach from your IDE, or Stop to "
+              f"{_debug_bound_port}. Attach from your IDE, or Stop to "
               "cancel")
         debugpy.wait_for_client()
 

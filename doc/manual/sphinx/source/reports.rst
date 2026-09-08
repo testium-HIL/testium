@@ -279,7 +279,7 @@ version always matches. Subclass ``Exporter`` and implement ``export()``:
 
     class MyExporter(Exporter):
         def export(self):
-            # self.rows      : filtered items — .name .type .key .result
+            # self.rows      : filtered items; .name .type .key .result
             #                  (.passed/.failed/.skipped), .message,
             #                  .duration_s, .level, .log, .data (decoded)
             # self.report    : .header dict, .rows(pats, keys), .tree()
@@ -309,12 +309,12 @@ read the SQLite tables (:ref:`sec_reports_schema`) directly, without
 
     class MyExporter:
         def __init__(self, name, con, path, pats, keys, no_header=False):
-            # name      : str  — report name
-            # con       : sqlite3.Connection (read) — tables: header, tests
-            # path      : str  — output file path (variables already expanded)
-            # pats      : list[str] — LIKE filters on test_name (may be empty)
-            # keys      : list[str] — LIKE filters on report_key (may be empty)
-            # no_header : bool — do not write the run header (set when the
+            # name      : str; report name
+            # con       : sqlite3.Connection (read); tables: header, tests
+            # path      : str; output file path (variables already expanded)
+            # pats      : list[str]; LIKE filters on test_name (may be empty)
+            # keys      : list[str]; LIKE filters on report_key (may be empty)
+            # no_header : bool; do not write the run header (set when the
             #             export comes from an inline `report` test item)
             ...  # do the work in __init__ and write to `path`
 

@@ -129,7 +129,8 @@ The ``exec`` action sends a command to a shell console and waits until
 the command is finished. *testium* appends a unique per-call marker to
 the command line; seeing the marker in the output means the command
 completed. This works identically for a local shell, an SSH session or
-a shell started inside another shell — no prompt configuration needed.
+a shell started inside another shell. No prompt configuration is
+needed.
 
 .. code-block:: yaml
     :caption: exec: short and detailed forms
@@ -155,8 +156,8 @@ The command output (marker removed) is stored in the item result and in
 the global variable ``cn_<test_name>``, like ``read_until``.
 
 The console must have a shell ``dialect`` (see the ``open`` action). On
-a ``none`` console — network equipment, an application managing its own
-prompt — ``exec`` fails with an explicit message: synchronize those
+a ``none`` console (network equipment, an application managing its own
+prompt), ``exec`` fails with an explicit message: synchronize those
 with ``writeln`` and ``read_until`` instead. A shell started inside the
 session that speaks another dialect (PowerShell launched from bash) is
 not handled by ``exec``.

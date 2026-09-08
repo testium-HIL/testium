@@ -16,7 +16,7 @@ listener on `localhost:5678` and waits for a debugger to attach
 before calling the function. The test log shows:
 
 ```
-py_func waiting for the debugger on localhost:5678 — attach from your IDE, or Stop to cancel
+py_func waiting for the debugger on localhost:5678. Attach from your IDE, or Stop to cancel
 ```
 
 You attach from the IDE, the function starts, and execution stops on
