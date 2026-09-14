@@ -54,40 +54,11 @@ main:
                     terminal_path: $(test_directory)
 
         - console:
-            name: Console read_until with timeout
+            name: Console exec
             condition: <| $(conditional_exec) == 1 |>
             console_name: consname
             steps:
-                - read_until: {expected: "$(terminal_prompt)", timeout: 10}
-
-        - console:
-            name: Console write
-            condition: <| $(conditional_exec) == 1 |>
-            console_name: consname
-            steps:
-                - writeln: echo 0
-
-        - sleep:
-            name: sleep item
-            condition: <| $(conditional_exec) == 1 |>
-            timeout: 5
-
-        - console:
-            name: Console read_until immediate
-            condition: <| $(conditional_exec) == 1 |>
-            console_name: consname
-            steps:
-{% if os == "Windows" %}
-                - read_until: {expected: "echo 0", timeout: 0}
-{% endif %}
-                - read_until: {expected: "0", timeout: 0}
-
-        - console:
-            name: Console read_until immediate (2)
-            condition: <| $(conditional_exec) == 1 |>
-            console_name: consname
-            steps:
-                - read_until: {expected: "$(terminal_prompt)", timeout: 0}
+                - exec: echo 0
 
         - console:
             name: Console closure

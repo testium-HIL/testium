@@ -177,7 +177,7 @@ the arguments below. Such a class can read the SQLite tables directly
 ```python
 class MyExporter:
     def __init__(self, name, con, path, pats, keys, no_header=False):
-        ...  # con: sqlite3.Connection — tables: header, tests
+        ...  # con: sqlite3.Connection; tables: header, tests
 ```
 
 ## Troubleshooting

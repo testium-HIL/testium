@@ -193,7 +193,7 @@ reference. Before calling the function, the subprocess
 starts a `debugpy <https://github.com/microsoft/debugpy>`_ listener on
 ``localhost:5678`` and waits for a debugger to attach; the test log shows::
 
-    py_func waiting for the debugger on localhost:5678 — attach from your IDE, or Stop to cancel
+    py_func waiting for the debugger on localhost:5678. Attach from your IDE, or Stop to cancel
 
 Requirements: install debugpy with the host Python, the ``python_bin``
 interpreter, the same one running your functions:

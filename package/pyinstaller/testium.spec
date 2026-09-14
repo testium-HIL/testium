@@ -46,9 +46,13 @@ a = Analysis(
            ('../../src/testium/py_func', 'py_func'),
            ('../../src/testium/runtime', 'runtime'),
            (JUNIT_XML_DIR, 'junit_xml')],
+    # main_win.testium_win is loaded through the UI_BACKENDS registry
+    # (importlib with a string name), invisible to the static analysis:
+    # it must be named here, one entry per registered backend.
     hiddenimports=["git",
                    "interpreter",
                    "main_win",
+                   "main_win.testium_win",
                    "runtime",
                    "py_func",
                    "py_func.tm",
@@ -56,6 +60,7 @@ a = Analysis(
                    "py_func.func_call",
                    "api",
                    "api.console",
+                   "api.console_sync",
                    "api.termconsole",
                    "api.console_ssh",
                    "api.raw_tcp_console",

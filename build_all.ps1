@@ -68,12 +68,18 @@ if (-not (Test-Path $venv)) {
     & $py -m venv $venv
 }
 $venvPy = Join-Path $venv 'Scripts\python.exe'
+Write-Host "Upgrading pip"
 & $venvPy -m pip install --quiet --upgrade pip
+Write-Host "Installing dependencies (first run downloads PySide6, several minutes)"
 & $venvPy -m pip install --quiet -r (Join-Path $root 'src\requirements.txt')
+Write-Host "Installing build tools"
 & $venvPy -m pip install --quiet --upgrade build pyinstaller "pygls>=1.3"
 
 # Keep the committed schema in sync with the version being built.
-& $venvPy (Join-Path $root 'src\testium') schema | Set-Content -Encoding utf8 (Join-Path $root 'schema\tum.json')
+# .NET writer: utf8 without BOM and LF endings (Set-Content -Encoding utf8
+# writes a BOM under PowerShell 5, which json.load rejects).
+$schemaJson = ((& $venvPy (Join-Path $root 'src\testium') schema) -join "`n") + "`n"
+[System.IO.File]::WriteAllText((Join-Path $root 'schema\tum.json'), $schemaJson, (New-Object System.Text.UTF8Encoding $false))
 Write-Host "schema/tum.json regenerated"
 
 # ---------- 1. wheel ----------

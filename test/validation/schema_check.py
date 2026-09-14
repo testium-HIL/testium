@@ -73,7 +73,8 @@ def main():
     # 2. Versioned file matches the live output.
     if not os.path.isfile(versioned_path):
         fail(f"missing versioned schema at {versioned_path}")
-    with open(versioned_path) as f:
+    # utf-8-sig: tolerate a BOM from a PowerShell regeneration.
+    with open(versioned_path, encoding="utf-8-sig") as f:
         versioned = json.load(f)
     if versioned != live:
         fail(f"versioned {versioned_path} is out of sync with `testium "

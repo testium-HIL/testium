@@ -1,4 +1,28 @@
-version 0.5.0
+version 0.6
+==============
+- pip install testium-hil installs everything: GUI and language
+  server included, the [qt]/[lsp]/[all] extras are removed.
+- console: new exec action: runs a shell command and waits for its
+  completion via an injected unique marker; works for local shells,
+  ssh and nested shells.
+- console: dialect open parameter (sh, cmd, powershell, none) drives
+  exec; guessed for terminal and ssh, none for device protocols.
+- console: newline open parameter selects the writeln line ending
+  (lf, crlf, cr).
+- console: multi-byte characters split across reads decode correctly.
+- console: read_until reads in chunks; regex matching is no longer
+  per-character.
+- console: stop requests are honored during timeout-0 reads.
+- console: raw TCP and unbuffered serial reads honor their timeout.
+- Single evaluation rule: <| |> evaluates, and nothing else does.
+  Boolean attributes (condition, skipped, stop_on_failure, no_fail, ...)
+  take a boolean or a <| |> expression; anything else fails with an
+  explicit message.
+- process_result and the plot eval must be <| |> expressions.
+- expected_result compares literally; wrap an expression with <| |>.
+- The unused loop exit_condition eval attribute is removed.
+
+version 0.5
 ==============
 - Configuration file variables follow later redefinitions (let, -d,
   API): they are resolved when used, no longer frozen at load.
@@ -8,13 +32,6 @@ version 0.5.0
 - py_func and lua_func file and function names and the console protocol
   re-expand on every execution (loops, re-runs).
 - A variable set to null is defined: $(x) expands to None.
-- Single evaluation rule: <| |> evaluates, and nothing else does.
-  Boolean attributes (condition, skipped, stop_on_failure, no_fail, ...)
-  take a boolean or a <| |> expression; anything else fails with an
-  explicit message.
-- process_result and the plot eval must be <| |> expressions.
-- expected_result compares literally; wrap an expression with <| |>.
-- The unused loop exit_condition eval attribute is removed.
 - The F1 window is replaced by two dockable panels: Variables and
   Step info, tabbed with the doc panel by default. F1 focuses Variables.
 - New View menu: show or hide each panel, reset the layout.
@@ -67,7 +84,7 @@ version 0.4.2
 - New Debug button on the run toolbar (Ctrl+Shift+D): enables the
   verbose debug output, immediately, and keeps its state.
 - Right-click a ``py_func`` item to make it wait for your IDE debugger
-  at the next run — no test file change, cleared on Refresh.
+  at the next run; no test file change, cleared on Refresh.
 - New manual chapter "Debugging your tests": breakpoints, step-by-step,
   variables window, debug output, IDE attach.
 - Error messages name the file, the item and the value in cause.
@@ -99,10 +116,10 @@ version 0.4
 - Fix: the green "current item" line stayed in the test tree after
   stopping a paused test.
 - Custom report exporters (``testium.exporters`` pip plugins) now work
-  in every install channel. Install them with the host Python — the
+  in every install channel. Install them with the host Python: the
   ``python_bin`` interpreter, as for py_func dependencies.
 - New ``command`` report export: post-process the report with any
-  external tool — ``cmd: mytool $(db) $(out)`` receives a SQLite copy
+  external tool: ``cmd: mytool $(db) $(out)`` receives a SQLite copy
   of the report and the output path.
 - New ``testium_report`` helper for writing exporters: header, typed
   rows, filters and tree without SQL. Nothing to install for plugins;
@@ -119,7 +136,7 @@ version 0.3.4
   double-click there to set or remove one.
 - Folds, checked boxes and breakpoints survive Refresh and restart.
   They follow the item; loading a different file drops them.
-- ``json_rpc`` over UDP: multicast support — the socket joins the group
+- ``json_rpc`` over UDP: multicast support; the socket joins the group
   and the new ``multicast_if`` key of ``udp:`` selects the local
   interface.
 - Fix: unchecked test items are greyed again while the test runs.
@@ -229,7 +246,7 @@ version 0.1.3
   also override ``python_bin`` for py_func / cycle / post_exec.
 - Flatpak: every GUI file / directory dialog (open test, save report,
   log path, default report/log dirs, python/lua interpreter pickers)
-  bypasses the XDG document portal — the v0.1.2 fix was only on the
+  bypasses the XDG document portal; the v0.1.2 fix was only on the
   "open test" dialog.
 - Flatpak: py_func / lua_func / ``run`` sub-instance use the host
   Python / Lua, so your host-installed modules are visible again.
@@ -249,7 +266,7 @@ version 0.1.1
 - GUI dialogs no longer hang on pure-Wayland sessions.
 - Plot "last values" API: more tolerant timeout on loaded machines.
 - ``run`` item: ``testium_path`` and ``python_bin`` parameters removed
-  — sub-instances are launched in the same packaging mode as the parent.
+  Sub-instances are launched in the same packaging mode as the parent.
 - License: EUPL-1.2.
 
 version 0.1

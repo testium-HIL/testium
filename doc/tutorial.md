@@ -216,6 +216,8 @@ def consumer():
 
 ## Where to go next
 
+* [`doc/console_tutorial.md`](console_tutorial.md): drive a shell, an
+  ssh session or serial equipment from a test.
 * [`doc/examples/`](examples/): one runnable `.tum` per feature
   (cycles, dialogs, console, plots, parallel, run-of-tum, …).
 * [`doc/manual/testium_manual.pdf`](manual/testium_manual.pdf): full

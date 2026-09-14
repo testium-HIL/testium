@@ -35,29 +35,30 @@ class TermConsole(Console):
         self.term = None
 
     def __del__(self):
-        try:
-            self.term.kill()
+        if self.term is not None:
+            try:
+                self.term.kill()
+            except OSError:
+                pass
             self.term = None
-        except:
-            pass
 
     def enqueue_output(self):
         if sys.platform.startswith('win'):
             while not self.stop.is_set():
-                c = None
                 try:
                     c = self.term.stdout.read(1)
-                except:
-                    pass
+                except (ValueError, OSError):
+                    break
                 if c is not None:
                     self.q.put(c)
         else:
             while not self.stop.is_set():
-                c = None
                 try:
                     c = self.term.read_nonblocking(1, timeout=0.2)
                 except pexpect.TIMEOUT:
-                    pass
+                    continue
+                except (pexpect.EOF, OSError):
+                    break
                 if c is not None:
                     self.q.put(c)
 
@@ -106,15 +107,16 @@ class TermConsole(Console):
         self.isOpened = True
 
     def close(self):
-        try:
-            self.stop.set()
+        self.stop.set()
+        if getattr(self, 't', None) is not None:
             self.t.join(1)
-            if self.term:
+        if self.term is not None:
+            try:
                 self.term.terminate()
-                self.term = None
-            self.isOpened = False
-        except:
-            pass
+            except OSError:
+                pass
+            self.term = None
+        self.isOpened = False
 
     def readchar(self, timeout):
         if timeout < TIMEOUT_NULL:
@@ -123,6 +125,13 @@ class TermConsole(Console):
         else:
             c = self.q.get(block=True, timeout=timeout)
             return c
+
+    def read_available(self, timeout):
+        return self.q.get_available(block=timeout >= TIMEOUT_NULL,
+                                    timeout=timeout)
+
+    def _push_back(self, data):
+        self.q.pushBack(data)
 
     def read_nowait(self, mute=False):
         self._ensure_open()
@@ -145,9 +154,7 @@ class TermConsole(Console):
 
     def write(self, s, mute=False):
         self._ensure_open()
-        if self.echo_on and not mute:
-            ech = '' if s.strip(' ').endswith('\n') else '\n'
-            print(('[>' + self.name + '] : ' + s), end=ech)
+        self._mirror_write(s, mute)
         if sys.platform.startswith('win'):
             res = self.term.stdin.write(s.encode(self.encoding))
         else:

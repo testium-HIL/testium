@@ -11,10 +11,10 @@ def _is_text_mode():
 
 
 def require_qt():
-    """Dialog and plot items need PySide6 (core installs ship without it)."""
+    """Dialog and plot items need PySide6 (absent from stripped installs)."""
     if importlib.util.find_spec("PySide6") is None:
         raise ETUMRuntimeError(
-            "this item needs PySide6: pip install 'testium-hil[qt]'")
+            "this item needs PySide6: pip install testium-hil")
 
 
 def _is_interactive():

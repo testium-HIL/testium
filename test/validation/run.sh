@@ -126,9 +126,7 @@ case "$MODE" in
             echo "Creating wheel venv at $WHEEL_VENV"
             python3 -m venv --system-site-packages "$WHEEL_VENV"
             "$WHEEL_VENV/bin/pip" install --quiet --upgrade pip
-            # [qt,lsp]: the GUI is an extra (bare install = toolkit-free
-            # core) and the lsp channel is validated with pygls.
-            "$WHEEL_VENV/bin/pip" install --quiet "${WHEEL}[qt,lsp]"
+            "$WHEEL_VENV/bin/pip" install --quiet "${WHEEL}"
         fi
         CMD=("$WHEEL_VENV/bin/python" -m testium)
         ;;

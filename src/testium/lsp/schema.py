@@ -105,6 +105,20 @@ def _item_def_jsonschema(item_class, display_name, common_params, defs,
     }
     if required:
         schema["required"] = required
+
+    # BODY_PARAM = "<name>": a scalar body is shorthand for {<name>: body}
+    # (console exec). The schema accepts both shapes.
+    body_param = getattr(item_class, "BODY_PARAM", None)
+    if body_param:
+        return {
+            "description": display_name,
+            "oneOf": [
+                {"type": ["string", "number", "boolean"],
+                 "description": properties[body_param].get(
+                     "description", body_param)},
+                schema,
+            ],
+        }
     return schema
 
 
