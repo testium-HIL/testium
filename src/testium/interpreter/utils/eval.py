@@ -1,6 +1,6 @@
 import api.testium as tm
 from interpreter.utils.py_eval import eval_exec
-from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError
+from runtime.tum_except import ETUMRuntimeError
 
 
 def escape_hint(error_text):
@@ -55,59 +55,47 @@ def evaluate(val, _warn_on_failure=False, **replacement_dict):
     return evaluated, v2
 
 
-def eval_to_boolean(c):
-    if isinstance(c, bool):
-        condition = c
-    elif isinstance(c, (str, bytes)):
-        if c.lower() in [
-            "true",
-            "t",
-            "y",
-            "yes",
-            "ok",
-        ]:
-            condition = True
-        elif c.lower() in [
-            "f",
-            "n",
-            "nok",
-            "ko",
-            "false",
-            "no",
-        ]:
-            condition = False
-        else:
-            try:
-                cond = eval_exec(c)
-                condition = eval_to_boolean(cond)
-            except Exception as e:
-                print("eval with c: {}".format(c))
-                raise e
-    elif type(c) is int:
-        condition = c > 0
-    else:
-        raise ETUMSyntaxError(
-            f"Condition must evaluate to a string, int or bool, "
-            f"got {type(c).__name__}: {c!r}.")
-    return condition
+def to_bool_strict(value, origin):
+    """Single boolean contract: a real bool (or 0/1), or a <| |>
+    expression producing one. Any other string raises with a message
+    naming *origin* — evaluation is never implicit."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in (0, 1):
+        return bool(value)
+    raise ETUMRuntimeError(
+        f"{origin}: expected a boolean or a <| |> expression producing "
+        f"one, got {type(value).__name__}: {value!r}. Wrap an expression "
+        f"with <| |>.")
+
+
+def unwrap_expression(raw, origin):
+    """Attribute contract for expression-valued attributes: the raw value
+    must be one <| |> block. Returns the inner expression text."""
+    if isinstance(raw, str):
+        expr = raw.strip()
+        if expr.startswith("<|") and expr.endswith("|>"):
+            return expr[2:-2]
+    raise ETUMRuntimeError(
+        f"{origin} must be a <| |> expression, got: {raw!r}. "
+        f"Wrap it with <| |>.")
 
 
 def post_evaluate(post_eval, res):
-    """This function is evaluating the result of a test,
-    therefore it may include a $(result) parameter.
-    """
-    if (not post_eval is None) and (post_eval != ""):
-        if (not isinstance(post_eval, str)) or (not ("$(result)" in post_eval)):
-            raise ETUMRuntimeError(
-                f"'eval' ({post_eval}) must be a string and have the '$(result)' substitution keyword."
-            )
-
-        substituted = post_eval.replace("$(result)", str(res))
-        is_evaluated, res = evaluate(post_eval, result=res)
-        if not is_evaluated:
-            raise ETUMRuntimeError(
-                f"Result evaluation failed: '{post_eval}' "
-                f"(after substitution: '{substituted}') is not a valid "
-                f"expression."
-            )
+    """Evaluate a result post-processing expression (inner text of the
+    <| |> block); it must reference $(result)."""
+    if (post_eval is None) or (post_eval == ""):
+        return res
+    if (not isinstance(post_eval, str)) or ("$(result)" not in post_eval):
+        raise ETUMRuntimeError(
+            f"'{post_eval}' must contain the '$(result)' "
+            f"substitution keyword.")
+    substituted = post_eval.replace("$(result)", str(res))
+    is_evaluated, res = evaluate(post_eval, result=res)
+    if not is_evaluated:
+        raise ETUMRuntimeError(
+            f"Result evaluation failed: '{post_eval}' "
+            f"(after substitution: '{substituted}') is not a valid "
+            f"expression."
+        )
     return res

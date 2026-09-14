@@ -20,7 +20,7 @@
                     period:         1
                     file:           $(test_path)$(psep)plot.py
                     func_name:      random_value
-                    eval:           '{"periodic": $(result)}'
+                    eval:           '<| {"periodic": $(result)} |>'
 
         - sleep:
             name: sleep

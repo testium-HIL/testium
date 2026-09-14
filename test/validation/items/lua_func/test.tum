@@ -53,7 +53,7 @@
     func_name: echo
     param:
         - -1
-    expected_result: "354848436 - 354848437"
+    expected_result: <| 354848436 - 354848437 |>
 
 - lua_func:
     name: expected table
@@ -62,7 +62,7 @@
     func_name: echo
     param:
         - [-1, a, {toto: tata}]
-    expected_result: "[-1, 'a', {'toto': 'tata'}]"
+    expected_result: "<| [-1, 'a', {'toto': 'tata'}] |>"
 
 - lua_func:
     name: global param lua_func
@@ -85,7 +85,7 @@
     func_name: checkglobal2
     param:
         - 0
-    expected_result: ($(data_to_be_returned))[0]
+    expected_result: <| ($(data_to_be_returned))[0] |>
 
 - lua_func:
     name: global param dict
@@ -94,7 +94,7 @@
     func_name: checkglobal2
     param:
         - 1
-    expected_result: ($(data_to_be_returned))[1]
+    expected_result: <| ($(data_to_be_returned))[1] |>
 
 - lua_func:
     name: global param list
@@ -103,7 +103,7 @@
     func_name: checkglobal2
     param:
         - 2
-    expected_result: ($(data_to_be_returned))[2]
+    expected_result: <| ($(data_to_be_returned))[2] |>
 
 
 

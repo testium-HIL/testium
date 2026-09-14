@@ -7,6 +7,7 @@ from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.utils.step_ctrl import JumpRequested
 from interpreter.test_items.test_result import TestResult, TestValue
 import api.testium as tm
+from interpreter.utils.eval import to_bool_strict
 from interpreter.utils.params import TestItemParams
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.param_decl import Param, ParamSet, BLOCK
@@ -18,12 +19,10 @@ from interpreter.utils.param_decl import Param, ParamSet, BLOCK
 # declares that 'exit_condition' is an accepted top-level key.
 EXIT_CONDITION_PARAMS = ParamSet(
     Param("time",      doc="HH:MM time of day after which the loop exits."),
-    Param("value",     doc="Expression; when truthy the loop exits."),
+    Param("value",     doc="Boolean or <| |> expression; when true the loop exits."),
     Param("file",      doc="Python file containing the exit-condition function."),
     Param("func_name", doc="Function name in 'file' returning the exit value."),
     Param("param",     doc="Arguments passed to the exit function."),
-    Param("eval", default="",
-          doc="Post-evaluation expression applied to the function's return."),
 )
 
 
@@ -36,7 +35,7 @@ class TestItemCycle(TestItem):
         Param("exit_condition", kind=BLOCK,
               doc="Optional block stopping the loop early: combine 'time', "
                   "'value', or a 'file'+'func_name' pair (with optional "
-                  "'param' and 'eval')."),
+                  "'param')."),
     )
 
     def __init__(self, dict_cycle, parent=None, status_queue=None, filename=""):
@@ -79,7 +78,6 @@ class TestItemCycle(TestItem):
             self._exit_file = exit_params.getParam("file", required=req)
             self._exit_func = exit_params.getParam("func_name", required=req)
             self._exit_func_param = exit_params.getParam("param")
-            self._exit_eval = exit_params.getParam("eval", default="")
 
     def __runALoop(self):
         failcount = 0
@@ -202,12 +200,8 @@ class TestItemCycle(TestItem):
                         exit_val = self._prms.expanse(
                             self._exit_condition
                         )
-                        ev = False
-                        if isinstance(exit_val, bool):
-                            ev = exit_val
-                        else:
-                            tm.print_warn(f"""Loop 'exit_condition' is not a boolean value ({exit_val}),
-then considered as 'False'""")
+                        ev = to_bool_strict(exit_val,
+                                            "'exit_condition' value")
                         if ev:
                             # exit condition is True
                             self.result.reported = {
@@ -229,7 +223,6 @@ then considered as 'False'""")
                     if self._exit_func:
                         file = self._prms.expanse(self._exit_file)
                         func = self._prms.expanse(self._exit_func)
-                        post_eval = self._prms.expanse(self._exit_eval)
                         if self._exit_func_param:
                             param_list = self._prms.getParamFromList(self._exit_func_param)
                             pl = self._prms.expanse(param_list)
@@ -268,9 +261,6 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                                 f'Loop exit function "{func}" (file "{file}") failed at '
                                 f'iteration {i}/{self._niter}: "{res}"',
                                 self.seqFilename())
-
-                        if post_eval:
-                            print(f"Evaluation: \"{post_eval}\"")
 
             except JumpRequested:
                 raise

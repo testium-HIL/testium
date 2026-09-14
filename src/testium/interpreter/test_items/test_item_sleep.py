@@ -6,6 +6,7 @@ from multiprocessing import Process, Pipe
 import api.testium as tm
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
+from interpreter.utils.eval import to_bool_strict
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
@@ -49,7 +50,8 @@ class TestItemSleep(TestItem):
                 second = int(m.group("second")) if m.group("second") is not None else 0
                 timeout = timedelta(days=day, hours=hour, minutes=minute, seconds=second).total_seconds()
 
-        has_dialog = self._prms.expanse(self._has_dialog)
+        has_dialog = to_bool_strict(self._prms.expanse(self._has_dialog),
+                                    "'dialog'")
 
         #test core function
         if has_dialog:

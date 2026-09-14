@@ -121,8 +121,9 @@ writeln function is similar to the write function except that a '\n' (newline) c
 The ``read_until`` action waits for a string pattern from the console.
 Its parameters are listed below:
 
-* ``expected``: the value to wait for. A list is also accepted; the
-  action succeeds when any entry of the list is seen.
+* ``expected``: the value to wait for, matched literally (never
+  evaluated as an expression). A list is also accepted; the action
+  succeeds when any entry of the list is seen.
 * ``regex``: Boolean value (default ``False``). When ``True``, each
   ``expected`` entry is a Python regular expression searched in the
   received text.

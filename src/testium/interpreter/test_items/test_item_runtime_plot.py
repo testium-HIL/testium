@@ -10,7 +10,7 @@ from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.eval import evaluate
+from interpreter.utils.eval import unwrap_expression
 from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 
@@ -125,7 +125,7 @@ class TestItemPlotActionPeriodic(TestItemPlotAction):
         Param("param", kind=LIST,
               doc="Arguments passed to the periodic function on each call."),
         Param("eval", default="",
-              doc="Post-evaluation applied to the function's return value."),
+              doc="<| |> expression containing $(result), applied to the function's return value."),
     )
 
     def __init__(
@@ -156,7 +156,11 @@ class TestItemPlotActionPeriodic(TestItemPlotAction):
             func_name = self._prms.expanse(self.func_name)
             param_list = self._prms.getParamFromList(self.params)
             pl = self._prms.expanse(param_list)
-            post_eval = self._prms.expanse(self.post_eval)
+            post_eval = self.post_eval
+            if post_eval:
+                # Same contract as process_result: one <| |> expression.
+                post_eval = self._prms.expanse(
+                    unwrap_expression(post_eval, "plot 'eval'"))
             gr.add_periodic(self.period, file, func_name, pl, post_eval)
 
         except:
@@ -185,8 +189,8 @@ class TestItemPlotActionAdd(TestItemPlotAction):
 
         if isinstance(input, dict):
             for k, v in input.items():
+                # Literal value; a <| |> expression is resolved by expanse.
                 v = self._prms.expanse(v)
-                _, v = evaluate(v)
                 data.update({k: v})
 
             gr.add(data)

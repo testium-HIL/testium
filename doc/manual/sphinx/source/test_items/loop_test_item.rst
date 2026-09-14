@@ -37,8 +37,8 @@ Below are described loop test item specific attributes.
 * ``Iterator``: giving the number of loop iteration (see dedicated chapter below).
 * ``steps``: describes the sequence executed at each cycle; it is
   a list of any of the testium test items.
-* ``exit_condition``: defines when to exit the loop. If the condition evaluates
-  to ``True`` the loop continues; otherwise it stops. exit_condition attributes are:
+* ``exit_condition``: defines when to exit the loop. The loop stops when
+  the condition evaluates to ``True``. exit_condition attributes are:
 
   * ``time``: the loop stops after the time (in minutes) is elapsed (optional)
   * ``value``: the loop stops when the content of the value attribute is

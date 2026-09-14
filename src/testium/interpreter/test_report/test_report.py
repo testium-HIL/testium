@@ -10,6 +10,7 @@ from time import (time, sleep)
 import traceback
 from runtime.tum_except import (ETUMRuntimeError, ETUMSyntaxError, wrap_lines)
 from runtime.stdout_redirect import stdio_redir
+from interpreter.utils.eval import to_bool_strict
 from interpreter.utils.params import (expanse)
 from interpreter.utils.paths import prepare_file_to_save, no_window_kwargs
 from interpreter.utils import bins
@@ -360,21 +361,14 @@ class TestReport:
             return
 
         # Process parameters
-        a = expanse(dict_report.get('enabled', True))
-        if isinstance(a, bool):
-            self._active = a
-        else:
-            if str(a).lower() == 'false':
-                self._active = False
+        self._active = to_bool_strict(
+            expanse(dict_report.get('enabled', True)), "report 'enabled'")
 
         if self._active:
             self.dict_report = dict_report
-            ls = expanse(dict_report.get('log_stored', False))
-            if isinstance(ls, bool):
-                self._log_stored = ls
-            else:
-                if str(ls).lower() == 'true':
-                    self._log_stored = True
+            self._log_stored = to_bool_strict(
+                expanse(dict_report.get('log_stored', False)),
+                "report 'log_stored'")
 
             exports = self.dict_report.get('export', [])
             if isinstance(exports, dict):

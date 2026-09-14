@@ -8,6 +8,13 @@ version 0.5.0
 - py_func and lua_func file and function names and the console protocol
   re-expand on every execution (loops, re-runs).
 - A variable set to null is defined: $(x) expands to None.
+- Single evaluation rule: <| |> evaluates, and nothing else does.
+  Boolean attributes (condition, skipped, stop_on_failure, no_fail, ...)
+  take a boolean or a <| |> expression; anything else fails with an
+  explicit message.
+- process_result and the plot eval must be <| |> expressions.
+- expected_result compares literally; wrap an expression with <| |>.
+- The unused loop exit_condition eval attribute is removed.
 - The F1 window is replaced by two dockable panels: Variables and
   Step info, tabbed with the doc panel by default. F1 focuses Variables.
 - New View menu: show or hide each panel, reset the layout.

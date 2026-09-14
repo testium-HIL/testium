@@ -136,8 +136,9 @@ or in configuration file (see :ref:`config files<sec_configuration_files>`) as a
 Conditional execution
 -----------------------------------------------
 
-The ``condition`` attribute content must be a boolean value (if not ``True``, the condition is considered
-not met).
+The ``condition`` attribute content must be a boolean value or a
+``<| |>`` expression producing one. Any other value fails the item with
+an explicit message.
 
 
 .. _sec_process_result:
@@ -148,9 +149,13 @@ Process result
 The ``process_result`` attribute can be applied to all the test items. However, its behavior differs
 depending on whether the test item returns a value.
 
-The ``process_result`` attribute content is evaluated as a python line.
+The ``process_result`` attribute content is a ``<| |>`` expression
+containing the special ``$(result)`` variable, replaced with the test
+result value:
 
-The special ``$(result)`` variable is replaced in the ``process_result`` attribute content with the test result value.
+.. code-block:: yaml
+
+    process_result: <| $(result)['temperature'] |>
 
 ``process_result`` is evaluated before ``expected_result``.
 
@@ -179,11 +184,16 @@ The test items returning a value are:
 For test items which don't return a value, the ``expected_result`` attribute content is
 compared to ``PASS`` or ``FAIL``.
 
-The ``expected_result`` attribute content is a simple comparison with ``$(result)``.
+The ``expected_result`` attribute content is compared literally to the
+result value; YAML types are preserved (``10`` is an integer). A
+``<| |>`` expression is evaluated first:
+
+.. code-block:: yaml
+
+    expected_result: 25.0
+    expected_result: <| ($(reference_table))[$(loop_index)] |>
 
 The test is *PASS* if the result equals ``expected_result``, and *FAIL* otherwise.
-
-The special ``$(result)`` variable is replaced in the ``expected_result`` attribute content with the test result value.
 
 
 .. _sec_store_result:
@@ -251,7 +261,7 @@ but before ``no_fail``. This ensures the real outcome is captured even when
     - check:
         name: Example of result specific to the step 001
         values:
-            - $(last_step_result) == PASS
+            - <| "$(last_step_result)" == "PASS" |>
         key:
             - GID-1510554_step_1
         report:

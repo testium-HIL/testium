@@ -1,10 +1,11 @@
 
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import TestValue
-from runtime.tum_except import ETUMSyntaxError, item_load_context
+from runtime.tum_except import (ETUMRuntimeError, ETUMSyntaxError,
+                                item_load_context)
 import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.eval import evaluate
+from interpreter.utils.eval import to_bool_strict
 from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 class TestItemCheckValue(TestItem):
@@ -14,8 +15,8 @@ class TestItemCheckValue(TestItem):
 
     PARAMS = ParamSet(
         Param("values", kind=LIST, required=True,
-              doc="List of expressions to evaluate. Each is expanded then "
-                  "evaluated; non-truthy results fail the check."),
+              doc="List of <| |> expressions; each must produce a boolean, "
+                  "false fails the check."),
         # 'steps' is intentionally not redeclared here — it's the deprecated
         # alias of 'values' and is already accepted by COMMON_PARAMS for
         # container items. A runtime warning is emitted when 'steps' is used.
@@ -47,8 +48,10 @@ class TestItemCheckValue(TestItem):
         #test core function
         for v in self._action_list:
             val = self._prms.expanse(v)
-            if not isinstance(val, bool):
-                self.result.set(TestValue.FAILURE, f"The expanse of '{v}' must result in a boolean, but it resulted in '{val}'")
+            try:
+                val = to_bool_strict(val, "'values' entry")
+            except ETUMRuntimeError as e:
+                self.result.set(TestValue.FAILURE, str(e))
                 return
             if v != val:
                 print("Evaluation of '{}' --> {}.".format(v, val))

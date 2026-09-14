@@ -1,0 +1,8 @@
+main:
+  name: root
+  steps:
+    # skipped requires a boolean or a <| |> expression, never a bare one.
+    - sleep:
+        name: nap
+        timeout: 0.01
+        skipped: 1 == 2

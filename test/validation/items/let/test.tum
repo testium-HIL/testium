@@ -68,7 +68,7 @@
     param:
         - overwrite_me
         - True
-    expected_result: "$(overwrite_me) == False"
+    expected_result: "<| $(overwrite_me) == False |>"
 
 - py_func:
     name: Check global dic fail

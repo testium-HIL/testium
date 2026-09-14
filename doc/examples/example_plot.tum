@@ -43,7 +43,7 @@ main:
                   period:         1
                   file:           $(test_directory)/dummy/plot.py
                   func_name:      random_value
-                  eval:           '{"periodic": $(result)}'
+                  eval:           '<| {"periodic": $(result)} |>'
 
       - sleep:
           name: sleep

@@ -12,6 +12,7 @@ from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.param_decl import Param, ParamSet
 from interpreter.test_items.test_result import TestValue
+from interpreter.utils.eval import to_bool_strict
 
 
 class TestItemConsoleAction(TestItemAction):
@@ -228,7 +229,7 @@ class TestItemConsoleOpen(TestItemConsoleAction):
                         name=cname,
                         baudrate=int(serial_bauds),
                         port=serial_port,
-                        bufferize=bool(buffered),
+                        bufferize=to_bool_strict(buffered, "'buffered'"),
                         echoOn=False,
                         write_delay=write_delay,
                     )
@@ -422,7 +423,8 @@ class TestItemConsoleReadUntil(TestItemConsoleAction):
             cons = self.get_console()
             status, data = cons.read_until(
                 ru, timeout=read_timeout, return_data=True, mute=mute,
-                should_stop=self.isStopped, regex=bool(use_regex),
+                should_stop=self.isStopped,
+                regex=to_bool_strict(use_regex, "'regex'"),
             )
             if status == 0:
                 self.result.set(TestValue.SUCCESS)

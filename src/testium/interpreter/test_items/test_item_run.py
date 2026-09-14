@@ -8,6 +8,7 @@ import traceback
 
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
+from interpreter.utils.eval import to_bool_strict
 import api.testium as tm
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.param_decl import Param, ParamSet
@@ -148,7 +149,8 @@ class TestItemRun(TestItem):
 
             # Capture (headless -b) in batch or when `batch: true`; else open
             # the child's own GUI window (-r).
-            capture = bool(self.batch) or tm.text_mode()
+            capture = to_bool_strict(self._prms.expanse(self.batch),
+                                     "'batch'") or tm.text_mode()
 
             cmd = _testium_launch_cmd()
             if capture:

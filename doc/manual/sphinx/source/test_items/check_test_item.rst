@@ -9,4 +9,4 @@ The ``check`` test item returns the result of a python string evaluation:
     - check:
         name: check test item example
         values:
-            - '"tictactoe" in "$(my_global_string)"'
+            - <| "tictactoe" in "$(my_global_string)" |>

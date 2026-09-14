@@ -5,7 +5,7 @@ from interpreter.test_items.test_item_container import TestItemContainer
 from interpreter.test_items.test_item import test_run
 from interpreter.test_items.test_result import TestResult, TestValue
 from interpreter.utils.constants import TestItemType as cst
-from interpreter.utils.eval import eval_to_boolean
+from interpreter.utils.eval import to_bool_strict
 from interpreter.utils.step_ctrl import JumpRequested
 from interpreter.utils.param_decl import Param, ParamSet, LIST, BLOCK, Enum
 from runtime.tum_except import ETUMSyntaxError
@@ -46,12 +46,14 @@ class TestItemParallelBranch(TestItemContainer):
         while time() < deadline:
             if self.isStopped():
                 return False
-            try:
-                c = self._prms.expanse(self._wait_condition)
-                if eval_to_boolean(c):
-                    return True
-            except Exception:
-                pass
+            c = self._prms.expanse(self._wait_condition)
+            if isinstance(c, str) and ("$(" in c or "<|" in c):
+                # Not resolvable yet (the variable may be set by another
+                # branch): keep waiting.
+                sleep(0.1)
+                continue
+            if to_bool_strict(c, "'wait_for' condition"):
+                return True
             sleep(0.1)
         return False
 

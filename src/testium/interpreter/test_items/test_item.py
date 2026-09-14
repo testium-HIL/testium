@@ -9,7 +9,8 @@ from interpreter.utils.param_decl import (
     Param, ParamSet, LIST, BLOCK, unknown_keys, missing_required,
 )
 from interpreter.utils.constants import TestItemType as cst_type
-from interpreter.utils.eval import eval_to_boolean, evaluate, post_evaluate
+from interpreter.utils.eval import (post_evaluate, to_bool_strict,
+                                    unwrap_expression)
 from interpreter.utils.step_ctrl import JumpRequested
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, \
     item_load_context, wrap_lines
@@ -24,20 +25,25 @@ LOG_TEST_START = '-----> step "{}" started'
 COMMON_PARAMS = ParamSet(
     Param("name",            doc="Display name shown in the GUI tree and reports."),
     Param("doc",             doc="Free-form documentation; surfaced in tooltips."),
-    Param("skipped",         doc="If truthy, the step is skipped (static expression, "
-                                 "evaluated at load time)."),
+    Param("skipped",         doc="Boolean or <| |> expression; if true the step "
+                                 "is skipped. Static: evaluated at load time."),
     Param("key",             doc="Report key used to classify the result "
                                  "(typically <test>_PASS or <test>_FAIL)."),
-    Param("stop_on_failure", doc="If true, abort the surrounding container on failure."),
-    Param("execute_on_stop", doc="If true, run this step even when its container "
-                                 "is being stopped (cleanup)."),
-    Param("process_result",  doc="Post-evaluation expression applied to the test result."),
+    Param("stop_on_failure", doc="Boolean or <| |> expression; if true, abort "
+                                 "the surrounding container on failure."),
+    Param("execute_on_stop", doc="Boolean or <| |> expression; if true, run this "
+                                 "step even when its container is being stopped "
+                                 "(cleanup)."),
+    Param("process_result",  doc="<| |> expression containing $(result), applied "
+                                 "to the test result."),
     Param("store_result",    doc="Global-dict key in which to store the test result."),
-    Param("expected_result", doc="Expected outcome; the step is failed if it doesn't match."),
-    Param("no_fail",         doc="If truthy, never report a FAILURE for this step."),
+    Param("expected_result", doc="Expected outcome, compared literally; a <| |> "
+                                 "expression is evaluated first."),
+    Param("no_fail",         doc="Boolean or <| |> expression; if true, never "
+                                 "report a FAILURE for this step."),
     Param("report",          doc="Per-step reporting override."),
-    Param("condition",       doc="Optional gating expression evaluated before each "
-                                 "run; false ⇒ the step is skipped."),
+    Param("condition",       doc="Boolean or <| |> expression gating each run; "
+                                 "false ⇒ the step is skipped."),
     Param("steps",  kind=LIST, doc="Children (for container items)."),
     Param("seq_filename",    doc="(internal) source .tum file of this step; injected "
                                  "by the loader."),
@@ -110,11 +116,12 @@ def test_run(f):
             condition = True
         else:
             c = self._prms.expanse(raw_condition)
-            if isinstance(c, bool):
-                condition = c
-            else:
-                condition = False
-                c = False
+            try:
+                condition = to_bool_strict(c, "'condition'")
+            except ETUMRuntimeError as e:
+                self.result.set(TestValue.FAILURE, str(e))
+                self.run_test_end()
+                return self.result
 
             if raw_condition == c:
                 msg = f'"{c}"'
@@ -239,12 +246,12 @@ class TestItem:
                 if self._name == None:
                     self._name = ""
                 s = self._prms.getParam("skipped", default=None, processed=True)
-                if s:
+                if s is not None:
                     try:
-                        self.skipped = eval_to_boolean(s)
+                        self.skipped = to_bool_strict(s, "'skipped'")
                     except Exception as e:
                         raise ETUMSyntaxError(
-                            f"'{self.cmd()}' test item named '{self.name()}':\nskipped expresion can only be a static expression as it is evaluated during loading of TUM : {s}",
+                            f"'{self.cmd()}' test item named '{self.name()}':\n{e}",
                             self.seqFilename(),
                         ) from e
                 # This allow disabling test item directly by using its name inside param.yaml file
@@ -448,7 +455,8 @@ class TestItem:
 
         self.result.sendStatus(self.status_queue)
         if not self.result.value is None:
-            tm.setgd("last_step_result", str(self.result.value))
+            # The documented contract: the returned value, type preserved.
+            tm.setgd("last_step_result", self.result.value)
         else:
             tm.setgd("last_step_result", str(self.result.test_result))
         self.write_footer()
@@ -476,8 +484,12 @@ class TestItem:
             return
         print(f"Post-processed the test result:")
         r = self.result.value
-        pe = self._prms.expanse(self._post_eval)
+        pe = self._post_eval
         try:
+            # Unwrapped before expansion: $(result) is substituted by
+            # post_evaluate, the other $() by expanse.
+            inner = unwrap_expression(self._post_eval, "'process_result'")
+            pe = self._prms.expanse(inner)
             self.result.value = self.post_evaluate(pe)
             print(f"   was: {r}")
             print(f"   is:  {str(self.result.value)}")
@@ -511,62 +523,54 @@ class TestItem:
             tm.print_debug("   Failed: the reported value must be a dictionnary.")
 
     def result_expected(self):
+        if self._expected_result is None:
+            return
         res = self.result.value
 
-        # if a result is expected
-        e = None
-        eres = None
+        # Literal comparison value; a <| |> expression is resolved by
+        # expanse. No implicit evaluation.
+        eres = self._prms.expanse(self._expected_result)
 
-        if not self._expected_result is None:
-            e = self._prms.expanse(self._expected_result)
-            _, eres = evaluate(e)
+        if not (res is None and eres is not None):
+            print("Compare the result to expected:")
+            print("   Result   = " + str(res))
+            msg = "   Expected = " + str(self._expected_result)
+            if self._expected_result != eres:
+                msg = msg + " -> " + str(eres)
+            print(msg)
+            self.result.reported = {"expected": eres}
 
-        if not eres is None:
-            if not res is None:
-                print("Compare the result to expected:")
-                print("   Result   = " + str(res))
-                msg = "   Expected = " + str(self._expected_result)
-                if self._expected_result != eres:
-                    msg = msg + " -> " + str(eres)
-                print(msg)
-                self.result.reported = {"expected": eres}
-
-                if eres == res:
-                    self.result.set(TestValue.SUCCESS, f"Expected result met.")
-                else:
-                    self.result.set(
-                        TestValue.FAILURE,
-                        f'Expected result not met: expected "{eres}", got "{res}".')
+            if eres == res:
+                self.result.set(TestValue.SUCCESS, f"Expected result met.")
             else:
-                if str(eres).lower() != str(self.result.test_result).lower():
-                    self.result.set(
-                        TestValue.FAILURE, "Expected result not met : {}.".format(e)
-                    )
-                else:
-                    self.result.set(
-                        TestValue.SUCCESS, "Expected result met: {}.".format(e)
-                    )
+                self.result.set(
+                    TestValue.FAILURE,
+                    f'Expected result not met: expected "{eres}", got "{res}".')
+        else:
+            # No returned value: compare against the PASS/FAIL status.
+            if str(eres).lower() != str(self.result.test_result).lower():
+                self.result.set(
+                    TestValue.FAILURE,
+                    "Expected result not met : {}.".format(eres)
+                )
+            else:
+                self.result.set(
+                    TestValue.SUCCESS, "Expected result met: {}.".format(eres)
+                )
 
     def process_no_fail(self):
         # Treatment of the no_fail parameters
         if self._no_fail is None:
             return
 
-        no_fail = False
         no_fail_exp = self._prms.expanse(self._no_fail)
         try:
-            no_fail = bool(no_fail_exp)
-        except:
-            tm.print_debug(
-                f"The 'no_fail' parameter evaluation did not lead to a boolean value: '{no_fail}'"
-            )
-            tm.print_warn(
-                "The 'no_fail' parameter is ignored due to evaluation error."
-            )
+            no_fail = to_bool_strict(no_fail_exp, "'no_fail'")
+        except ETUMRuntimeError as e:
             raise ETUMSyntaxError(
-                f"The '{self.cmd()}' test item named '{self.name()}' has a 'no_fail' parameter impossible to evaluate",
+                f"'{self.cmd()}' test item named '{self.name()}': {e}",
                 self.seqFilename(),
-            )
+            ) from e
         if no_fail:
             if self.result.test_result == TestValue.FAILURE:
                 tm.print_info(f"'no_fail' is True. Test forced to PASS.")
@@ -695,19 +699,19 @@ class TestItem:
     def setEnabled(self):
         self.enabled = True
 
-    def _eval_flag(self, raw):
-        """Run-time flag: bool as-is, otherwise expanded and coerced to bool."""
+    def _eval_flag(self, raw, origin):
+        """Run-time flag: bool as-is, otherwise expanded and coerced."""
         if isinstance(raw, bool):
             return raw
-        return eval_to_boolean(self._prms.expanse(raw))
+        return to_bool_strict(self._prms.expanse(raw), origin)
 
     @property
     def _stop_on_failure(self):
-        return self._eval_flag(self._stop_on_failure_raw)
+        return self._eval_flag(self._stop_on_failure_raw, "'stop_on_failure'")
 
     @property
     def _execute_on_stop(self):
-        return self._eval_flag(self._execute_on_stop_raw)
+        return self._eval_flag(self._execute_on_stop_raw, "'execute_on_stop'")
 
     def executedOnStop(self):
         return self._execute_on_stop

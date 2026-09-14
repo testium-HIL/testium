@@ -7,6 +7,7 @@ import textwrap
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
 from interpreter.test_items.test_item import TestItem, test_run
 from interpreter.test_items.test_result import TestValue
+from interpreter.utils.eval import to_bool_strict
 import api.testium as tm
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.api_srv import api_request
@@ -109,7 +110,8 @@ python_bin = {tm.gd("python_bin", "no python path defined")}"""
                     )
 
             try:
-                dbg = bool(self._prms.expanse(self._debug)) or self._debug_attach
+                dbg = to_bool_strict(self._prms.expanse(self._debug),
+                                     "'debug'") or self._debug_attach
                 success, ret = engine.func_call(file_name, func_name,
                                                 pl, debug=dbg)
             finally:

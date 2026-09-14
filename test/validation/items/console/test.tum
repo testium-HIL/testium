@@ -103,7 +103,7 @@
 {% if os == "Windows" %}
         - read_until: {expected: echo "endOfCmd", timeout: 1}
 {% endif %}
-        - read_until: {expected: endOfCmd, timeout: 1, process_result: "'Hello' in r'''$(result)''' and 'PASS' in r'''$(result)''' "}
+        - read_until: {expected: endOfCmd, timeout: 1, process_result: "<| 'Hello' in r'''$(result)''' and 'PASS' in r'''$(result)''' |>"}
 
 {% if os == "Linux" %}
 - console:

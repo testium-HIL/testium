@@ -43,6 +43,8 @@ CASES = [
     # The error is inside the included file: the message must name that file.
     ("bad_include.tum",      ["bad_include_inc.tum", "frobnicate_in_include",
                               "is not a known test item"]),
+    ("skipped_bare_expression.tum", ["'skipped'", "expected a boolean",
+                                     "expression with <| |>"]),
 ]
 
 

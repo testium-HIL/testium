@@ -297,7 +297,7 @@
                     params:
                         - Hello World
                         - {a: 1, b: hello}
-                    process_result: $(result)[0][1]['a']
+                    process_result: <| $(result)[0][1]['a'] |>
                     expected_result: 1
                     timeout: 1
                 - close:

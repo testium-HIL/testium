@@ -194,7 +194,7 @@ main:
               func_name: funcToBeExecuted
               param:
                   - $(loop_param)
-              expected_result: ($(global_loop_param_num))[$(loop_index)]
+              expected_result: <| ($(global_loop_param_num))[$(loop_index)] |>
           - sleep:
               name: Sleep be
               timeout: 0.5
@@ -212,7 +212,7 @@ main:
               func_name: funcToBeExecuted
               param:
                   - $(loop_param)
-              expected_result: ($(global_loop_param_txt))[$(loop_index)]
+              expected_result: <| ($(global_loop_param_txt))[$(loop_index)] |>
           - sleep:
               name: Sleep be
               timeout: 0.5
@@ -230,7 +230,7 @@ main:
               func_name: funcToBeExecuted
               param:
                 - $(loop_param)
-              expected_result: ($(global_loop_param_list))[$(loop_index)]
+              expected_result: <| ($(global_loop_param_list))[$(loop_index)] |>
           - sleep:
               name: Sleep be
               key: report-key-3

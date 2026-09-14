@@ -36,34 +36,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -96,34 +96,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -156,34 +156,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -270,34 +270,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -338,34 +338,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "type": "array",
@@ -416,34 +416,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -456,7 +456,7 @@
           "description": "Iterable (or string expanding to one) driving the loop. The current value is exposed as $(loop_param)."
         },
         "exit_condition": {
-          "description": "Optional block stopping the loop early: combine 'time', 'value', or a 'file'+'func_name' pair (with optional 'param' and 'eval').",
+          "description": "Optional block stopping the loop early: combine 'time', 'value', or a 'file'+'func_name' pair (with optional 'param').",
           "type": "object"
         }
       }
@@ -473,34 +473,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -544,34 +544,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -611,34 +611,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -668,34 +668,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -725,34 +725,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -778,34 +778,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -836,34 +836,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -886,7 +886,7 @@
           "type": "array"
         },
         "eval": {
-          "description": "Post-evaluation applied to the function's return value.",
+          "description": "<| |> expression containing $(result), applied to the function's return value.",
           "default": ""
         }
       },
@@ -912,34 +912,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -965,34 +965,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "type": "array",
@@ -1046,34 +1046,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1096,34 +1096,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1159,34 +1159,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1218,34 +1218,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1275,34 +1275,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1312,7 +1312,7 @@
           "description": "(internal) source .tum file of this step; injected by the loader."
         },
         "values": {
-          "description": "List of expressions to evaluate. Each is expanded then evaluated; non-truthy results fail the check.",
+          "description": "List of <| |> expressions; each must produce a boolean, false fails the check.",
           "type": "array"
         }
       },
@@ -1332,34 +1332,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1394,34 +1394,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1453,34 +1453,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1513,34 +1513,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1576,34 +1576,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1642,34 +1642,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1709,34 +1709,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1796,34 +1796,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1866,34 +1866,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -1925,34 +1925,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "type": "array",
@@ -2016,34 +2016,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -2081,34 +2081,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "description": "Children (for container items).",
@@ -2224,34 +2224,34 @@
           "description": "Free-form documentation; surfaced in tooltips."
         },
         "skipped": {
-          "description": "If truthy, the step is skipped (static expression, evaluated at load time)."
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
         },
         "key": {
           "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
         },
         "stop_on_failure": {
-          "description": "If true, abort the surrounding container on failure."
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
         },
         "execute_on_stop": {
-          "description": "If true, run this step even when its container is being stopped (cleanup)."
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
         },
         "process_result": {
-          "description": "Post-evaluation expression applied to the test result."
+          "description": "<| |> expression containing $(result), applied to the test result."
         },
         "store_result": {
           "description": "Global-dict key in which to store the test result."
         },
         "expected_result": {
-          "description": "Expected outcome; the step is failed if it doesn't match."
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
         },
         "no_fail": {
-          "description": "If truthy, never report a FAILURE for this step."
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
         },
         "report": {
           "description": "Per-step reporting override."
         },
         "condition": {
-          "description": "Optional gating expression evaluated before each run; false \u21d2 the step is skipped."
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
         },
         "steps": {
           "$ref": "#/$defs/_steps"

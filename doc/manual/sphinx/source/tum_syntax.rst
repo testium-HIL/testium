@@ -186,6 +186,16 @@ key value being the test item name attribute (see :ref:`dialog_value test item<s
 Parameter passing, variable expansion and evaluation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+One rule governs every attribute value:
+
+* ``$( )`` substitutes a variable, everywhere.
+* ``<| |>`` evaluates a Python expression, everywhere, and is the only
+  thing that evaluates.
+* Without markers, a value is a literal (after substitution).
+* A boolean attribute (``condition``, ``skipped``, ``no_fail``, ...)
+  takes a YAML boolean or a ``<| |>`` expression producing one; any
+  other value fails the item with an explicit message.
+
 One of the most useful functionalities for scalability and flexibility of the
 .tum files is the ability to expand variables at test runtime.
 

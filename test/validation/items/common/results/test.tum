@@ -20,7 +20,7 @@
             key: $(test)_PASS
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: return_none
-            expected_result: None
+            expected_result: <| None |>
         - py_func:
             name: Return None expect PASS
             key: $(test)_PASS
@@ -84,14 +84,14 @@
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
             param: [ $(str_example) ]
-            process_result: "'$(str_example)' == '$(result)'"
+            process_result: "<| '$(str_example)' == '$(result)' |>"
         - py_func:
             name: Process result string in the result (must fail)
             key: $(test)_FAIL
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
             param: [ $(str_example) ]
-            process_result: "'44' in '$(result)'"
+            process_result: "<| '44' in '$(result)' |>"
             expected_result: True
         - py_func:
             name: Save the result in a global variable
@@ -114,7 +114,7 @@
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
             param: [ $(str_example) ]
-            process_result: "'$(result)'.upper()"
+            process_result: "<| '$(result)'.upper() |>"
             store_result: upper_str_example
         - py_func:
             name: Check store_result with process_result
@@ -122,7 +122,7 @@
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: echo
             param: [ $(str_example) ]
-            process_result: "'$(result)'.upper()"
+            process_result: "<| '$(result)'.upper() |>"
             expected_result: $(upper_str_example)
 
         - let:
@@ -175,7 +175,7 @@
             key: $(test)_FAIL
             file: $(test_path)$(psep)results$(psep)results.py
             func_name: return_none
-            process_result: "$(result) is None"
+            process_result: "<| $(result) is None |>"
 
 - group:
     name : no_fail result
@@ -216,3 +216,37 @@
             func_name: echo
             param: [ True ]
             expected_result: False
+- group:
+    name: Explicit evaluation rule
+    steps:
+        - py_func:
+            name: bare condition expression fails (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 1 ]
+            condition: 1 == 1
+
+        - py_func:
+            name: bare process_result fails (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 44 ]
+            process_result: $(result) + 1
+
+        - py_func:
+            name: expected_result without markers is a literal
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ open ]
+            expected_result: open
+
+        - py_func:
+            name: expected_result with markers is evaluated
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ 4 ]
+            expected_result: <| 2 + 2 |>

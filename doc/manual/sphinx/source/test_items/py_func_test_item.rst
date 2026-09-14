@@ -177,7 +177,7 @@ other processes.
         file: my_script.py
         func_name: use_connection
         context_id: my_context
-        expected_result: open
+        expected_result: opened
 
 The shared subprocess is automatically stopped at the end of the test run.
 
