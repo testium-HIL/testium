@@ -1,3 +1,13 @@
+version 0.6.1
+==============
+- Single evaluation rule: <| |> evaluates, and nothing else does.
+  Boolean attributes (condition, skipped, stop_on_failure, no_fail, ...)
+  take a boolean or a <| |> expression; anything else fails with an
+  explicit message.
+- process_result and the plot eval must be <| |> expressions.
+- expected_result compares literally; wrap an expression with <| |>.
+- The unused loop exit_condition eval attribute is removed.
+
 version 0.6
 ==============
 - pip install testium-hil installs everything: GUI and language
@@ -14,13 +24,6 @@ version 0.6
   per-character.
 - console: stop requests are honored during timeout-0 reads.
 - console: raw TCP and unbuffered serial reads honor their timeout.
-- Single evaluation rule: <| |> evaluates, and nothing else does.
-  Boolean attributes (condition, skipped, stop_on_failure, no_fail, ...)
-  take a boolean or a <| |> expression; anything else fails with an
-  explicit message.
-- process_result and the plot eval must be <| |> expressions.
-- expected_result compares literally; wrap an expression with <| |>.
-- The unused loop exit_condition eval attribute is removed.
 
 version 0.5
 ==============
