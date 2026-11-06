@@ -493,6 +493,11 @@ class TestItem:
             self.result.value = self.post_evaluate(pe)
             print(f"   was: {r}")
             print(f"   is:  {str(self.result.value)}")
+            if isinstance(self.result.value, bool):
+                self.result.set(
+                    TestValue.SUCCESS if self.result.value
+                    else TestValue.FAILURE,
+                    f"process_result is {self.result.value}")
         except Exception as e:
             print("   Result processing failed!")
             print(e)

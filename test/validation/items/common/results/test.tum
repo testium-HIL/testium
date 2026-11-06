@@ -94,6 +94,20 @@
             process_result: "<| '44' in '$(result)' |>"
             expected_result: True
         - py_func:
+            name: Process result True sets PASS
+            key: $(test)_PASS
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            process_result: "<| '$(str_example)' in '$(result)' |>"
+        - py_func:
+            name: Process result False sets FAIL (must fail)
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)results$(psep)results.py
+            func_name: echo
+            param: [ $(str_example) ]
+            process_result: "<| '44' in '$(result)' |>"
+        - py_func:
             name: Save the result in a global variable
             key: $(test)_PASS
             file: $(test_path)$(psep)results$(psep)results.py
