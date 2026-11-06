@@ -18,7 +18,7 @@ from interpreter.utils.param_decl import Param, ParamSet, BLOCK
 # during a future Block-aware diagnostic pass. For now the parent only
 # declares that 'exit_condition' is an accepted top-level key.
 EXIT_CONDITION_PARAMS = ParamSet(
-    Param("time",      doc="HH:MM time of day after which the loop exits."),
+    Param("time",      doc="Minutes elapsed since the loop start after which the loop exits."),
     Param("value",     doc="Boolean or <| |> expression; when true the loop exits."),
     Param("file",      doc="Python file containing the exit-condition function."),
     Param("func_name", doc="Function name in 'file' returning the exit value."),

@@ -32,3 +32,14 @@
     exit_condition:
         file: $(test_path)$(psep)cycle.py
         func_name: exitcondition
+- loop:
+    name: Exit condition time in minutes elapsed
+    iterator: 1000
+    key: $(test)_PASS
+    steps:
+      - sleep:
+          name: short sleep
+          timeout: 0.1
+
+    exit_condition:
+        time: 0.01
