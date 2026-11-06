@@ -102,7 +102,9 @@ VENV_PYTHON="$VENV_DIR/bin/python3"
 # for the report_plugin item — in every mode, not only source.
 # -I keeps the current directory out of sys.path: run from test/validation,
 # the plugin source tree would satisfy the import and skip the install.
-if ! "$VENV_PYTHON" -I -c "import fake_exporter" &>/dev/null; then
+# find_spec, not import: fake_exporter imports testium_report, which only the
+# export worker puts on sys.path, so a real import always fails here.
+if ! "$VENV_PYTHON" -I -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('fake_exporter') is None)" &>/dev/null; then
     "$VENV_DIR/bin/pip" install --quiet -e "$SCRIPT_DIR/fake_exporter"
 fi
 
@@ -122,11 +124,15 @@ case "$MODE" in
         if [ "$CLEAN" -eq 1 ]; then
             rm -rf "$WHEEL_VENV"
         fi
-        if [ ! -d "$WHEEL_VENV" ]; then
+        if [ ! -x "$WHEEL_VENV/bin/python" ]; then
             echo "Creating wheel venv at $WHEEL_VENV"
             python3 -m venv --system-site-packages "$WHEEL_VENV"
-            "$WHEEL_VENV/bin/pip" install --quiet --upgrade pip
-            "$WHEEL_VENV/bin/pip" install --quiet "${WHEEL}"
+        fi
+        # Probed, not tied to venv creation: a run that failed mid-install
+        # leaves a venv without testium.
+        if ! "$WHEEL_VENV/bin/python" -I -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('testium') is None)" &>/dev/null; then
+            "$WHEEL_VENV/bin/python" -m pip install --quiet --upgrade pip
+            "$WHEEL_VENV/bin/python" -m pip install --quiet "${WHEEL}"
         fi
         CMD=("$WHEEL_VENV/bin/python" -m testium)
         ;;

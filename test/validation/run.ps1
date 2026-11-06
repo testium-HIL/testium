@@ -107,7 +107,9 @@ if (-not (Test-Import $venvPython 'import junit_xml, pytest, jsonschema, yaml'))
 
 # Exporter plugins are discovered by export_worker.py, which runs on the host
 # python passed as python_bin below - so fake_exporter goes in this venv.
-if (-not (Test-Import $venvPython 'import fake_exporter')) {
+# find_spec, not import: fake_exporter imports testium_report, which only the
+# export worker puts on sys.path, so a real import always fails here.
+if (-not (Test-Import $venvPython "import importlib.util, sys; sys.exit(importlib.util.find_spec('fake_exporter') is None)")) {
     Invoke-Checked 'fake_exporter install' $venvPython @('-m', 'pip', 'install', '--quiet', '-e', (Join-Path $scriptDir 'fake_exporter'))
 }
 
@@ -134,10 +136,14 @@ switch ($mode.ToLower()) {
         if (-not (Test-Path $wheel)) { Fail "wheel not found at $wheel - run .\build_all.ps1 first." }
         $wheelVenv = Join-Path $env:TEMP "testium-wheel-venv-$version"
         if ($clean -and (Test-Path $wheelVenv)) { Remove-Item -Recurse -Force $wheelVenv }
-        if (-not (Test-Path $wheelVenv)) {
+        $py = Join-Path $wheelVenv 'Scripts\python.exe'
+        if (-not (Test-Path $py)) {
             Write-Host "Creating wheel venv at $wheelVenv"
             Invoke-Checked 'venv creation' $python @('-m', 'venv', '--system-site-packages', $wheelVenv)
-            $py = Join-Path $wheelVenv 'Scripts\python.exe'
+        }
+        # Probed, not tied to venv creation: a run that failed mid-install
+        # leaves a venv without testium.
+        if (-not (Test-Import $py "import importlib.util, sys; sys.exit(importlib.util.find_spec('testium') is None)")) {
             Invoke-Checked 'pip upgrade' $py @('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip')
             # [qt,lsp]: the GUI is an extra; lsp validated with pygls
             Invoke-Checked 'wheel install' $py @('-m', 'pip', 'install', '--quiet', "$wheel[qt,lsp]")
