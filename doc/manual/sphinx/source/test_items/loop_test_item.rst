@@ -51,9 +51,6 @@ Below are described loop test item specific attributes.
     have two parameters: the current loop iterator value and the report,
     even if they are not used. This attribute is mandatory if the file
     attribute is defined.
-  * ``eval``: optional parameter allowing post-processing of the function result.
-    It is a python evaluable string in which the ``$(result)`` keyword
-    is replaced by the actual function call result (see example below).
 
 .. code-block:: yaml
     :caption: ``loop`` exit condition
@@ -63,7 +60,6 @@ Below are described loop test item specific attributes.
         exit_condition:
             file: script_name.py
             func_name: methodName
-            eval: $(result) < 2
 
 **Iterator**
 

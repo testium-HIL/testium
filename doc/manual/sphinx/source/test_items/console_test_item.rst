@@ -140,7 +140,7 @@ needed.
     - exec:
         cmd: ./deploy.sh
         timeout: 30
-        process_result: "'done' in r'''$(result)'''"
+        process_result: "<| 'done' in r'''$(result)''' |>"
 
 Parameters:
 

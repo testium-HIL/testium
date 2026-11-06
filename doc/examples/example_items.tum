@@ -67,7 +67,7 @@ main:
                     - exec:
                         cmd: echo "console demo"
                         timeout: 10
-                        process_result: "'demo' in r'''$(result)'''"
+                        process_result: "<| 'demo' in r'''$(result)''' |>"
 
             - console:
                 name: Console write and read_until

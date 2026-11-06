@@ -57,7 +57,7 @@ The text read by `exec` (marker removed) becomes the item result, so
                 - exec:
                     cmd: echo the answer is 42
                     timeout: 10
-                    process_result: "'42' in r'''$(result)'''"
+                    process_result: "<| '42' in r'''$(result)''' |>"
 ```
 
 Without `timeout`, `exec` waits forever. A command that never returns

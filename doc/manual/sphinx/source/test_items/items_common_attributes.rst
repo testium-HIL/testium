@@ -232,7 +232,7 @@ but before ``no_fail``. This ensures the real outcome is captured even when
     - py_func:
         name: Get firmware version string
         func_name: get_version
-        process_result: "'$(result)'.split('.')[0]"
+        process_result: "<| '$(result)'.split('.')[0] |>"
         store_result: fw_major
 
 .. code-block:: yaml
