@@ -47,7 +47,9 @@ modules:
       # Whole command single-quoted: the ':all: ' colon-space would otherwise
       # make YAML parse this list item as a mapping, silently dropping the
       # command (flatpak-builder then runs an empty module, installs nothing).
-      - 'pip3 install --prefix=${FLATPAK_DEST} --only-binary=:all: -r deps.txt'
+      # --ignore-installed: never touch the runtime's read-only /usr packages
+      # (setuptools is one), install the pinned version under /app instead.
+      - 'pip3 install --prefix=${FLATPAK_DEST} --only-binary=:all: --ignore-installed -r deps.txt'
 
   # 2. Votre application (Code source dans ../../src)
   - name: testium-app

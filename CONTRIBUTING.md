@@ -79,7 +79,8 @@ Rules:
 - Python ≥ 3.12
 - Dependencies: declare them in `src/pyproject.toml` only, with a minimum
   version when an API needs it, never an upper bound or a per-environment
-  exception. `src/requirements.txt` is generated (see the release procedure).
+  exception. `src/requirements.txt` is generated (see
+  [Dependencies](#dependencies)).
 - Follow existing style in the file you are modifying
 - Add or update tests in `test/validation/` for new test items or behaviours
 - Update `DESIGN.md` and the Sphinx manual for user-visible changes
@@ -218,6 +219,45 @@ Extra arguments are forwarded to testium. The report file is suffixed
 with the mode (`validation-source.sqlite`, ...) so runs in different
 modes don't overwrite each other.
 
+### Dependencies
+
+Two files, two roles:
+
+- `src/pyproject.toml` is the only list edited by hand. It is what pip
+  users get with `pip install testium-hil`: versions are not pinned, only a
+  minimum when testium needs a given API.
+- `src/requirements.txt` is generated from it and pins every package,
+  indirect dependencies included (`name==version`). It is what the source
+  venvs (`run.sh`, `run.ps1`, `run.bat`, `build_all.*`, validation
+  `run.ps1`) and the binary builds (PyInstaller, AppImage, Flatpak) install,
+  so every channel ships the same tested versions. The venvs reinstall it
+  automatically when it changes.
+
+`scripts/lock_deps.sh` regenerates `src/requirements.txt` (Linux, needs
+`python3` with `venv`):
+
+```sh
+./scripts/lock_deps.sh
+```
+
+It builds the testium wheel from `src/`, asks pip to resolve its
+dependencies without installing anything, for the lowest supported Python
+(`requires-python` in `src/pyproject.toml`) and binary wheels only, then
+writes the result. Resolving for the lowest Python keeps the pins
+installable on every supported version and platform.
+
+Run it:
+
+- when preparing a release (step 3 of the release procedure), to pick up
+  new upstream versions;
+- after adding, removing or changing a dependency in `src/pyproject.toml`,
+  otherwise the venvs and the binaries do not get the change.
+
+Then run the validation suite before committing the regenerated file. If a
+new upstream version breaks something, do not commit it: the previous pins
+stay until a fixed release exists. Never work around it in
+`src/pyproject.toml` (no upper bound, no per-Python exception).
+
 ### Cross-distribution check
 
 `package/deb/test_distro.sh` spins up a Docker/Podman container of the
@@ -237,11 +277,9 @@ the validation suite end-to-end. Targets: `debian:trixie`, `ubuntu:24.04`
 3. Refresh the pinned dependency set used by the source venvs and every
    binary build:
    ```sh
-   ./scripts/lock_deps.sh  # regenerates src/requirements.txt from src/pyproject.toml
+   ./scripts/lock_deps.sh  # regenerates src/requirements.txt, see Dependencies
    ```
-   The validation runs below cover it. If a new upstream release breaks
-   something, do not commit the refreshed file: the previous pins stay until
-   a fixed release exists. Never work around it in `src/pyproject.toml`.
+   The validation runs below cover it; do not commit it if they fail.
 4. Build every artifact into `dist/`:
    ```sh
    ./build_all.sh          # manual PDF, wheel, PyInstaller binary, Flatpak, AppImage
