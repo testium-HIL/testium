@@ -32,7 +32,7 @@ $RUNTIME run --rm \
     -v "$REPO_ROOT:/work" \
     $APPDIR_MOUNT \
     -w /work/package/appimage \
-    debian:bookworm bash -c "
+    debian:trixie bash -c "
         set -e
         export DEBIAN_FRONTEND=noninteractive
 
@@ -47,12 +47,19 @@ $RUNTIME run --rm \
         python3 -m build --wheel --outdir dist/ > /dev/null
         cd /work/package/appimage
 
-        # Install appimage-builder
-        pip3 install appimage-builder --quiet --break-system-packages
+        # Install appimage-builder in a venv: trixie's system pip fails on
+        # one of its old, badly named wheels.
+        python3 -m venv /opt/aib
+        /opt/aib/bin/pip install --quiet --upgrade pip
+        /opt/aib/bin/pip install --quiet appimage-builder
+        # appimage-builder requires apt-key on PATH, removed in trixie; the
+        # recipe adds no keys (no key_url), so a no-op stand-in is enough.
+        printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/apt-key
+        chmod +x /usr/local/bin/apt-key
 
         # Run the build
         export APP_VERSION=$APP_VERSION
-        appimage-builder --recipe AppImageBuilder.yml --skip-test
+        /opt/aib/bin/appimage-builder --recipe AppImageBuilder.yml --skip-test
     "
 
 APPIMAGE_FILE=$(ls -1t Testium-*-x86_64.AppImage 2>/dev/null | head -1)

@@ -76,7 +76,10 @@ Rules:
 
 ## Coding conventions
 
-- Python ≥ 3.11
+- Python ≥ 3.12
+- Dependencies: declare them in `src/pyproject.toml` only, with a minimum
+  version when an API needs it, never an upper bound or a per-environment
+  exception. `src/requirements.txt` is generated (see the release procedure).
 - Follow existing style in the file you are modifying
 - Add or update tests in `test/validation/` for new test items or behaviours
 - Update `DESIGN.md` and the Sphinx manual for user-visible changes
@@ -220,8 +223,8 @@ modes don't overwrite each other.
 `package/deb/test_distro.sh` spins up a Docker/Podman container of the
 target image, installs the expected system Python deps via apt (with
 pip fallback for what is missing), installs the testium wheel and runs
-the validation suite end-to-end. Currently green on `debian:bookworm`,
-`debian:trixie`, `ubuntu:24.04`.
+the validation suite end-to-end. Targets: `debian:trixie`, `ubuntu:24.04`
+(`debian:bookworm` ships Python 3.11, below the supported minimum).
 
 ```sh
 ./package/deb/test_distro.sh debian:trixie
@@ -231,7 +234,15 @@ the validation suite end-to-end. Currently green on `debian:bookworm`,
 
 1. Update `release_note.txt` (one short user-facing bullet per change).
 2. Bump the version in `src/VERSION`.
-3. Build every artifact into `dist/`:
+3. Refresh the pinned dependency set used by the source venvs and every
+   binary build:
+   ```sh
+   ./scripts/lock_deps.sh  # regenerates src/requirements.txt from src/pyproject.toml
+   ```
+   The validation runs below cover it. If a new upstream release breaks
+   something, do not commit the refreshed file: the previous pins stay until
+   a fixed release exists. Never work around it in `src/pyproject.toml`.
+4. Build every artifact into `dist/`:
    ```sh
    ./build_all.sh          # manual PDF, wheel, PyInstaller binary, Flatpak, AppImage
    ```
@@ -239,15 +250,16 @@ the validation suite end-to-end. Currently green on `debian:bookworm`,
    `build_all.sh` skips a step whose artifact already exists; pass `--clean`
    to rebuild everything (it also copies `release_note.txt` to `dist/` and
    warns if it has no entry for the version being built).
-4. Validate each channel with the suite:
+5. Validate each channel with the suite:
    ```sh
    ./test/validation/run.sh --mode wheel
    ./test/validation/run.sh --mode pyinstaller
    flatpak install --user dist/testium-<v>.flatpak && ./test/validation/run.sh --mode flatpak
    ./test/validation/run.sh --mode appimage
+   ./package/deb/test_distro.sh ubuntu:24.04   # Python 3.12, the supported minimum
    ```
-5. Confirm all validation results are green before publishing.
-6. Publish on PyPI (project name `testium-hil`):
+6. Confirm all validation results are green before publishing.
+7. Publish on PyPI (project name `testium-hil`):
    ```sh
    cd src
    python -m build
@@ -262,7 +274,7 @@ the validation suite end-to-end. Currently green on `debian:bookworm`,
    password = pypi-...
    ```
    Restrict the file to yourself: `chmod 600 ~/.pypirc`.
-7. Push and tag the commit with the new version.
+8. Push and tag the commit with the new version.
 
 ## Reporting security issues
 

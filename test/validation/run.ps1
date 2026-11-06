@@ -120,14 +120,19 @@ switch ($mode.ToLower()) {
         # Not delegated to the project's run.ps1: it activates a venv and
         # pauses on error, which a head-less suite must not depend on.
         $testiumVenv = Join-Path $projectDir 'test\tmp\testium_venv'
-        if (-not (Test-Path $testiumVenv)) {
+        $py = Join-Path $testiumVenv 'Scripts\python.exe'
+        if (-not (Test-Path $py)) {
             Write-Host "Creating testium venv at $testiumVenv"
             Invoke-Checked 'venv creation' $python @('-m', 'venv', $testiumVenv)
-            $py = Join-Path $testiumVenv 'Scripts\python.exe'
+        }
+        # (Re)install whenever the pinned set differs from the last one
+        # installed, so a regenerated requirements.txt reaches this venv.
+        $req = Join-Path $projectDir 'src\requirements.txt'
+        $stamp = Join-Path $testiumVenv 'requirements.installed'
+        if (-not ((Test-Path $stamp) -and ((Get-FileHash $req).Hash -eq (Get-FileHash $stamp).Hash))) {
             Invoke-Checked 'pip upgrade' $py @('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip')
-            Invoke-Checked 'testium deps' $py @('-m', 'pip', 'install', '--quiet', '-r', (Join-Path $projectDir 'src\requirements.txt'))
-            # language-server extra so `testium lsp` works from source
-            Invoke-Checked 'pygls install' $py @('-m', 'pip', 'install', '--quiet', 'pygls>=1.3')
+            Invoke-Checked 'testium deps' $py @('-m', 'pip', 'install', '--quiet', '-r', $req)
+            Copy-Item $req $stamp
         }
         $cmd = @((Join-Path $testiumVenv 'Scripts\python.exe'), (Join-Path $projectDir 'src\testium'))
     }

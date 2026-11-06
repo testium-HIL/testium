@@ -24,13 +24,13 @@ fi
 if [ ! -d "$PY_VENV_DIR" ]; then
     echo "Creation of the virtual environment"
     python3 -m venv "$PY_VENV_DIR"
-    source "$PY_VENV_DIR/bin/activate"
-    pip install --extra-index-url https://pypi.python.org/pypi -r $REQ_PATH
-    # Language-server deps. Installed here so the source run AND the
-    # PyInstaller build — both of which use this venv — can start / collect
-    # the `testium lsp` server.
-    pip install --extra-index-url https://pypi.python.org/pypi "pygls>=1.3"
-    # fake_exporter is no longer installed here: report exporter plugins run
-    # on the host python, so test/validation/run.sh installs it into the
-    # validation venv instead.
+fi
+
+# (Re)install whenever the pinned set differs from the last one installed,
+# so a regenerated requirements.txt reaches an existing venv.
+STAMP="$PY_VENV_DIR/requirements.installed"
+if ! cmp -s "$REQ_PATH" "$STAMP"; then
+    echo "Installing the pinned dependencies ($REQ_PATH)"
+    "$PY_VENV_DIR/bin/python" -m pip install --extra-index-url https://pypi.python.org/pypi -r "$REQ_PATH"
+    cp "$REQ_PATH" "$STAMP"
 fi

@@ -73,7 +73,7 @@ Write-Host "Upgrading pip"
 Write-Host "Installing dependencies (first run downloads PySide6, several minutes)"
 & $venvPy -m pip install --quiet -r (Join-Path $root 'src\requirements.txt')
 Write-Host "Installing build tools"
-& $venvPy -m pip install --quiet --upgrade build pyinstaller "pygls>=1.3"
+& $venvPy -m pip install --quiet --upgrade build pyinstaller
 
 # Keep the committed schema in sync with the version being built.
 # .NET writer: utf8 without BOM and LF endings (Set-Content -Encoding utf8

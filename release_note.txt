@@ -10,6 +10,9 @@ version 0.6.2
   confirmation before aborting them.
 - Manual: process_result and plot eval examples wrapped with <| |>;
   the removed loop exit_condition eval is no longer documented.
+- Python 3.12 or later is required (PySide6 6.12 aborts on 3.11).
+- AppImage: bundled Python 3.13 (Debian trixie base), fixes a crash
+  of the GUI.
 
 version 0.6.1
 ==============

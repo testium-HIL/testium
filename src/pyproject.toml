@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name="testium-hil"
 description = "YAML-driven test sequencer for hardware-in-the-loop and integration testing"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
   {name = "François Dausseur", email = "francois.dausseur@gmail.com"},
 ]
@@ -41,7 +41,6 @@ classifiers = [
   "Operating System :: POSIX :: Linux",
   "Operating System :: Microsoft :: Windows",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]

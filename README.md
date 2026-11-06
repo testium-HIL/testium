@@ -115,9 +115,10 @@ source .venv/bin/activate
 pip install -r src/requirements.txt
 ```
 
-Required Python packages (see `src/requirements.txt`):
-`pyside6`, `pyserial`, `telnetlib3`, `pyyaml`, `pexpect`, `gitpython`,
-`jinja2`, `colorama`, `matplotlib`, `junit-xml`, `lxml`.
+Requires Python >= 3.12. Dependencies are declared in `src/pyproject.toml`
+(`pyside6`, `pyserial`, `telnetlib3`, `pyyaml`, `pexpect`, `gitpython`,
+`jinja2`, `colorama`, `matplotlib`, `junit-xml`, `lxml`, `pygls`);
+`src/requirements.txt` pins the tested versions.
 
 For tests using `lua_func` items, install Lua (>= 5.1) plus the `socket` and
 `cjson` modules. On Debian/Ubuntu:

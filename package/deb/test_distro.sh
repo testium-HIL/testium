@@ -7,13 +7,12 @@
 # subprocess.
 #
 # Usage:
-#   ./test_distro.sh debian:bookworm
 #   ./test_distro.sh debian:trixie
 #   ./test_distro.sh ubuntu:24.04
 
 set -euo pipefail
 
-IMAGE="${1:?Usage: $0 <image>  e.g. debian:bookworm | debian:trixie | ubuntu:24.04}"
+IMAGE="${1:?Usage: $0 <image>  e.g. debian:trixie | ubuntu:24.04}"
 ROOT=$(realpath "$(dirname "$0")/../..")
 
 # Container runtime: prefer docker if available, fall back to podman
@@ -44,6 +43,7 @@ APT_PACKAGES=(
     python3
     python3-pip
     python3-setuptools
+    python3-venv
     python3-pyside6.qtwidgets
     python3-yaml
     python3-jinja2
@@ -119,13 +119,14 @@ $CTR run --rm \
         echo "--- Installing testium wheel ---"
         pip install --break-system-packages --no-deps "/testium/src/dist/$WHEEL_NAME" >/dev/null
 
-        # 5. Install the fake_exporter plugin (needed by the report_plugin
-        #    validation test which exercises entry-points discovery).
-        #    Copy it first because /testium is mounted read-only and the
-        #    setuptools backend touches its build dir.
-        echo "--- Installing testium-fake-exporter (test plugin) ---"
+        # 5. Host venv passed as python_bin, as test/validation/run.sh does:
+        #    the venv item checks it, the pytest item needs pytest there and
+        #    report_plugin needs the fake_exporter plugin (copied first:
+        #    /testium is read-only and setuptools touches its build dir).
+        echo "--- Creating the python_bin venv (pytest, testium-fake-exporter) ---"
+        python3 -m venv --system-site-packages /tmp/pybin-venv
         cp -r /testium/test/validation/fake_exporter /tmp/fake_exporter
-        pip install --break-system-packages /tmp/fake_exporter >/dev/null
+        /tmp/pybin-venv/bin/pip install --quiet junit-xml pytest /tmp/fake_exporter >/dev/null
 
         # 6. Run the full validation suite. Outputs are streamed live so
         #    progress is visible — the suite takes a couple of minutes.
@@ -134,6 +135,7 @@ $CTR run --rm \
         mkdir -p /tmp/testium-validation
         cd /testium
         testium -b -o \
+            -d "python_bin=/tmp/pybin-venv/bin/python3" \
             -d "validation_report_path=/tmp/testium-validation/" \
             -- test/validation/main.tum
     '

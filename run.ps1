@@ -27,14 +27,11 @@ if (-not $PythonExe) {
 
 Write-Host "[+] Python found: $($PythonExe.Source)" -ForegroundColor Green
 
-$is_venv = $false
-
 # 3. Virtual Environment management
 if (-not (Test-Path $VenvPath)) {
     Write-Host "[2/4] Creating virtual environment..." -ForegroundColor Cyan
     & $PythonExe.Source -m venv $VenvPath
 } else {
-    $is_venv = $true
     Write-Host "[2/4] Virtual environment already exists." -ForegroundColor Green
 }
 
@@ -55,10 +52,13 @@ if ($env:VIRTUAL_ENV -and (Test-Path $env:VIRTUAL_ENV)) {
 
 # 5. Execution
 try {
-    if ((Test-Path $Requirements) -and -not $is_venv) {
+    # (Re)install whenever the pinned set differs from the last one installed.
+    $Stamp = Join-Path $VenvPath "requirements.installed"
+    if ((Test-Path $Requirements) -and -not ((Test-Path $Stamp) -and ((Get-FileHash $Requirements).Hash -eq (Get-FileHash $Stamp).Hash))) {
         Write-Host "[+] Installing requirements..." -ForegroundColor Yellow
         python -m pip install --upgrade pip --quiet
-        pip install -r $Requirements
+        python -m pip install -r $Requirements
+        if ($LASTEXITCODE -eq 0) { Copy-Item $Requirements $Stamp }
     }
     if (-not (Test-Path $PythonScript)) {
         Write-Host "ERROR: File '$PythonScript' not found in $PSScriptRoot" -ForegroundColor Red

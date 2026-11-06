@@ -257,22 +257,25 @@ A real-world test plugin lives at `test/validation/fake_exporter/` (CSV exporter
 
 ## Packaging
 
-Four distribution channels coexist, all sharing the single `src/testium/` package and the single `src/requirements.txt` dependency list:
+Four distribution channels coexist, all sharing the single `src/testium/` package.
+
+Dependencies: `src/pyproject.toml` is the only hand-maintained list (minimum versions where an API needs it, no upper bounds, no per-environment exceptions); the wheel published on PyPI keeps them unpinned. `src/requirements.txt` is generated from it by `scripts/lock_deps.sh`, resolved for the lowest supported Python (`requires-python`), and is what the source venvs and every binary build install (AppImage and Flatpak included). It is refreshed when preparing a release and validated before being committed; a broken upstream release is handled by not committing the refresh. The venvs (`build_env.sh`, `run.ps1`, `run.bat`, validation `run.ps1`) reinstall it whenever it differs from the copy stamped at the last install.
+
 
 | Channel | Where | Build | Notes |
 |---------|-------|-------|-------|
 | Wheel (`pip install`) | `src/pyproject.toml` | `python -m build` | Vanilla Python package; entry point `testium = "testium:main"`. Published on PyPI as **`testium-hil`** (`testium` taken); `src/README.md` is the PyPI page and `src/LICENSE` a copy of the root license — setuptools cannot reference files outside `src/`. |
 | PyInstaller binary | `package/pyinstaller/` | `build.sh` | Single ~130 MB binary. `py_func`, `runtime`, `lua_func` bundled at `_MEIPASS` root so the **host** Python can find them when launched as `python3 py_func`. `api`/`interpreter` are **not** exposed (subprocess isolation). Built windowed (`console=False`) with `package/testium.ico` as the exe icon — see "Windows frozen build". |
 | Windows installer | `package/innosetup/` | `build.ps1` (Inno Setup 6) | Wraps a **one-folder** PyInstaller build (`TESTIUM_ONEDIR=1` — fast startup, no per-launch re-extract). Per-user, **no admin** (`PrivilegesRequired=lowest`, installs under `%LOCALAPPDATA%`). Version-scoped `AppId` + install dir so versions coexist side-by-side; one Start Menu entry per version; an optional "remove other versions" task appears when one is present. |
-| Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |
-| AppImage | `package/appimage/` | `build.sh` (Debian Bookworm container via Podman/Docker) | Bundles Python 3.11 for the main process; `py_func` / `lua_func` MUST run under the **host** interpreter. Build runs in a container so it works on Arch / any non-Debian host. |
+| Flatpak | `package/flatpak/` | `build.sh` (uses `flatpak-builder`) | KDE 6.10 runtime. Python deps from `src/requirements.txt` minus PySide6 (provided by the PySide BaseApp). The bundled Python runs only the main process; `py_func` / `lua_func` MUST run under the **host** interpreter (no Python/Lua bundled). Produces a distributable `.flatpak` bundle. |
+| AppImage | `package/appimage/` | `build.sh` (Debian Trixie container via Podman/Docker) | Bundles Python 3.13 for the main process; `py_func` / `lua_func` MUST run under the **host** interpreter. Build runs in a container so it works on Arch / any non-Debian host. |
 
 The `.deb` work-in-progress lives in `package/deb/`:
-- `test_distro.sh debian:bookworm | debian:trixie | ubuntu:24.04` spins up a Docker/Podman container, reports system package availability, falls back to pip for what's missing (`pyside6` on bookworm/ubuntu, `telnetlib3`, `junit_xml`), runs the validation suite. Currently green on the three targets.
+- `test_distro.sh debian:trixie | ubuntu:24.04` spins up a Docker/Podman container, reports system package availability, falls back to pip for what's missing (`pyside6` on ubuntu, `telnetlib3`, `junit_xml`), runs the validation suite. `debian:bookworm` is no longer a target: its Python 3.11 is below `requires-python`.
 
 ### Building all channels (`build_all.sh`)
 
-`build_all.sh` builds every artifact into `dist/` (manual PDF, wheel, PyInstaller binary, Flatpak bundle, AppImage). It reuses `scripts/build_env.sh` + `set_env.sh` so the venv at `test/tmp/.venv` stays the single source of Python deps; `build`/`pyinstaller`/`sphinx`/`linuxdoc` (and `pygls`, via the `[lsp]` extra) are installed there on demand. A step is skipped if its artifact already exists; `--clean` forces a rebuild.
+`build_all.sh` builds every artifact into `dist/` (manual PDF, wheel, PyInstaller binary, Flatpak bundle, AppImage). It reuses `scripts/build_env.sh` + `set_env.sh` so the venv at `test/tmp/.venv` holds the pinned `src/requirements.txt`; `build`/`pyinstaller`/`sphinx`/`linuxdoc` are installed there on demand. A step is skipped if its artifact already exists; `--clean` forces a rebuild.
 
 - **Parallelism (default).** A serial *prep* phase does everything that writes the shared venv (the `pip install`s) plus the Flatpak runtime install and the wheel (the AppImage installs it). Then manual + PyInstaller + Flatpak + AppImage build concurrently — they only *read* the venv, so there is no concurrent-pip race. Per-step output goes to `dist/.build-logs/<step>.log`; results print in completion order (`wait -n`), and a failing step's log is dumped at the end. `--serial` builds one at a time. Ctrl+C is trapped to kill each job's whole process tree (subshell + grandchildren: podman container, flatpak-builder, pyinstaller), so no orphans survive.
 - **`--ram` (slow/flash storage).** Redirects the build scratch to `/dev/shm` and skips UPX, a large win when building from a USB stick / SD card (I/O-bound on flash): `TMPDIR` + `PIP_CACHE_DIR`, the PyInstaller `--workpath` (`PYI_WORKPATH`), and a tmpfs bind-mount at the in-container AppImage AppDir (`APPIMAGE_APPDIR_TMPFS`); UPX is disabled via `TESTIUM_NO_UPX` (read by the `.spec`). **Flatpak is excluded** — `flatpak-builder` mounts its state dir with `rofiles-fuse` and FUSE cannot mount on `/dev/shm` (`fusermount: Permission denied`), so it builds on disk. Each `package/*/build.sh` honours these env vars with on-disk defaults, so behaviour is unchanged without `--ram`; the tmpfs scratch is freed on exit. On a RAM-limited machine combine with `--serial`.
@@ -281,7 +284,7 @@ The `.deb` work-in-progress lives in `package/deb/`:
 
 ### Host-only py_func / lua_func in sandboxed bundles (Flatpak, AppImage)
 
-The bundled Python (Flatpak's runtime python, AppImage's `python3.11`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`, the `run` item's sub-instance) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
+The bundled Python (Flatpak's runtime python, AppImage's `python3.13`) is reserved for the **main process only**. Subprocesses (`py_func`, `lua_func`, `git`, the `run` item's sub-instance) must use the host's interpreters and tools so user-installed modules (pyserial, junit_xml, …) are visible. This is enforced by `interpreter/utils/bins.py`:
 
 - `_in_flatpak()` (checks `/.flatpak-info`) and `_in_appimage()` (checks `APPIMAGE` env var) detect the sandbox.
 - **Flatpak**: the sandbox glibc/ABI is incompatible with arbitrary host shared libraries, so we **cannot** run host binaries inside the Flatpak runtime — `LD_LIBRARY_PATH` injection trips a `_dl_call_libc_early_init` assertion. The supported way out is `flatpak-spawn --host`, a stub on `$PATH` inside every Flatpak that proxies an `exec` over D-Bus to the host's `org.freedesktop.Flatpak` service. The manifest grants `--talk-name=org.freedesktop.Flatpak` so the call is allowed. Helpers:
@@ -334,7 +337,7 @@ The schema is the realized source of truth for the LSP server (`testium lsp`), t
 
 The `testium_assist` editor extension is a thin LSP client that spawns `testium lsp` and talks JSON-RPC over stdio, so the language server must work from *every* distribution channel. Two requirements:
 
-1. **`pygls` (+ `lsprotocol`, `cattrs`, `attrs`, `typing_extensions`) must be bundled.** It is the pyproject `[lsp]` extra (kept optional so a plain `pip install testium-hil` stays lean), wired into each full-app channel: `build_env.sh` installs it into the shared `test/tmp/.venv` (covers **source run** and the **PyInstaller** build env); the **AppImage** installs the wheel as `…whl[lsp]`; the **Flatpak** adds a `python3-lsp` pip module (network-at-build, consistent with the manifest's global `--share=network`); the **PyInstaller** `.spec` force-collects the submodules via `collect_submodules` + explicit `hiddenimports` (including the lazily-imported `lsp`, `lsp.server`, `lsp.schema`).
+1. **`pygls` (+ `lsprotocol`, `cattrs`, `attrs`, `typing_extensions`) must be bundled.** It is a plain dependency in `src/pyproject.toml`, so it is in `src/requirements.txt` and every channel gets it: the shared `test/tmp/.venv` (**source run** and **PyInstaller** build env), the **AppImage** (wheel installed against the pins), the **Flatpak** (`python3-deps` module); the **PyInstaller** `.spec` force-collects the submodules via `collect_submodules` + explicit `hiddenimports` (including the lazily-imported `lsp`, `lsp.server`, `lsp.schema`).
 2. **The schema must build without source** — handled by the declarative `PARAMS`/`ACTIONS` above; PyInstaller is the only channel that strips `.py` source, and it no longer matters.
 
 `test/validation/lsp_check.py` enforces both per channel: `run.sh` calls it before launching the suite, asserting that `<channel> schema` returns JSON whose `console`/`plot`/`json_rpc` items still carry their actions, and that `<channel> lsp` answers an `initialize` request with capabilities (and never reports the pygls dependency missing). So `./test/validation/run.sh --mode flatpak|pyinstaller|appimage` now fails loudly if a channel ships a broken or pygls-less language server.
@@ -446,4 +449,4 @@ The `venv` item (`test/validation/items/venv/`) asserts that the override actual
 Parallel item tests: `test/validation/items/parallel/test.tum`
 
 ## Dependencies
-See `src/requirements.txt`. Key ones: `pyside6`, `pyyaml`, `jinja2`, `colorama`, `gitpython`, `pexpect`, `matplotlib`.
+Declared in `src/pyproject.toml`, pinned in the generated `src/requirements.txt` (see Packaging). Key ones: `pyside6`, `pyyaml`, `jinja2`, `colorama`, `gitpython`, `pexpect`, `matplotlib`.

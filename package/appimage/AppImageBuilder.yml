@@ -25,7 +25,7 @@ AppDir:
     runtime:
         env:
             TESTIUM_VERSION: '{{APP_VERSION}}'
-            PYTHONPATH: $APPDIR/usr/lib/python3.11/site-packages:$APPDIR/usr/lib/python3.11
+            PYTHONPATH: $APPDIR/usr/lib/python3.13/site-packages:$APPDIR/usr/lib/python3.13
 
         path_mappings:
             - /usr/share/matplotlib/mpl-data/matplotlibrc:$APPDIR/etc/matplotlibrc
@@ -36,16 +36,15 @@ AppDir:
         allow_unauthenticated: true
 
         sources:
-            - sourceline: deb http://ftp.fr.debian.org/debian bookworm main non-free contrib
-            - sourceline: deb http://security.debian.org/debian-security bookworm-security
+            - sourceline: deb http://ftp.fr.debian.org/debian trixie main non-free contrib
+            - sourceline: deb http://security.debian.org/debian-security trixie-security
                 main contrib non-free
-            - sourceline: deb http://ftp.fr.debian.org/debian bookworm-updates main contrib
+            - sourceline: deb http://ftp.fr.debian.org/debian trixie-updates main contrib
                 non-free
 
         include:
             - libxcb-cursor0
             - python3
-            - python3-distutils
             - python3-pkg-resources
 
         exclude: []
@@ -61,25 +60,22 @@ AppDir:
             - usr/share/doc/*/TODO.*
 
     after_bundle: |
-        # Set python 3.11 env
+        # Set python 3.13 env
         export PYTHONHOME=$TARGET_APPDIR/usr
-        export PYTHONPATH=$TARGET_APPDIR/usr/lib/python3.11/site-packages:$TARGET_APPDIR/usr/lib/python3.11
+        export PYTHONPATH=$TARGET_APPDIR/usr/lib/python3.13/site-packages:$TARGET_APPDIR/usr/lib/python3.13
         export PATH=$TARGET_APPDIR/usr/bin:$PATH
 
-        # Set python 3.11 as default
-        ln -fs python3.11 $TARGET_APPDIR/usr/bin/python3
+        # Set python 3.13 as default
+        ln -fs python3.13 $TARGET_APPDIR/usr/bin/python3
 
         # Bootstrap pip into the AppDir Python
         if [ ! -f "get-pip.py" ]; then curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py; fi
-        python3.11 get-pip.py --break-system-packages
+        python3.13 get-pip.py --break-system-packages
 
-        # Install application dependencies in AppDir
-        python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr -r ../../src/requirements.txt
-
+        # Install testium and its dependencies in AppDir, at the versions
+        # pinned by src/requirements.txt (network is available at build time).
         export PIP_CONFIG_FILE=$HOME/.pip/pip.conf
-        # Dependencies (pygls/lsprotocol/cattrs/attrs, ...) come from the index
-        # (network is available at build time, see get-pip above).
-        python3.11 -m pip install --break-system-packages --upgrade --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr "../../src/dist/testium_hil-{{APP_VERSION}}-py3-none-any.whl"
+        python3.13 -m pip install --break-system-packages --isolated --no-input --ignore-installed --prefix=$TARGET_APPDIR/usr -c ../../src/requirements.txt "../../src/dist/testium_hil-{{APP_VERSION}}-py3-none-any.whl"
 
 
 AppImage:

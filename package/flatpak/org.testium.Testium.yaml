@@ -31,37 +31,23 @@ build-options:
     - "--share=network"
 
 modules:
-  - python3-requirements.json
-
-  # Language-server deps for `testium lsp` (pygls + lsprotocol + cattrs + attrs
-  # + typing_extensions). Installed from PyPI at build time — the build already
-  # runs with --share=network (see build-options). The core runtime deps stay
-  # offline-pinned in python3-requirements.json; these are pure-python wheels,
-  # hence --only-binary=:all: (no compilation, deterministic).
-  - name: python3-lsp
+  # Python dependencies at the versions pinned by src/requirements.txt, minus
+  # PySide6/shiboken6 which the PySide BaseApp provides. Installed from PyPI
+  # at build time (the build runs with --share=network, see build-options).
+  - name: python3-deps
     buildsystem: simple
     build-options:
       build-args:
         - --share=network
+    sources:
+      - type: file
+        path: ../../src/requirements.txt
     build-commands:
+      - grep -v -i -E '^(pyside6|shiboken6)' requirements.txt > deps.txt
       # Whole command single-quoted: the ':all: ' colon-space would otherwise
       # make YAML parse this list item as a mapping, silently dropping the
-      # command (flatpak-builder then runs an empty module — installs nothing).
-      - 'pip3 install --prefix=${FLATPAK_DEST} --only-binary=:all: "pygls>=1.3"'
-
-  # 1. Dépendances Python tierces (HORS PySide6)
-  # Utilisez flatpak-pip-generator pour vos autres libs (ex: pyserial, requests, etc.)
-  # - name: python3-requirements
-  #   buildsystem: simple
-  #   build-options:
-  #     build-args:
-  #       - --share=network
-  #   build-commands:
-  #     # --only-binary=:all: empêche la compilation et force le téléchargement des .whl
-  #     - pip3 install --prefix=/app --only-binary=:all: -r requirements.txt
-  #   sources:
-  #     - type: file
-  #       path: requirements.txt
+      # command (flatpak-builder then runs an empty module, installs nothing).
+      - 'pip3 install --prefix=${FLATPAK_DEST} --only-binary=:all: -r deps.txt'
 
   # 2. Votre application (Code source dans ../../src)
   - name: testium-app

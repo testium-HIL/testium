@@ -35,7 +35,6 @@ exit /b
 
 :PYTHON_FOUND
 
-set "IS_VENV=false"
 :: --- VENV creation ---
 if not exist "%VENV_DIR%" (
     echo [2/4] Virtual environment creation...
@@ -46,7 +45,6 @@ if not exist "%VENV_DIR%" (
         exit /b
     )
 ) else (
-    set "IS_VENV=true"
     echo [2/4] Virtual environment already here.
 )
 
@@ -54,13 +52,13 @@ if not exist "%VENV_DIR%" (
 echo [3/4] Activation of the venv and installation of dependencies...
 call "%VENV_DIR%\Scripts\activate"
 
-if "%IS_VENV%"=="false" (
-    if exist "%BASE_DIR%%REQUIREMENTS%" (
-        pip install --upgrade pip
-        pip install -r "%BASE_DIR%%REQUIREMENTS%"
-    ) else (
-        echo Info : No '%REQUIREMENTS%' file found, dependencies ignored.
-    )
+:: (Re)install whenever the pinned set differs from the last one installed.
+SET "STAMP=%VENV_DIR%\requirements.installed"
+fc /b "%BASE_DIR%%REQUIREMENTS%" "%STAMP%" >nul 2>&1
+if errorlevel 1 (
+    python -m pip install --upgrade pip
+    python -m pip install -r "%BASE_DIR%%REQUIREMENTS%"
+    if not errorlevel 1 copy /y "%BASE_DIR%%REQUIREMENTS%" "%STAMP%" >nul
 )
 
 :: --- Application launching ---
