@@ -100,6 +100,8 @@ The parameter of the ``add`` action is a dictionary of (*key*, *values*) pairs w
 
 If the *value* is a string rather than a number, it is evaluated as a python expression.
 
+.. _sec_plot_periodic:
+
 ``periodic`` action
 ----------------------
 
@@ -110,7 +112,7 @@ plot.
 
 ``periodic`` action parameters are:
 
-* ``period``: period of the automatic value update.
+* ``period``: period of the automatic value update, in seconds or as a :ref:`duration string<sec_duration_format>`. A variable or a ``<| |>`` expression is accepted.
 * ``file``: python file containing the function to call.
 * ``func_name``: the name of the python function to be periodically called.
 * ``eval``: optional parameter allowing post-processing of the function result.
@@ -132,7 +134,7 @@ The result of the action must be a dictionary of (*key*, *values*) pairs where t
                 period:         1
                 file:           $(test_path)$(psep)plot.py
                 func_name:      random_value
-                eval:           '{"periodic": $(result)}'
+                eval:           '<| {"periodic": $(result)} |>'
 
 
 ``last_value`` action

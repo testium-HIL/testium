@@ -17,7 +17,7 @@
             plot_name: Mon Plot
             steps:
                 - periodic:
-                    period:         1
+                    period:         $(plot_period)
                     file:           $(test_path)$(psep)plot.py
                     func_name:      random_value
                     eval:           '<| {"periodic": $(result)} |>'

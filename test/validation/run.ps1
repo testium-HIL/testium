@@ -198,6 +198,9 @@ if ($mode.ToLower() -eq 'source') {
 
     Write-Host "-- GUI state check ($mode)"
     Invoke-Checked "GUI state check ($mode)" $devPython @((Join-Path $scriptDir 'gui_state_check.py'))
+
+    Write-Host "-- duration check ($mode)"
+    Invoke-Checked "duration check ($mode)" $devPython @((Join-Path $scriptDir 'duration_check.py'))
 }
 
 if ($gui) {

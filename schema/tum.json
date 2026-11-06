@@ -960,7 +960,7 @@
           "description": "(internal) source .tum file of this step; injected by the loader."
         },
         "period": {
-          "description": "Seconds between two calls of the periodic function."
+          "description": "Seconds between two calls of the periodic function, or a duration like '1m 30s'."
         },
         "file": {
           "description": "Path to the .py file holding the periodic function."

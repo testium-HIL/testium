@@ -11,6 +11,7 @@ from interpreter.test_items.item_actions import TestItemActions
 from interpreter.test_items.item_actions.action import TestItemAction
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.eval import unwrap_expression
+from interpreter.utils.duration import parse_duration
 from interpreter.utils.param_decl import Param, ParamSet, LIST
 
 
@@ -117,7 +118,7 @@ class TestItemPlotActionPeriodic(TestItemPlotAction):
 
     PARAMS = ParamSet(
         Param("period", required=True,
-              doc="Seconds between two calls of the periodic function."),
+              doc="Seconds between two calls of the periodic function, or a duration like '1m 30s'."),
         Param("file", required=True,
               doc="Path to the .py file holding the periodic function."),
         Param("func_name", required=True,
@@ -161,7 +162,9 @@ class TestItemPlotActionPeriodic(TestItemPlotAction):
                 # Same contract as process_result: one <| |> expression.
                 post_eval = self._prms.expanse(
                     unwrap_expression(post_eval, "plot 'eval'"))
-            gr.add_periodic(self.period, file, func_name, pl, post_eval)
+            period = parse_duration(self._prms.expanse(self.period),
+                                    f"plot periodic '{self.name()}' period")
+            gr.add_periodic(period, file, func_name, pl, post_eval)
 
         except:
             traceback.print_exception(*sys.exc_info())

@@ -1,12 +1,11 @@
-import re
 from time import sleep
-from datetime import timedelta
 from multiprocessing import Process, Pipe
 
 import api.testium as tm
 from interpreter.test_items.test_item import (TestItem, test_run)
 from interpreter.test_items.test_result import (TestValue)
 from interpreter.utils.eval import to_bool_strict
+from interpreter.utils.duration import parse_duration
 from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.param_decl import Param, ParamSet
 from runtime.tum_except import ETUMSyntaxError, ETUMRuntimeError, item_load_context
@@ -37,18 +36,12 @@ class TestItemSleep(TestItem):
     @test_run
     def execute(self):
 
-        timeout = self._prms.expanse(self._timeout)
-
-        if isinstance(timeout, str) and timeout.isnumeric():
-            timeout = float(timeout)
-        elif isinstance(timeout, str):
-            m = re.search(r"((?P<day>\d+)d)?\s*((?P<hour>\d+)h)?\s*((?P<minute>\d+)m)?\s*((?P<second>\d+)s)?", timeout, flags=re.IGNORECASE)
-            if m.lastindex is not None :
-                day = int(m.group("day")) if m.group("day") is not None else 0
-                hour = int(m.group("hour")) if m.group("hour") is not None else 0
-                minute = int(m.group("minute")) if m.group("minute") is not None else 0
-                second = int(m.group("second")) if m.group("second") is not None else 0
-                timeout = timedelta(days=day, hours=hour, minutes=minute, seconds=second).total_seconds()
+        try:
+            timeout = parse_duration(self._prms.expanse(self._timeout),
+                                     f"sleep '{self.name()}' timeout")
+        except ETUMRuntimeError as e:
+            self.result.set(TestValue.FAILURE, str(e))
+            return
 
         has_dialog = to_bool_strict(self._prms.expanse(self._has_dialog),
                                     "'dialog'")
@@ -88,8 +81,6 @@ class TestItemSleep(TestItem):
             self.result.set(res, mesg)
 
         else:
-            if not isinstance(timeout, (int, float)):
-                raise ETUMRuntimeError(f"Timeout value of sleep test item \"{self.name()}\" is not valid: \"{timeout}\".")
             import time as _time
             end_time = _time.time() + float(timeout)
             while _time.time() < end_time and not self._is_stopped:

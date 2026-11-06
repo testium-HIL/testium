@@ -302,6 +302,15 @@ if [ "$MODE" = "source" ]; then
     "$SET_PY" "$SCRIPT_DIR/settings_check.py"
 fi
 
+# ---------- duration check (source only) --------------------------------------
+# Duration format shared by sleep timeout and plot periodic period.
+if [ "$MODE" = "source" ]; then
+    echo "-- duration check ($MODE)"
+    DUR_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$DUR_PY" ] || DUR_PY="$VENV_PYTHON"
+    "$DUR_PY" "$SCRIPT_DIR/duration_check.py"
+fi
+
 if [ "$GUI" -eq 1 ]; then
     echo "-- GUI mode: the suite runs in the GUI window (log: $GUI_LOG)."
 fi

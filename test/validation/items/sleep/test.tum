@@ -12,6 +12,15 @@
 
 - sleep:
     name: Sleep timeout in textual format
-    skipped: true
     key: $(test)_PASS
-    timeout: 1h 3m 2s
+    timeout: 1m 2s
+
+- sleep:
+    name: Sleep timeout from a variable
+    key: $(test)_PASS
+    timeout: $(sleep_duration)
+
+- sleep:
+    name: Sleep timeout not a duration (must fail)
+    key: $(test)_FAIL
+    timeout: abc
