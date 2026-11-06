@@ -145,8 +145,7 @@ switch ($mode.ToLower()) {
         # leaves a venv without testium.
         if (-not (Test-Import $py "import importlib.util, sys; sys.exit(importlib.util.find_spec('testium') is None)")) {
             Invoke-Checked 'pip upgrade' $py @('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip')
-            # [qt,lsp]: the GUI is an extra; lsp validated with pygls
-            Invoke-Checked 'wheel install' $py @('-m', 'pip', 'install', '--quiet', "$wheel[qt,lsp]")
+            Invoke-Checked 'wheel install' $py @('-m', 'pip', 'install', '--quiet', $wheel)
         }
         $cmd = @((Join-Path $wheelVenv 'Scripts\python.exe'), '-m', 'testium')
     }
