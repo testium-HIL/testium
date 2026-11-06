@@ -69,7 +69,7 @@ main:
                                        steps:
                                        -  add:
                                              value1: $(loop_index)
-                                             value2: $(loop_index)+2
+                                             value2: <| $(loop_index)+2 |>
                                  -  sleep:
                                        name: sleep between values
                                        timeout: 1
