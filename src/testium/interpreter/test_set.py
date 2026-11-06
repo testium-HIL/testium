@@ -107,6 +107,7 @@ class TestSet:
         self.report_pattern = []
         self._testdict = test_dict
         self._step_ctrl = StepController()
+        self._stop_requests = 0
 
         self._tree = self.__loadTestTree(tum_fime)
         self.__setStepControllerRecursively(self._rootItem)
@@ -171,6 +172,7 @@ class TestSet:
             # IDLE (armed before 'execute' on the command thread) survives.
             if self._step_ctrl.reset():
                 tm.print_warn("Jump target was not reached.")
+            self._stop_requests = 0
             self._end_test_date = datetime.datetime.now()
             self._test_duration = self._end_test_date - tm.gd("start_test_date")
 
@@ -245,6 +247,11 @@ class TestSet:
         # items.
         self._step_ctrl.disarm()
         self._step_ctrl.clear_pause()
+        self._stop_requests += 1
+        if self._stop_requests == 1:
+            tm.print_info("Stop requested: only execute_on_stop items run from now on.")
+        else:
+            tm.print_info("Stop requested again: execute_on_stop items aborted.")
         self._rootItem.stop()
         self.__stopRunningTestsRecursively(self._rootItem)
 

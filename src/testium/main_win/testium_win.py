@@ -13,6 +13,7 @@ from PySide6.QtCore import Slot, QUrl, Qt, QTimer, QSize
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
+    QMessageBox,
     QDialog,
     QFileDialog,
     QSizePolicy,
@@ -652,6 +653,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def show_transient_message(self, text):
         self.statusBar().showMessage(text, 10000)
+
+    def confirm_abort_cleanup(self):
+        answer = QMessageBox.question(
+            self, "Stop test",
+            "Stop already requested: the execute_on_stop steps are running.\n"
+            "Abort them?")
+        return answer == QMessageBox.StandardButton.Yes
 
     def can_start(self):
         return self.actionStart_test.isEnabled()

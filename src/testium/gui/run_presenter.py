@@ -37,6 +37,7 @@ class RunPresenter:
         self._t0 = None
         self._blink_gray = False
         self._pause_flip = False
+        self._stop_sent = False
 
     # --- Execution control ---
 
@@ -116,6 +117,10 @@ class RunPresenter:
             self._leave_running()
 
     def on_stop_test(self):
+        # A second stop aborts the execute_on_stop items: confirm it.
+        if self._stop_sent and not self._view.confirm_abort_cleanup():
+            return
+        self._stop_sent = True
         self._service().stop()
 
     def on_step_over(self):
@@ -231,6 +236,7 @@ class RunPresenter:
             self._scheduler.every("blink", 1000, self._on_blink_tick)
             self.set_blink_green()
         finally:
+            self._stop_sent = False
             self.state = TestState.RUNNING
             self._push_ui()
 
@@ -244,6 +250,7 @@ class RunPresenter:
             else:
                 self.set_blink_red()
         finally:
+            self._stop_sent = False
             self.state = TestState.IDLE
             self._push_ui()
 

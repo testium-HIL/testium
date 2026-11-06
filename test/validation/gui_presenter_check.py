@@ -47,6 +47,8 @@ class FakeView:
         self.sink = None
         self.closed = False
         self.succeeded = True
+        self.confirm_abort = False
+        self.confirm_calls = 0
 
     def apply_run_ui(self, state):
         self.ui_states.append(state)
@@ -68,6 +70,10 @@ class FakeView:
 
     def show_transient_message(self, text):
         self.messages.append(text)
+
+    def confirm_abort_cleanup(self):
+        self.confirm_calls += 1
+        return self.confirm_abort
 
     def can_start(self):
         return True
@@ -174,6 +180,18 @@ def main():
     if rp.state is not TestState.RUNNING or ("cont",) not in service.calls:
         fail("resume did not work")
 
+    # Stop: the first request passes, a second one needs confirmation.
+    rp.on_stop_test()
+    if service.calls.count(("stop",)) != 1 or view.confirm_calls != 0:
+        fail("first stop was not sent without confirmation")
+    rp.on_stop_test()
+    if service.calls.count(("stop",)) != 1 or view.confirm_calls != 1:
+        fail("second stop sent although refused")
+    view.confirm_abort = True
+    rp.on_stop_test()
+    if service.calls.count(("stop",)) != 2 or view.confirm_calls != 2:
+        fail("second stop not sent although confirmed")
+
     # Finish, failed verdict: exit code 1, back to IDLE.
     view.succeeded = False
     rp.on_run_finished()
@@ -184,11 +202,15 @@ def main():
     if os.path.isfile(log_path + "-1.saved") or view.sink is not None:
         fail("log sink not detached cleanly")
 
-    # Second run rotates the first log to -1.saved.
+    # Second run rotates the first log to -1.saved; a new run forgets
+    # the previous stop.
     view.succeeded = True
     rp.on_start_test()
     if not os.path.isfile(log_path + "-1.saved"):
         fail("previous log was not rotated to -1.saved")
+    rp.on_stop_test()
+    if service.calls.count(("stop",)) != 3 or view.confirm_calls != 2:
+        fail("stop of a new run asked for confirmation")
     rp.on_run_finished()
     if rp.run_exit_code != 0:
         fail(f"exit code {rp.run_exit_code}, expected 0")

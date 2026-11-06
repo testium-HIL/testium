@@ -125,6 +125,9 @@ class RunView(Protocol):
 
     def show_transient_message(self, text: str) -> None: ...
 
+    def confirm_abort_cleanup(self) -> bool:
+        """Ask whether a second stop may abort the execute_on_stop items."""
+
     def can_start(self) -> bool: ...
 
     def test_file(self) -> str: ...
