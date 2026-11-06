@@ -1,3 +1,16 @@
+version 0.6.2
+==============
+- process_result: a boolean result sets the verdict, PASS if True.
+- sleep timeout and plot periodic period share one duration format:
+  seconds or 'Nd Nh Nm Ns', decimals allowed, strict parsing. An
+  invalid duration fails the item with an explicit message.
+- plot periodic: period accepts a variable or a <| |> expression.
+- loop exit_condition time: parameter help says minutes elapsed.
+- GUI: a second Stop while the execute_on_stop steps run asks for
+  confirmation before aborting them.
+- Manual: process_result and plot eval examples wrapped with <| |>;
+  the removed loop exit_condition eval is no longer documented.
+
 version 0.6.1
 ==============
 - Single evaluation rule: <| |> evaluates, and nothing else does.
