@@ -94,21 +94,21 @@ if ($clean -and (Test-Path $venvDir)) { Remove-Item -Recurse -Force $venvDir }
 if (-not (Test-Path $venvDir)) {
     Write-Host "Creating validation venv at $venvDir"
     Invoke-Checked 'venv creation' $python @('-m', 'venv', '--system-site-packages', $venvDir)
-    Invoke-Checked 'pip upgrade' (Join-Path $venvDir 'Scripts\pip.exe') @('install', '--quiet', '--upgrade', 'pip')
+    # python -m pip: pip.exe cannot replace itself on Windows
+    Invoke-Checked 'pip upgrade' (Join-Path $venvDir 'Scripts\python.exe') @('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip')
 }
 $venvPython = Join-Path $venvDir 'Scripts\python.exe'
-$venvPip = Join-Path $venvDir 'Scripts\pip.exe'
 
 # Probed, not installed once at creation, so an older venv picks up new deps.
 if (-not (Test-Import $venvPython 'import junit_xml, pytest, jsonschema, yaml')) {
     Write-Host "Installing validation dependencies into $venvDir"
-    Invoke-Checked 'validation deps' $venvPip @('install', '--quiet', 'junit-xml', 'pytest', 'jsonschema', 'pyyaml')
+    Invoke-Checked 'validation deps' $venvPython @('-m', 'pip', 'install', '--quiet', 'junit-xml', 'pytest', 'jsonschema', 'pyyaml')
 }
 
 # Exporter plugins are discovered by export_worker.py, which runs on the host
 # python passed as python_bin below - so fake_exporter goes in this venv.
 if (-not (Test-Import $venvPython 'import fake_exporter')) {
-    Invoke-Checked 'fake_exporter install' $venvPip @('install', '--quiet', '-e', (Join-Path $scriptDir 'fake_exporter'))
+    Invoke-Checked 'fake_exporter install' $venvPython @('-m', 'pip', 'install', '--quiet', '-e', (Join-Path $scriptDir 'fake_exporter'))
 }
 
 # ---------- per-mode launcher -------------------------------------------------
@@ -121,11 +121,11 @@ switch ($mode.ToLower()) {
         if (-not (Test-Path $testiumVenv)) {
             Write-Host "Creating testium venv at $testiumVenv"
             Invoke-Checked 'venv creation' $python @('-m', 'venv', $testiumVenv)
-            $pip = Join-Path $testiumVenv 'Scripts\pip.exe'
-            Invoke-Checked 'pip upgrade' $pip @('install', '--quiet', '--upgrade', 'pip')
-            Invoke-Checked 'testium deps' $pip @('install', '--quiet', '-r', (Join-Path $projectDir 'src\requirements.txt'))
+            $py = Join-Path $testiumVenv 'Scripts\python.exe'
+            Invoke-Checked 'pip upgrade' $py @('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip')
+            Invoke-Checked 'testium deps' $py @('-m', 'pip', 'install', '--quiet', '-r', (Join-Path $projectDir 'src\requirements.txt'))
             # language-server extra so `testium lsp` works from source
-            Invoke-Checked 'pygls install' $pip @('install', '--quiet', 'pygls>=1.3')
+            Invoke-Checked 'pygls install' $py @('-m', 'pip', 'install', '--quiet', 'pygls>=1.3')
         }
         $cmd = @((Join-Path $testiumVenv 'Scripts\python.exe'), (Join-Path $projectDir 'src\testium'))
     }
@@ -137,10 +137,10 @@ switch ($mode.ToLower()) {
         if (-not (Test-Path $wheelVenv)) {
             Write-Host "Creating wheel venv at $wheelVenv"
             Invoke-Checked 'venv creation' $python @('-m', 'venv', '--system-site-packages', $wheelVenv)
-            $pip = Join-Path $wheelVenv 'Scripts\pip.exe'
-            Invoke-Checked 'pip upgrade' $pip @('install', '--quiet', '--upgrade', 'pip')
+            $py = Join-Path $wheelVenv 'Scripts\python.exe'
+            Invoke-Checked 'pip upgrade' $py @('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip')
             # [qt,lsp]: the GUI is an extra; lsp validated with pygls
-            Invoke-Checked 'wheel install' $pip @('install', '--quiet', "$wheel[qt,lsp]")
+            Invoke-Checked 'wheel install' $py @('-m', 'pip', 'install', '--quiet', "$wheel[qt,lsp]")
         }
         $cmd = @((Join-Path $wheelVenv 'Scripts\python.exe'), '-m', 'testium')
     }
