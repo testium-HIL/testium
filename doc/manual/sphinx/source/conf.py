@@ -75,10 +75,6 @@ latex_engine = "xelatex"
 latex_logo = "testium_logo.pdf"
 latex_elements = {
     "papersize": "a4paper",
-    # Sphinx >= 9.1 asks for array [=v2.6] when array-2024-06-01.sty exists;
-    # TeX Live 2026 only ships that file under latex-dev, so the request fails.
-    # Loading the same release by date first turns Sphinx's request into a no-op.
-    'passoptionstopackages': r'\RequirePackage{array}[=2024-06-01]',
     'fontpkg': r'''
     \setmainfont{DejaVu Sans}
     \setsansfont{DejaVu Sans}
