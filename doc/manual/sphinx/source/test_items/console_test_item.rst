@@ -88,7 +88,8 @@ Open step accepts the following attribute:
     |               +------------------------+-------------------------------------------+
     |               | ``tcp_port``           | port of the rawtcp server of the target.  |
     +---------------+------------------------+-------------------------------------------+
-    |``terminal``   | ``terminal_path``      | Path of the terminal console.             |
+    |``terminal``   | ``terminal_path``      | Working directory for the local terminal  |
+    |               |                        | protocol.                                 |
     +               +------------------------+-------------------------------------------+
     |               | ``shell``              | Shell to execute in the terminal          |
     |               |                        | Default: /usr/bin/env bash                |
