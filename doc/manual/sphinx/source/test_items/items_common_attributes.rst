@@ -63,7 +63,7 @@ They are all optional; the table also gives their default values.
     |                       |                   | contextual text window in the testium                 |
     |                       |                   | GUI.                                                  |
     +-----------------------+-------------------+-------------------------------------------------------+
-    |``Key``                | /                 | This attribute defines a key which                    |
+    |``key``                | /                 | This attribute defines a key which                    |
     |                       |                   | will be attached to the test result and               |
     |                       |                   | which allows results to be filtered                   |
     |                       |                   | during the report generation.                         |
