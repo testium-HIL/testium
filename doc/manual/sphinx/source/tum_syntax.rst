@@ -134,7 +134,8 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
   format YYYY-MM-DD,
 * ``testrun_time``: The time when the test has started (as a string) in
   format HH:MM:SS,
-* ``test_name``: The name of the file being executed without extension,
+* ``test_name``: the ``name`` attribute of the ``main`` section (``Unnamed``
+  when it is not set),
 * ``testium_version``: the version of *testium* (release version, or the
   git revision when running from a source checkout),
 * ``testium_path``: the directory of the *testium* installation,
