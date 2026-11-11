@@ -44,3 +44,10 @@ An include can also carry arguments for the included file:
 
 The arguments feed the jinja template of the included file; their
 resolution time is described in :ref:`templates<sec_templates>`.
+
+The ``!raw_include`` tag splices the included file's steps into the current
+sequence without the sub-sequence wrapper that ``!include`` adds: the
+included steps are inserted verbatim and are not attributed to their source
+file (that attribution is what error messages and reports use to point at an
+included file). Use ``!raw_include`` to inline a file whose content is
+already a plain list of steps.
