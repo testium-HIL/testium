@@ -53,7 +53,8 @@ They are all optional; the table also gives their default values.
     |``skipped``            |``False``          | The test item execution is to be                      |
     |                       |                   | skipped during test sequence execution                |
     |                       |                   | if set to ``True``. It will be                        |
-    |                       |                   | displayed as failed in the report.                    |
+    |                       |                   | displayed as skipped (``SKIP``) in the                |
+    |                       |                   | report.                                               |
     +-----------------------+-------------------+-------------------------------------------------------+
     | ``no_fail``           | ``False``         | The result of the test step is forced to PASS if this |
     |                       |                   | attribute is set to ``true``.                         |
