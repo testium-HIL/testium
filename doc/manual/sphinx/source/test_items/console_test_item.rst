@@ -36,8 +36,6 @@ Attributes
 Besides the common test item attributes, the console test item has specific attributes:
 
 * ``console_name``: console instance name
-* ``write_delay``: optional parameter giving the delay to wait in
-  milliseconds between each character sent.
 * ``steps``: a sequence of actions to be applied to the console, as listed above.
 
 The console test item steps accept the parameters and configurations defined in the next sections.
@@ -95,6 +93,9 @@ Open step accepts the following attribute:
     |               |                        | Default: /usr/bin/env bash                |
     +---------------+------------------------+-------------------------------------------+
 
+* ``write_delay``: optional delay in milliseconds inserted between each
+  character sent (default ``0``); useful with slow devices. It is not
+  applied by the ``ssh`` protocol.
 * ``log``: is available only for Telnet and Serial console and is a path to a folder or a file, where the log will be stored.
 * ``newline``: line ending appended by ``writeln``: ``lf`` (default),
   ``crlf`` or ``cr``. Use ``crlf`` or ``cr`` for serial devices and
