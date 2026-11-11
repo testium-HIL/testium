@@ -148,7 +148,6 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 * ``start_test_date``: the date and time when the test has started (as a
   Python ``datetime`` object; ``testrun_date`` and ``testrun_time`` are
   its string representations),
-* ``home``: the path of the current user's home directory,
 * ``test_outputs``: list of the paths of the test log and test report (if any),
 * ``last_step_result``: test result of the last step (see :ref:`sec_item_common`),
 * ``ts_start_<item_name>``: timestamp at the start of test item execution (see :ref:`sec_item_common`),
