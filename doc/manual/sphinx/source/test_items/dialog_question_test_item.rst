@@ -10,7 +10,7 @@ determines the test result.
     :caption: example of ``dialog_question`` test item usage
 
     - dialog_question:
-        name: dialog value test item
+        name: dialog question test item
         question: operator question
 
 Attributes

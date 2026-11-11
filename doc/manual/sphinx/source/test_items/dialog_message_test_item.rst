@@ -8,7 +8,7 @@ This test item displays a simple dialog showing a message.
     :caption: example of ``dialog_message`` test item usage
 
     - dialog_message:
-        name: dialog value test item
+        name: dialog message test item
         question: operator question
 
 Attributes

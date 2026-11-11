@@ -9,7 +9,7 @@ This test item displays a simple dialog that lets the operator enter text, and p
     :caption: example of ``dialog_note`` test item usage
 
     - dialog_note:
-        name: dialog value test item
+        name: dialog note test item
         question: operator question
 
 Attributes
