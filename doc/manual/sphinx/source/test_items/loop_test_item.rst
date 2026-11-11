@@ -47,10 +47,11 @@ Below are described loop test item specific attributes.
     iteration. Only python script format is supported (optional
     if another exit_condition attribute is defined)
   * ``func_name``: the function to execute on each loop when the file attribute
-    is defined. The function referenced by the ``func_name`` attribute must
-    have two parameters: the current loop iterator value and the report,
-    even if they are not used. This attribute is mandatory if the file
-    attribute is defined.
+    is defined. By default it is called with a single argument: the current
+    loop iterator value (``$(loop_param)``). This attribute is mandatory if
+    the file attribute is defined.
+  * ``param``: optional list of arguments passed to the ``func_name`` function;
+    when absent the function receives only the current loop value.
 
 .. code-block:: yaml
     :caption: ``loop`` exit condition
