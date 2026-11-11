@@ -1,9 +1,9 @@
 .. _sec_jsonrpc_test_item:
 
-**jsonrpc** test item
+**json_rpc** test item
 ============================================================
 
-The `jsonrpc` test item is used to access jsonrpc servers, by sending queries and analysing the
+The `json_rpc` test item is used to access jsonrpc servers, by sending queries and analysing the
 answers.
 It supports JSONRPC `v1.0 <https://www.jsonrpc.org/specification_v1>`_ or
 `v2.0 <https://www.jsonrpc.org/specification>`_.
@@ -12,7 +12,7 @@ This test item can access the jsonrpc server by using an existing
 :ref:`console<sec_console_test_item>` or directly using a UDP protocol.
 Two low level *adapters* can then be chosen: ``udp`` or ``console``.
 
-Example of ``jsonrpc`` test item with the console adapter:
+Example of ``json_rpc`` test item with the console adapter:
 
 .. code-block:: yaml
     :caption: ``json_rpc`` test item usage example
@@ -50,7 +50,7 @@ Example of ``jsonrpc`` test item with the console adapter:
 Attributes
 -----------------------
 
-the jsonrpc attributes are:
+the json_rpc attributes are:
 
 * ``timeout``: required. Global communication timeout in seconds. It is a floating point number.
 * ``version``: "1.0" or "2.0" (as a string) depending on the version of the JSONRPC
