@@ -82,7 +82,7 @@ load time and stored as declared: ``$( )`` and ``<| |>`` in their
 values are resolved when the value is used. In the example above,
 ``parameter4`` follows a later redefinition of ``parameter1``. The
 variables are accessible from TUM test files and from
-:ref:`python<sec_py_func_item>` and :ref:`lua<sec_py_func_item>`
+:ref:`python<sec_py_func_item>` and :ref:`lua<sec_lua_func_item>`
 function test items.
 
 The resolution rules are detailed in
