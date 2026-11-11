@@ -18,10 +18,16 @@ class TestItemValueDialog(TestItemDialogBase):
         Param("default", default="",
               doc="Pre-filled value of the input field."),
         Param("auto_result", default=None,
-              doc="Batch-mode outcome: None ⇒ FAILURE, 'cancel' ⇒ cancelled, "
-                  "any other truthy ⇒ SUCCESS with auto_value."),
+              doc="Unattended-run gate (validation suite): text mode — "
+                  "None ⇒ FAILURE, 'cancel' ⇒ FAILURE, any other value ⇒ "
+                  "SUCCESS submitting auto_value or default (empty ⇒ "
+                  "FAILURE); GUI mode — auto_value pre-fills the field, "
+                  "then 'ok'/'yes' auto-accepts after 2 s, anything else "
+                  "auto-rejects."),
         Param("auto_value", default=None,
-              doc="Value used in batch mode when auto_result is set."),
+              doc="Value submitted in text mode when auto_result is set "
+                  "(falls back to default); pre-filled in the GUI before "
+                  "the auto-accept."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):

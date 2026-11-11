@@ -1226,7 +1226,7 @@
           "description": "Path to the image file (relative to the test directory or absolute)."
         },
         "auto_result": {
-          "description": "Outcome used in batch/non-interactive mode. Truthy \u21d2 SUCCESS, None \u21d2 FAILURE."
+          "description": "Unattended-run gate (validation suite): text mode \u2014 None \u21d2 FAILURE, 'cancel' \u21d2 FAILURE, any other value \u21d2 SUCCESS; GUI mode \u2014 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects."
         }
       },
       "required": [
@@ -1286,7 +1286,7 @@
           "description": "Message body shown to the user. Multi-line strings are supported."
         },
         "auto_result": {
-          "description": "Outcome used in batch/non-interactive mode instead of waiting for the user. Truthy \u21d2 SUCCESS, None \u21d2 FAILURE."
+          "description": "Unattended-run gate (validation suite): text mode \u2014 any value \u21d2 SUCCESS, None \u21d2 FAILURE; GUI mode \u2014 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects."
         }
       },
       "required": [
@@ -1459,10 +1459,10 @@
           "description": "Prompt shown above the note input field."
         },
         "auto_result": {
-          "description": "Batch-mode outcome: None \u21d2 FAILURE, 'cancel' \u21d2 cancelled, any other truthy \u21d2 SUCCESS with auto_value."
+          "description": "Unattended-run gate (validation suite): text mode \u2014 None \u21d2 FAILURE, 'cancel' \u21d2 FAILURE, any other value \u21d2 SUCCESS with auto_value (empty \u21d2 FAILURE); GUI mode \u2014 auto_value pre-fills the note, then 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects."
         },
         "auto_value": {
-          "description": "Note text used in batch mode when auto_result is set."
+          "description": "Note text submitted in text mode when auto_result is set; pre-filled in the GUI before the auto-accept."
         }
       },
       "required": [
@@ -1521,7 +1521,7 @@
           "description": "Yes/No prompt presented to the user."
         },
         "auto_result": {
-          "description": "Batch-mode answer ('yes'/'no' or truthy/falsy). None \u21d2 FAILURE."
+          "description": "Unattended-run gate (validation suite): text mode \u2014 'no'/'cancel' \u21d2 No (FAILURE), any other value \u21d2 Yes (SUCCESS); GUI mode \u2014 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects. None \u21d2 FAILURE."
         }
       },
       "required": [
@@ -1644,7 +1644,7 @@
           "type": "array"
         },
         "auto_result": {
-          "description": "Batch-mode outcome: None \u21d2 FAILURE, truthy \u21d2 SUCCESS with the pre-filled references."
+          "description": "Unattended-run gate (validation suite): text mode \u2014 None \u21d2 FAILURE, 'cancel' \u21d2 FAILURE, any other value \u21d2 SUCCESS with the pre-filled references; GUI mode \u2014 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects."
         }
       },
       "required": [
@@ -1707,10 +1707,10 @@
           "default": ""
         },
         "auto_result": {
-          "description": "Batch-mode outcome: None \u21d2 FAILURE, 'cancel' \u21d2 cancelled, any other truthy \u21d2 SUCCESS with auto_value."
+          "description": "Unattended-run gate (validation suite): text mode \u2014 None \u21d2 FAILURE, 'cancel' \u21d2 FAILURE, any other value \u21d2 SUCCESS submitting auto_value or default (empty \u21d2 FAILURE); GUI mode \u2014 auto_value pre-fills the field, then 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects."
         },
         "auto_value": {
-          "description": "Value used in batch mode when auto_result is set."
+          "description": "Value submitted in text mode when auto_result is set (falls back to default); pre-filled in the GUI before the auto-accept."
         }
       },
       "required": [
@@ -1776,7 +1776,7 @@
           "description": "Default icon name shown next to each choice."
         },
         "auto_result": {
-          "description": "Batch-mode selection (path or label). None \u21d2 FAILURE."
+          "description": "Unattended-run gate (validation suite), never a parsed selection: text mode \u2014 'cancel' \u21d2 FAILURE, any other value \u21d2 SUCCESS with every choice checked; GUI mode \u2014 'ok'/'yes' auto-accepts after 2 s, anything else auto-rejects. None \u21d2 FAILURE."
         }
       },
       "required": [

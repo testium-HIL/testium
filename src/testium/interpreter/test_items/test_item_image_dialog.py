@@ -20,8 +20,10 @@ class TestItemImageDialog(TestItemDialogBase):
         Param("filename", required=True,
               doc="Path to the image file (relative to the test directory or absolute)."),
         Param("auto_result", default=None,
-              doc="Outcome used in batch/non-interactive mode. Truthy ⇒ SUCCESS, "
-                  "None ⇒ FAILURE."),
+              doc="Unattended-run gate (validation suite): text mode — "
+                  "None ⇒ FAILURE, 'cancel' ⇒ FAILURE, any other value ⇒ "
+                  "SUCCESS; GUI mode — 'ok'/'yes' auto-accepts after 2 s, "
+                  "anything else auto-rejects."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):

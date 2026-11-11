@@ -15,8 +15,11 @@ class TestItemTestedRefsDialog(TestItemDialogBase):
         Param("reference", kind=LIST,
               doc="Pre-filled list of references shown in the dialog."),
         Param("auto_result", default=None,
-              doc="Batch-mode outcome: None ⇒ FAILURE, truthy ⇒ SUCCESS with "
-                  "the pre-filled references."),
+              doc="Unattended-run gate (validation suite): text mode — "
+                  "None ⇒ FAILURE, 'cancel' ⇒ FAILURE, any other value ⇒ "
+                  "SUCCESS with the pre-filled references; GUI mode — "
+                  "'ok'/'yes' auto-accepts after 2 s, anything else "
+                  "auto-rejects."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):

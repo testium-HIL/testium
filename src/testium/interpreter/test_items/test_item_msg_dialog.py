@@ -18,8 +18,9 @@ class TestItemMsgDialog(TestItemDialogBase):
         Param("question", required=True,
               doc="Message body shown to the user. Multi-line strings are supported."),
         Param("auto_result", default=None,
-              doc="Outcome used in batch/non-interactive mode instead of waiting "
-                  "for the user. Truthy ⇒ SUCCESS, None ⇒ FAILURE."),
+              doc="Unattended-run gate (validation suite): text mode — any "
+                  "value ⇒ SUCCESS, None ⇒ FAILURE; GUI mode — 'ok'/'yes' "
+                  "auto-accepts after 2 s, anything else auto-rejects."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):

@@ -18,7 +18,11 @@ class TestItemChoicesDialog(TestItemDialogBase):
         Param("icon", default=None,
               doc="Default icon name shown next to each choice."),
         Param("auto_result", default=None,
-              doc="Batch-mode selection (path or label). None ⇒ FAILURE."),
+              doc="Unattended-run gate (validation suite), never a parsed "
+                  "selection: text mode — 'cancel' ⇒ FAILURE, any other "
+                  "value ⇒ SUCCESS with every choice checked; GUI mode — "
+                  "'ok'/'yes' auto-accepts after 2 s, anything else "
+                  "auto-rejects. None ⇒ FAILURE."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):

@@ -15,7 +15,10 @@ class TestItemQuestionDialog(TestItemDialogBase):
         Param("question", required=True,
               doc="Yes/No prompt presented to the user."),
         Param("auto_result", default=None,
-              doc="Batch-mode answer ('yes'/'no' or truthy/falsy). None ⇒ FAILURE."),
+              doc="Unattended-run gate (validation suite): text mode — "
+                  "'no'/'cancel' ⇒ No (FAILURE), any other value ⇒ Yes "
+                  "(SUCCESS); GUI mode — 'ok'/'yes' auto-accepts after 2 s, "
+                  "anything else auto-rejects. None ⇒ FAILURE."),
     )
 
     def __init__(self, dict_item, parent=None, status_queue=None, filename=""):

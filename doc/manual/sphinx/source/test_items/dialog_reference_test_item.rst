@@ -36,8 +36,6 @@ Attributes
 * ``question``: Question to be displayed in the dialog box.
 * ``reference``: Each entry in this list corresponds to one row to fill
   in the dialog.
-* ``auto_result``: Optional. Outcome used in batch / non-interactive mode.
-  If set, the step succeeds with the pre-filled references; if not set, it fails.
 
 Every field for a reference can be pre-filled by separating
 each field with a '/' (cf :numref:`Figure %s<dialog-reference>`).
