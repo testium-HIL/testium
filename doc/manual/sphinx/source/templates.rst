@@ -19,6 +19,16 @@ The variables available to jinja are the
 :ref:`built-in values<sec_global_variables_builtin>`. Jinja receives
 their resolved values, as they are at load time.
 
+``include_directory``
+^^^^^^^^^^^^^^^^^^^^^
+
+Every template — the main test file and each included file — also has access
+to the ``include_directory`` variable: the directory that contains the file
+being rendered (an absolute path). It lets a file reference files that sit
+next to it, whatever the current test directory is::
+
+    - !include {file: include_directory ~ "/common/steps.tum"}
+
 In ``!include`` directive
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
