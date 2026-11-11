@@ -21,6 +21,19 @@
               - $(loop_param)
 
 - loop:
+    name: Loop index and inverse index
+    iterator: 5
+    key: $(test)_PASS
+    steps:
+      - py_func:
+          name: check loop indexes
+          file: $(test_path)$(psep)cycle.py
+          func_name: checkloopindexes
+          param:
+              - $(loop_index)
+              - $(loop_index_inverse)
+
+- loop:
     name: Infinite loop with exit condition
     key: $(test)_PASS
     steps:

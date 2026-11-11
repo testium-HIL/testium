@@ -155,7 +155,7 @@ class TestItemCycle(TestItem):
 
                 # store the current loop params
                 self._currentIter = i - 1
-                self._currentInverseIter = self._niter - i - 1
+                self._currentInverseIter = self._niter - i
                 if isinstance(iter, int) or iter is None:
                     self._currentLoop = i
                 else:
