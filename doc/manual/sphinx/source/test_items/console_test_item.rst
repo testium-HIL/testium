@@ -96,7 +96,13 @@ Open step accepts the following attribute:
 * ``write_delay``: optional delay in milliseconds inserted between each
   character sent (default ``0``); useful with slow devices. It is not
   applied by the ``ssh`` protocol.
-* ``log``: is available only for Telnet and Serial console and is a path to a folder or a file, where the log will be stored.
+* ``log``: path to a log file capturing the console traffic. The
+  parameter is accepted by every protocol, but the log is only written
+  for the ``telnet`` and ``serial`` protocols; with the other protocols
+  a "logging of <protocol> is not yet supported" warning is printed and
+  the parameter is ignored. If the path ends with ``.log`` it names a
+  file; otherwise it names a folder (created if missing) and the log
+  file is ``<folder>/<console_name>.log``.
 * ``newline``: line ending appended by ``writeln``: ``lf`` (default),
   ``crlf`` or ``cr``. Use ``crlf`` or ``cr`` for serial devices and
   network equipment expecting carriage returns.
