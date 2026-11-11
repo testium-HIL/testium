@@ -135,6 +135,18 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 * ``testrun_time``: The time when the test has started (as a string) in
   format HH:MM:SS,
 * ``test_name``: The name of the file being executed without extension,
+* ``testium_version``: the version of *testium* (release version, or the
+  git revision when running from a source checkout),
+* ``testium_path``: the directory of the *testium* installation,
+* ``config_files``: the list of the configuration files loaded for this
+  test (see :ref:`configuration files<sec_configuration_files>`),
+* ``test_version``: the git revision of the test directory (a
+  ``Warning`` string when the directory is not under version control),
+* ``test_modifs``: the modified and untracked files of the test directory
+  (a ``Warning`` string when the directory is not under version control),
+* ``start_test_date``: the date and time when the test has started (as a
+  Python ``datetime`` object; ``testrun_date`` and ``testrun_time`` are
+  its string representations),
 * ``home``: the path of the current user's home directory,
 * ``test_outputs``: list of the paths of the test log and test report (if any),
 * ``last_step_result``: test result of the last step (see :ref:`sec_item_common`),
