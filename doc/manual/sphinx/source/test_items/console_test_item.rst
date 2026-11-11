@@ -103,6 +103,9 @@ Open step accepts the following attribute:
   the parameter is ignored. If the path ends with ``.log`` it names a
   file; otherwise it names a folder (created if missing) and the log
   file is ``<folder>/<console_name>.log``.
+* ``overwrite_log``: only meaningful together with ``log``. When
+  ``True`` (the default) the log file is truncated when the console is
+  opened; when ``False`` the new session is appended to it.
 * ``newline``: line ending appended by ``writeln``: ``lf`` (default),
   ``crlf`` or ``cr``. Use ``crlf`` or ``cr`` for serial devices and
   network equipment expecting carriage returns.
