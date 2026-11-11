@@ -153,14 +153,15 @@ the global variables entries.
 
     - plot:
         name: Plot measure_1 value
-        plot_name: plot identifier
+        plot_name: my_plot
         steps:
             - last_value:
                 name: [measure_1]
 
 The result of the action is stored in the global
-variable named ``plv_<item_name>`` in the example above, it would be
-``$(plv_Plot measure_1 value)``. See :ref:`global variables<sec_global_variables>` for more detail
+variable named ``plv_<plot_name>``, where ``<plot_name>`` is the item's
+``plot_name`` parameter. In the example above it would be
+``$(plv_my_plot)``. See :ref:`global variables<sec_global_variables>` for more detail
 on how to access to global variables from test items and scripts.
 
 
