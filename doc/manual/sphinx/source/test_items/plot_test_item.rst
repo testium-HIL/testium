@@ -115,6 +115,7 @@ plot.
 * ``period``: period of the automatic value update, in seconds or as a :ref:`duration string<sec_duration_format>`. A variable or a ``<| |>`` expression is accepted.
 * ``file``: python file containing the function to call.
 * ``func_name``: the name of the python function to be periodically called.
+* ``param``: optional list of arguments passed to the function on each call.
 * ``eval``: optional parameter allowing post-processing of the function result.
 
 The ``eval`` parameter of the periodic action is a python evaluable string in which the $(result) keyword
