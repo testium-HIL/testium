@@ -210,7 +210,7 @@ def OS():
 
 
 def text_mode():
-    """Whether testium is running in text mode (batch ``-b`` or terminal ``-m``).
+    """Whether testium is running in text mode (batch ``-b`` mode).
 
     :return: ``True`` if running in text mode, ``False`` otherwise.
     :rtype: bool
