@@ -71,8 +71,8 @@ The parameter file can be specified in the `.tum` file root:
         sub_param1: sub_value1
         sub_param2: $(parameter4)
 
-If nothing is specified, the ``param.yaml``
-is automatically loaded, if present in the test directory.
+If nothing is specified, the ``param.yaml`` and ``param.yml`` files are
+automatically loaded, in that order, if present in the test directory.
 
 Files loading
 ^^^^^^^^^^^^^^^^^^
