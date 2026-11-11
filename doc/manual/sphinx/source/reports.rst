@@ -99,7 +99,9 @@ Every export entry accepts the following sub-attributes:
     +-----------------+-----------------------+-------------------------------------------+
     | Attribute       | default value         | Description                               |
     +-----------------+-----------------------+-------------------------------------------+
-    | ``path``        | ``$(report_path)``    | Output directory.                         |
+    | ``path``        | /                     | Output directory. When empty (default),   |
+    |                 |                       | the file is written from ``file_name`` as |
+    |                 |                       | a relative path.                          |
     +-----------------+-----------------------+-------------------------------------------+
     | ``file_name``   | /                     | Output file name.                         |
     +-----------------+-----------------------+-------------------------------------------+
