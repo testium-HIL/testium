@@ -41,8 +41,14 @@ keys (`config_file`, `main`, `report`) match the manual.
 | 11 | dialog_choices `auto_result` | "Selection used in batch mode (choice path or label)" | it is a truthy gate: any set non-`cancel` value ⇒ **all choices checked**; the value is never parsed as a selection | `dialog_choices_test_item.rst` L70-71 vs `test_item_choices_dialog.py` L88-98 + `dialog_presenter.accepts` |
 | 12 | dialog_references `reference` | "``question`` and ``reference`` are mandatory" | only `question` is required; without `reference` the dialog shows a single empty row | `dialog_reference_test_item.rst` L34 vs `test_item_tested_references.py` L28-30 |
 
-Minor wording: the `skipped` common attribute is described as if a skipped step
-"fails"; it is reported as SKIP/NORUN.
+Minor wording: the `skipped` common attribute is described as if a skipped
+step "fails"; it is reported as SKIP/NORUN. — **done**
+(`items_common_attributes.rst`, 2026-11-11): reworded to "displayed as
+skipped (``SKIP``) in the report" (code: `TestValue.NORUN` → `SKIP`).
+
+Additional finding (not in the original audit): `test_name` is the `name`
+attribute of the `main` section (default `Unnamed`), not the file name
+(`process.py` L175-176). — **done** (`tum_syntax.rst`, 2026-11-11).
 
 ---
 
@@ -163,19 +169,36 @@ Minor wording: the `skipped` common attribute is described as if a skipped step
   empty row when absent), not mandatory — **done** (`dialog_reference_test_item.rst`,
   2026-11-11; PDF p. 25 verified; full source validation suite: post-execution
   SUCCESS).
-- [ ] **[5]** console `write_delay`: move it out of the item-level attribute list
-  into the `open` action.
-- [ ] **[6]** console `open.log`: correct "Telnet/Serial only" → applies to all
-  protocols.
-- [ ] **[7]** console `terminal_path`: fix description to "working directory for
-  the local terminal protocol".
+- [x] **[5]** console `write_delay`: moved out of the item-level attribute list
+  into the `open` action bullets, with a note that the `ssh` protocol does not
+  apply it (`SshConsole.__init__` takes no `write_delay`) — **done**
+  (`console_test_item.rst`, 2026-11-11).
+- [x] **[6]** console `open.log`: rewritten — accepted by every protocol, but
+  the log is only written for `telnet`/`serial` (the others print
+  "logging of <protocol> is not yet supported" and ignore it); a path ending
+  in `.log` names a file, otherwise it names a folder (created if missing)
+  holding `<folder>/<console_name>.log` — **done** (`console_test_item.rst`,
+  2026-11-11; PDF p. 23 verified).
+- [x] **[7]** console `terminal_path`: description fixed to "Working directory
+  for the local terminal protocol" — **done** (`console_test_item.rst`,
+  2026-11-11; PDF p. 23 verified).
 
 ### P2 — Missing documentation (implemented but undocumented)
-- [ ] **[19]** Built-in globals: add `testium_version`, `testium_path`,
-  `config_files`, `test_version`, `test_modifs`, `start_test_date`.
-- [ ] **[20]** `!raw_include`, **[21]** `include_directory` jinja variable.
-- [ ] **[6/23]** `overwrite_log`, loop `exit_condition.param`, plot `periodic.param`.
-- [ ] **[8]** json_rpc `timeout` required marker.
+- [x] **[19]** Built-in globals: added `testium_version`, `testium_path`,
+  `config_files`, `test_version`, `test_modifs`, `start_test_date` — **done**
+  (`tum_syntax.rst`, 2026-11-11; PDF p. 15 verified).
+- [x] **[20]** `!raw_include` — documented in `includes.rst` (verbatim splice,
+  no sub-sequence wrapper, no source-file attribution; verified by an isolated
+  loader experiment) — **done** (2026-11-11). **[21]** `include_directory`
+  jinja variable — subsection added to `templates.rst` (dir of the file being
+  rendered, main + included files) — **done** (2026-11-11; PDF p. 49 verified).
+- [x] **[6/23]** `overwrite_log` (bullet after `log`, `console_test_item.rst`);
+  loop `exit_condition.param` (already documented from **[10]**, nothing to do);
+  plot `periodic.param` (bullet between `func_name` and `eval`,
+  `plot_test_item.rst`) — **done** (2026-11-11).
+- [x] **[8]** json_rpc `timeout`: item-level `timeout` marked `required.`
+  (item-level `required=True`; the `query`/`receive` action timeouts stay
+  `default=None`) — **done** (`json-rpc_test_item.rst`, 2026-11-11).
 
 ### P3 — Manual-internal defects & stale docstrings
 - [x] **[1]** CLI: usage header `testium.pyw` → `testium` — **done**
@@ -185,10 +208,19 @@ Minor wording: the `skipped` common attribute is described as if a skipped step
   `-t {sqlite,junit,json,html,text}` order, `options:` header, aligned `-c`,
   `-g, --dev-debug, --debug` + dev-debug help) — **done** (`cdl_interface.rst`,
   2026-11-11; PDF regenerated via `build_doc.sh`).
-- [ ] Remove duplicate `home` bullet (`tum_syntax.rst`).
-- [ ] Fix `Key` → `key` in common attributes table.
-- [ ] Fix lua `:ref:` anchor (`tum_syntax.rst` L85).
-- [ ] Mention `param.yml` fallback for the default config file.
-- [ ] Fix dialog `name:` copy-paste artifacts; json-rpc section title.
-- [ ] Update stale implementation docstrings (`api/testium.py` `text_mode`,
-  `test_item_choices_dialog.py` `choices`).
+- [x] Remove duplicate `home` bullet (`tum_syntax.rst`) — **done** (2026-11-11).
+- [x] Fix `Key` → `key` in common attributes table — **done** (2026-11-11).
+- [x] Fix lua `:ref:` anchor → `sec_lua_func_item` (`tum_syntax.rst`) — **done**
+  (2026-11-11).
+- [x] Mention `param.yml` for the default config file (the code loads **both**
+  `param.yaml` and `param.yml` that exist, in that order — `process.py` L92-99)
+  — **done** (2026-11-11).
+- [x] Fix dialog `name:` copy-paste artifacts (`dialog_message`/`dialog_note`/
+  `dialog_question` examples, 1 commit) and the json-rpc section title +
+  item-name references → `json_rpc` (protocol mentions like "jsonrpc
+  server/frame/action" left as-is) — **done** (2026-11-11).
+- [x] Update stale implementation docstrings: `api/testium.py` `text_mode()`
+  (dropped the nonexistent `-m` flag — only `-b` enables text mode) and
+  `test_item_choices_dialog.py` `choices` (a list of `{name: …}` mappings);
+  `schema/tum.json` regenerated (diff = exactly that one description) —
+  **done** (2026-11-11).
