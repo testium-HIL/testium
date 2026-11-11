@@ -31,11 +31,11 @@ The example above displays the dialog box in :numref:`Figure %s<dialog-reference
 Attributes
 ---------------
 
-``question`` and ``reference`` are mandatory.
+``question`` is mandatory; ``reference`` is optional.
 
 * ``question``: Question to be displayed in the dialog box.
-* ``reference``: Each entry in this list corresponds to one row to fill
-  in the dialog.
+* ``reference``: Optional. Each entry in this list corresponds to one row
+  to fill in the dialog; when absent, the dialog shows a single empty row.
 
 Every field for a reference can be pre-filled by separating
 each field with a '/' (cf :numref:`Figure %s<dialog-reference>`).
