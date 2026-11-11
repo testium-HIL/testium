@@ -3,36 +3,40 @@ Command Line Interface
 
 .. code-block:: text
 
-    usage: testium.pyw [-h] [--version] [-b] [-c CONFIG_FILE [CONFIG_FILE ...]] [-r] [-l LOG_FILE]
-                        [-d DEFINE [DEFINE ...]] [-p REPORT_FILE] [-t {sqlite,json,junit,html,text}]
-                        [-n REPORT_PATTERN [REPORT_PATTERN ...]] [-i INCLUDE_PATH [INCLUDE_PATH ...]] [-o] [-g]
-                        [test_file]
+    usage: testium [-h] [--version] [-b] [-o] [-c CONFIG_FILE [CONFIG_FILE ...]]
+                   [-r] [-l LOG_FILE] [-d DEFINE [DEFINE ...]] [-p REPORT_FILE]
+                   [-t {sqlite,junit,json,html,text}]
+                   [-n REPORT_PATTERN [REPORT_PATTERN ...]]
+                   [-i INCLUDE_PATH [INCLUDE_PATH ...]] [-g]
+                   [test_file]
 
     positional arguments:
-    test_file             the test script file
+      test_file             the test script file
 
-    optional arguments:
-    -h, --help            show this help message and exit
-    --version             Returns the version of testium
-    -b, --batch-execution
+    options:
+      -h, --help            show this help message and exit
+      --version             Returns the version of testium
+      -b, --batch-execution
                             Executes the test in batch mode
-    -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...]
-    -o, --no-color        Deactivates stdout colors in batch mode
+      -o, --no-color        Deactivates stdout colors in batch mode
+      -c, --config-file CONFIG_FILE [CONFIG_FILE ...]
                             Configuration file
-    -r, --run-and-close   Runs the test then closes the application
-    -l LOG_FILE, --log-file LOG_FILE
+      -r, --run-and-close   Runs the test then closes the application
+      -l, --log-file LOG_FILE
                             log file name
-    -d DEFINE [DEFINE ...], --define DEFINE [DEFINE ...]
+      -d, --define DEFINE [DEFINE ...]
                             Configuration passed to the executed tests.
-    -p REPORT_FILE, --report-file REPORT_FILE
+      -p, --report-file REPORT_FILE
                             report file name
-    -t {sqlite,json,junit,html,text}, --report-type {sqlite,json,junit,html,text}
+      -t, --report-type {sqlite,junit,json,html,text}
                             report file type
-    -n REPORT_PATTERN [REPORT_PATTERN ...], --report-pattern REPORT_PATTERN [REPORT_PATTERN ...]
+      -n, --report-pattern REPORT_PATTERN [REPORT_PATTERN ...]
                             report file pattern
-    -i INCLUDE_PATH [INCLUDE_PATH ...], --include-path INCLUDE_PATH [INCLUDE_PATH ...]
+      -i, --include-path INCLUDE_PATH [INCLUDE_PATH ...]
                             Python modules search path
-    -g, --debug           GUI debug mode
+      -g, --dev-debug, --debug
+                            attach a debugger to testium itself (development, see
+                            CONTRIBUTING.md)
 
 ``-h, --help``
 --------------
