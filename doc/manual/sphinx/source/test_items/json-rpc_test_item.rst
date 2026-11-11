@@ -52,7 +52,7 @@ Attributes
 
 the jsonrpc attributes are:
 
-* ``timeout``: global communication timeout in seconds. It is a floating point number.
+* ``timeout``: required. Global communication timeout in seconds. It is a floating point number.
 * ``version``: "1.0" or "2.0" (as a string) depending on the version of the JSONRPC
   standard which is supported.
 * ``mute``: a boolean giving the verbosity of the jsonrpc exchanges on the log output.
