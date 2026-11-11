@@ -1769,7 +1769,7 @@
           "description": "Prompt shown above the list of choices."
         },
         "choices": {
-          "description": "Tree of choices: either a list of strings, or a nested mapping {label: subchoices, ...} to build a multi-level menu.",
+          "description": "Tree of choices: a list of {name: ..., description: ..., choices: ...} mappings; the choices entry recursively builds a multi-level menu.",
           "type": "object"
         },
         "icon": {

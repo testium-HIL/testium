@@ -13,8 +13,9 @@ class TestItemChoicesDialog(TestItemDialogBase):
         Param("question", required=True,
               doc="Prompt shown above the list of choices."),
         Param("choices", kind=BLOCK, required=True,
-              doc="Tree of choices: either a list of strings, or a nested "
-                  "mapping {label: subchoices, ...} to build a multi-level menu."),
+              doc="Tree of choices: a list of {name: ..., description: ..., "
+                  "choices: ...} mappings; the choices entry recursively "
+                  "builds a multi-level menu."),
         Param("icon", default=None,
               doc="Default icon name shown next to each choice."),
         Param("auto_result", default=None,
