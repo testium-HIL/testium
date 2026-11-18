@@ -23,3 +23,34 @@
         - junit:
             path: $(validation_report_path)$(psep)$(test)_FAIL.junit
             key: $(test)_FAIL
+
+# The 'py_func' item emits C0 control characters in its log (ESC/BEL,
+# as a live console does): the HTML report written above must keep every
+# log line. Checked right after the export, for that item only.
+- py_func:
+    name: HTML export keeps log lines with C0 control characters
+    key: $(test)_PASS
+    condition: <| "$(test)" == "py_func" |>
+    file: $(test_path)$(psep)py_func.py
+    func_name: check_html_log
+    param:
+      - $(validation_report_path)
+      - $(test)
+      - "CTRLLOG start|CTRLLOG title|CTRLLOG end"
+
+# The 'console' item emits tsline_1/2/3 two seconds apart, leaves them
+# buffered and drains them with one read_until: the per-step JUnit log must
+# keep the 2 s spacing between the lines' [HH:MM:SS name] stamps (reception
+# time), not collapse them onto the drain time. Checked right after the
+# export, for that item only.
+- py_func:
+    name: Console log stamps keep the reception spacing
+    key: $(test)_PASS
+    condition: <| "$(test)" == "console" |>
+    file: $(test_path)$(psep)tscheck.py
+    func_name: check_log_timestamps
+    param:
+      - $(validation_report_path)
+      - $(test)
+      - "Console timestamp buffered drain"
+      - 3

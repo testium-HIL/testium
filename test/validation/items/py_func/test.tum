@@ -386,3 +386,9 @@
             key: $(test)_PASS
             file: $(test_path)$(psep)py_func.py
             func_name: check_variants
+
+- py_func:
+    name: emit C0 control characters in the log
+    key: $(test)_PASS
+    file: $(test_path)$(psep)py_func.py
+    func_name: emit_ctrl_chars

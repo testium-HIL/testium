@@ -76,6 +76,35 @@ def hold_ports(first, count):
     return True
 
 
+def emit_ctrl_chars():
+    # Reproduce what a live console emits: a terminal title sequence
+    # (ESC ] 0 ; <title> BEL), a bracketed-paste mode change, a cursor
+    # move. The step log then carries C0 control characters, and the
+    # HTML export must keep every line of it.
+    print("CTRLLOG start")
+    print("\x1b]0;testium\x07CTRLLOG title\x1b[?2004h")
+    print("\x1b[8DCTRLLOG end")
+    return 0
+
+
+def check_html_log(report_dir, item, markers):
+    # The per-item HTML report (written by the report items in
+    # items/report.tum) must keep the full log of every step: a line
+    # carrying C0 control characters must not be dropped by the exporter.
+    import os
+
+    path = os.path.join(report_dir, f"{item}_PASS.html")
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    missing = [m for m in markers.split("|") if m not in content]
+    if missing:
+        raise AssertionError(
+            f"{path} is missing log line(s): {missing} - "
+            "the HTML export dropped lines carrying C0 control characters"
+        )
+    return 0
+
+
 def _mark_variant(name):
     tm.setgd("variants_seen", (tm.gd("variants_seen") or []) + [name])
 

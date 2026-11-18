@@ -1,9 +1,17 @@
 
+import re
 import lxml.html
 import lxml.etree
-import html
 from runtime.testium_report import Exporter
 import interpreter.utils.constants as cst
+
+_INVALID_XML_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x80-\x9f]')
+
+
+def _sanitize(s):
+    """Silently strip the characters lxml cannot serialize (C0 except
+    \t\n\r, DEL, C1), the same policy junit_xml already applies."""
+    return _INVALID_XML_RE.sub('', s)
 
 class ReportExportHTML(Exporter):
     HEADER_TEXTS = {
@@ -24,20 +32,20 @@ class ReportExportHTML(Exporter):
             f.write(lxml.html.tostring(self.root, pretty_print=True).decode())
 
     def add_row(self, row):
-        trow = lxml.etree.SubElement(self.table, 'tr')
         try:
+            trow = lxml.etree.SubElement(self.table, 'tr')
             for text in (row.name, row.message,
                          '{:.4f}'.format(row.duration_s), row.result):
                 rh = lxml.etree.SubElement(trow, 'td')
-                rh.text = text
+                rh.text = _sanitize(text)
 
             log = row.log or ''
             if log != '':
                 h2 = lxml.etree.SubElement(self.logsection, 'h3')
-                h2.text = row.name
+                h2.text = _sanitize(row.name)
                 for l in log.splitlines():
                     p = lxml.etree.SubElement(self.logsection, 'p')
-                    p.text = html.escape(l)
+                    p.text = _sanitize(l)
         except ValueError as e:
             print(f'[report] HTML export: cannot render row for test '
                   f'"{row.name}": {e}')
@@ -51,10 +59,10 @@ class ReportExportHTML(Exporter):
         self.root = lxml.etree.Element('html', lang='en')
         head = lxml.etree.SubElement(self.root, 'head')
         title = lxml.etree.SubElement(head, 'title')
-        title.text = repname
+        title.text = _sanitize(repname)
         self.body = lxml.etree.SubElement(self.root, 'body')
         h1 = lxml.etree.SubElement(self.body, 'h1')
-        h1.text = repname
+        h1.text = _sanitize(repname)
 
         div = lxml.etree.SubElement(self.body, 'div')
         h2 = lxml.etree.SubElement(div, 'h2')
@@ -65,7 +73,7 @@ class ReportExportHTML(Exporter):
                 h = lxml.etree.SubElement(div, 'h3')
                 h.text = self.HEADER_TEXTS[k]
                 p = lxml.etree.SubElement(div, 'p')
-                p.text = self.report.header[k]
+                p.text = _sanitize(self.report.header[k])
 
         div = lxml.etree.SubElement(self.body, 'div')
         h2 = lxml.etree.SubElement(div, 'h2')

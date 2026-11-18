@@ -1,226 +1,303 @@
-# Testium manual ↔ implementation consistency report
+# TODO
 
-Scope: `doc/manual/sphinx/source/*.rst` (+ `test_items/*.rst`) vs `src/testium/`
-(stale `src/build/`, `src/dist/`, `__pycache__` ignored).
+Found while running the cam_ha reliability campaign (2026-11-06, testium 0.6.1).
 
-> **Build env note (PDF):** `build_doc.sh` failed on TeX Live 2026.1 (Arch)
-> because Sphinx 9.2.0's `sphinxlatextables.sty` pins `array[=v2.6]`, but the
-> installed `array` (v2.6n) declares no `v2.6` label (the rollback file
-> `array-2024-06-01.sty` only exists in the texlive-dev tree). Local 1-line
-> patch applied to
-> `test/tmp/.venv/.../sphinx/texinputs/sphinxlatextables.sty` (load `array`
-> unpinned). Re-apply if `build_all.sh` reinstalls sphinx.
+- HTML export: a row whose log or data holds a control character (ESC, BEL)
+  is dropped with "All strings must be XML compatible" (`report_export_html.py`,
+  `add_row`). Sources: the terminal console's bash prompt (title `ESC ] 0 ; ... BEL`,
+  bracketed paste `ESC [ ?2004h/l`) and the Zephyr shell cursor codes
+  (`ESC [ 8D`, `ESC [ J`, colours). Strip ANSI sequences and the remaining
+  C0 characters before `rh.text = ...` / `p.text = ...` so the row renders.
+  Campaign-side workaround for the terminal part: `shell: /usr/bin/env TERM=dumb bash --norc`.
 
-## ✅ Coverage — no missing test items
+Found while reworking the cam_ha cycle campaign (2026-11-15, testium 0.6.2).
 
-All 23 manual test items map 1:1 to implementation classes with matching YAML
-keys (`TestItemType` in `interpreter/utils/constants.py`): unittest, pytest,
-console, loop, py_func, lua_func, report, git, plot, group, dialog_image,
-dialog_message, dialog_note, dialog_question, dialog_references, dialog_value,
-dialog_choices, let, check, sleep, run, json_rpc, parallel.
+- `exec` has no dialect for a device shell (Zephyr shell: no `;`, no `printf`).
+  `writeln` + `read_until "OK"` is the only way, and every command answers
+  `OK`: an unread `OK` ends the next command too early, the campaign runs
+  ahead of the board and the board drops characters. Wanted: a dialect that
+  sends the marker as a second line through a command the user names
+  (`marker_cmd: "sync {id}"`, expected `@SYNC:{id}@` at line start).
+  Workaround: firmware command `sync <token>`, and a
+  `writeln: sync sNN` / `read_until: "@SYNC:sNN@"` pair after every command.
+- `read_until` matches text received before the action started. Wanted: a
+  `flush` console action (the API has `flush()`), or `read_until` with
+  `from: now`. Workaround: the same marker pair.
+- Console log lines carry the time they were read by a step, not the time
+  they arrived (`[18:21:32 ser]` on thirty seconds of board output). Wanted:
+  the reception time, taken in the reader thread.
 
-`schema/tum.json` contains exactly these (plus actions/params); its top-level
-keys (`config_file`, `main`, `report`) match the manual.
+Found while building the validation suite (2026-11-18).
 
----
-
-## ❌ Discrepancies — manual contradicts implementation
-
-| # | Topic | Manual says | Implementation does | Where |
-|---|-------|-------------|---------------------|-------|
-| 1 | CLI | usage header `testium.pyw` | entry point is `testium` (`[project.scripts] testium = "testium:main"`); no `.pyw` exists | `cdl_interface.rst` L6 vs `src/pyproject.toml` |
-| 2 | CLI `-g` | usage block: `-g` "GUI debug mode" | flags are `-g, --dev-debug, --debug`, "attach a debugger to testium itself (development…)" — the manual's own detailed section (`--dev-debug`) is correct; usage block is stale | `cdl_interface.rst` vs `__init__.py` argparse |
-| 3 | Report export `path` default | `$(report_path)` | default `''`, falling back to preference `defaultReportPath` = `$(test_directory)`. `report_path` is **not** a global variable | `reports.rst` vs `test_report.py` `Export`, `settings.py` L47 |
-| 4 | plot `last_value` | stored in `plv_<item_name>` (example `$(plv_Plot measure_1 value)`) | stored in `plv_<plot_name>` (`tm.setgd("plv_" + gname)`) | `plot_test_item.rst` vs `test_item_runtime_plot.py` L242 |
-| 5 | console `write_delay` | documented as an item-level attribute | it is a parameter of the `open` action only | `console_test_item.rst` vs `test_item_console.py` |
-| 6 | console `open.log` | "only for Telnet and Serial" | applied generically to all protocols | `console_test_item.rst` vs `test_item_console.py` |
-| 7 | console `terminal_path` | "Path of the terminal console" | "Working directory for the local terminal protocol" | `console_test_item.rst` vs `test_item_console.py` L85 |
-| 8 | json_rpc `timeout` | listed without required marker | `required=True` | `json-rpc_test_item.rst` vs `test_item_json_rpc/__init__.py` |
-| 9 | loop `loop_index_inverse` | "starts from the iteration count minus 1 and decrements" (9…0 for 10 iterations) | computes `_niter - i - 1` → **8…-1** (off-by-one) | `loop_test_item.rst` L79 vs `test_item_cycle.py` L158 + `params.py` `getInverseLoopIndex` |
-| 10 | loop `exit_condition` function | "must have two parameters: the current loop iterator value and the report" | called with **one** argument — the current loop value (or a custom `param` list) | `loop_test_item.rst` L50-53 vs `test_item_cycle.py` L227-242, `py_func_exec.py` `func_call` |
-| 11 | dialog_choices `auto_result` | "Selection used in batch mode (choice path or label)" | it is a truthy gate: any set non-`cancel` value ⇒ **all choices checked**; the value is never parsed as a selection | `dialog_choices_test_item.rst` L70-71 vs `test_item_choices_dialog.py` L88-98 + `dialog_presenter.accepts` |
-| 12 | dialog_references `reference` | "``question`` and ``reference`` are mandatory" | only `question` is required; without `reference` the dialog shows a single empty row | `dialog_reference_test_item.rst` L34 vs `test_item_tested_references.py` L28-30 |
-
-Minor wording: the `skipped` common attribute is described as if a skipped
-step "fails"; it is reported as SKIP/NORUN. — **done**
-(`items_common_attributes.rst`, 2026-11-11): reworded to "displayed as
-skipped (``SKIP``) in the report" (code: `TestValue.NORUN` → `SKIP`).
-
-Additional finding (not in the original audit): `test_name` is the `name`
-attribute of the `main` section (default `Unnamed`), not the file name
-(`process.py` L175-176). — **done** (`tum_syntax.rst`, 2026-11-11).
-
----
-
-## ➕ Implemented but undocumented
-
-1. **Built-in globals** — implementation sets six keys absent from the manual's
-   built-in list (`test_init.py` L158-167, L259-269): `testium_version`,
-   `testium_path`, `config_files`, `test_version`, `test_modifs`,
-   `start_test_date`.
-2. **`!raw_include`** — non-recursive include tag (`include.py` L98-101), no
-   mention anywhere in the manual.
-3. **`include_directory`** jinja variable — injected into every template render
-   (`template.py` L99-100), undocumented.
-4. **`overwrite_log`** (console `open`, default True) — undocumented.
-5. **`param`** (loop `exit_condition`, replaces the default `[loop_param]`
-   argument) — undocumented.
-6. **`param`** (plot `periodic` action, args passed to the periodic function
-   each call) — undocumented.
+- The report sqlite is committed only in `open()` (schema + initial header)
+  and `close()` (final header + all rows): every `addTest` INSERT runs in one
+  long open transaction. After a crash (kill, power loss) the whole run is
+  rolled back — a long campaign that dies in its last hours leaves an empty
+  `tests` table — and an external process cannot read the file mid-run (the
+  open write transaction blocks readers in rollback journal mode; the
+  suite's cross-item checks had to parse the per-item JUnit instead).
+  In-process consumers are unaffected (GUI and the built-in exporters use
+  the live connection), and `_db_snapshot` (the `plugin`/`command`
+  out-of-process exporters) already commits the open transaction mid-run —
+  "nothing relies on rollback" — so the transaction has no semantic role.
+  Wanted: commit after each `addTest` INSERT (inside the existing
+  `self._lock`); the `close()` final header remains the completion marker
+  (crashed run = rows present, final header absent). Priority: below the
+  console points — hardening, not a bug blocking the campaign. Open
+  question: enable WAL for file-backed reports so external readers are
+  never blocked (cost: `-wal`/`-shm` sidecars, and a mid-run copy of the
+  `.sqlite` alone is incomplete) or keep the default journal (the file is
+  always a valid standalone DB; readers may rarely hit "database is locked"
+  and should set a busy timeout).
 
 ---
 
-## ✏️ Manual-internal defects
+## Analysis & proposals (code review, 2026-11-17)
 
-- `home` is listed **twice** in the built-in values list (`tum_syntax.rst` L132 & L138).
-- Common-attributes table writes the key attribute as `Key` (capitalized) — typo.
-- `tum_syntax.rst` L85: `:ref:`lua<sec_py_func_item>`` — the lua link points to the py_func anchor.
-- Default config file: implementation auto-loads `param.yaml` **or** `param.yml`
-  (`process.py` L92-99); manual only mentions `param.yaml`.
-- Copy-paste artifacts: `dialog_message`, `dialog_note`, `dialog_question`
-  examples all use `name: dialog value test item`; json-rpc section titled
-  "jsonrpc" while the YAML key is `json_rpc`; the `-g` usage-block help (see #2)
-  and CLI option order differ from the argparse definition.
+### 1. HTML export — confirmed, and the scope is wider than stated
 
----
+**Confirmed, now executed.** `report_export_html.py` `add_row` (L26-43):
+lxml rejects C0 control characters on `.text` assignment and raises
+`ValueError` ("All strings must be XML compatible: Unicode or ASCII, no NULL
+bytes or control characters" — executed: identical message to the live-run
+warning); the `except` prints a warning and the log section is lost *from the
+failed line on* (verified: `CTRLLOG start` survives, `CTRLLOG title`/`end`
+dropped). Additionally `trow` is created *before* the `try`, so a failure
+mid-cell leaves a partial `<tr>` in the table. Note: lxml accepts DEL and C1
+(`0x80-0x9F`) — only C0 (except `\t\n\r`) raises.
 
-## 📎 Stale *implementation* docstrings (not manual bugs, footnotes)
+Scope is wider than the entry states:
+- **Double-escape in the same function (now executed, not inferred):**
+  `p.text = html.escape(l)` (L40) — lxml escapes `.text` at serialization, so
+  `a < b` renders as `a &lt; b` in the browser (`html.escape` + `.text`
+  serializes to `&amp;lt;`). 380 such traces across the 34 HTML files in
+  `test/tmp/`. Fix: `p.text = sanitize(l)`, no `html.escape`.
+- **`create_base` (L46-82) has no `try/except`:** one C0 in the report name
+  (`-n`) or a header field aborts the whole export with an uncaught
+  `ValueError` and no file written. Low probability, total loss.
+- **JUnit export: NOT broken — correcting the 2026-11-17 claim.** `junit_xml`
+  already sanitizes: its `clean_str` strips C0 (except `\t\n\r`) plus DEL
+  before serialization. Executed: log `a\x1bb\x07c\td\ne` →
+  `abc&#9;d&#10;e`, output reparses; the campaign's `py_func_PASS.junit` /
+  `validation-source-py_func.xml` reparse with all log markers present.
+  Nit only: C1 (`0x80-0x9F`) passes `junit_xml` through, so a C1-laden log
+  yields XML that is not strictly XML 1.0 legal (expat-family parsers accept
+  it anyway). No change needed.
+- **json/txt exporters: unaffected** (json escapes C0 as `\uXXXX`; txt is raw).
+- **The `log:` file log is already clean**: `LoggedConsole.read_thread`
+  (`api/console.py` L706) filters through `_is_valid_character` (keeps
+  `0x20-0x7E` + `\n\r\t`), so only the report/GUI paths carry the ANSI garbage.
 
-- `api/testium.py` `text_mode()` docstring mentions a terminal `-m` flag that
-  does not exist in argparse.
-- `test_item_choices_dialog.py` `choices` docstring says "a list of strings,
-  or a nested mapping {label: subchoices}" — the runtime actually requires a
-  list of `{name: …}` dicts (the **manual** is correct here).
+Proposal (HTML exporter only — see the JUnit correction above):
+- Module-level sanitizer in `report_export_html.py`:
+  `re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x80-\x9f]').sub('', s)`,
+  applied to every text sink:
+  - C0 except `\t\n\r`: what makes lxml raise (the crash);
+  - DEL + C1: XML 1.0 legality + parity with `junit_xml` (which strips DEL);
+    never crash lxml, but keep the output strictly valid XML 1.0.
+- Apply in `add_row` to the 4 `<td>` cells, the log `<h3>` title and each log
+  line (drop `html.escape` → fixes the double-escape); move the `trow`
+  creation *inside* the `try` (no partial rows); keep the `except ValueError`
+  as a last-resort guard. Apply in `create_base` to the report name
+  (`<title>`, `h1`) and the header fields.
+- End-to-end regression test already exists and is red: the `py_func`
+  validation item emits `CTRLLOG start` / ESC-BEL-CSI lines / `CTRLLOG end`
+  and `items/report.tum` asserts the three markers in `py_func_PASS.html`
+  (fails today, will pass with this fix). Optional hardening: emit one line
+  with a `<` (e.g. `CTRLLOG lt: a < b`) and assert the single-escaped form
+  `a &lt; b` in the HTML to lock the double-escape fix.
 
----
+Questions:
+- Stray C0 characters: strip (silent) or replace with a visible placeholder
+  (U+FFFD)? I'd strip — a lone `0x01` in a report has no display value, and
+  silent strip is exactly what `junit_xml` already does for JUnit, so the HTML
+  and JUnit reports of the same log stay consistent. (Stripping whole ANSI
+  sequences — `ESC]0;…BEL` → nothing — would be cosmetically cleaner but
+  diverges from the JUnit output and adds regex surface; not in this fix.)
+  (For the *file* log, stripping already exists.)
+- Phase 2 (optional, bigger behavior change): strip ANSI at console ingestion
+  (e.g. `open: {ansi_strip: true}`) so the GUI log and the `cn_<name>` globals
+  are clean too. Note this changes what `read_until`/`check` see, so it must
+  stay opt-in. Worth doing at all, or is the report-side fix enough?
 
-## ✅ Verified consistent (no action needed)
+### 2. exec / Zephyr shell — confirmed, proposal fits the existing marker architecture
 
-- CLI flag set, `--version`, `-t {sqlite,json,junit,html,text}` vs `REP_TYPES`;
-  `-d` defines override order; `run` item GUI `-r` / batch `-b -o` / auto
-  log-file naming / time windows.
-- Reports: root `report` element (`enabled`, `log_stored`, `export`), inline
-  `report` item (required `export`, sqlite ignored, no header), DB schema
-  (9 header fields, 12 `tests` columns in the manual's order), duration in
-  0.1 ms units, NORUN→SKIP mapping, custom exporter plugin mechanism.
-- Common attributes: full `COMMON_PARAMS` set matches the manual table;
-  `store_result`, `process_result`, `expected_result`, `condition`,
-  `report` semantics.
-- Duration format `Nd Nh Nm Ns` (order enforced, negatives refused) vs `duration.py`.
-- Loop: `iterator` int/list/undefined→`inf`, `loop_param`/`loop_index`/`loop_count`
-  (incl. `inf`), `exit_condition.time` in minutes, `value` exit, `file`+`func_name` pairing rules.
-- py_func/lua_func: `file`, `func_name`, `param`, `context_id`, `debug`
-  (debugpy, `py_func_debug_port` default 5678, py_func only); `python_env`/`lua_env`
-  honored in `py_process.py`/`lua_process.py`.
-- console: `console_instances`, `cn_<name>` (parent-item name), `read_until`
-  (expected/regex/timeout/mute), `exec` (cmd/timeout/mute), protocols telnet/
-  ssh/serial/rawtcp/terminal and their params.
-- json_rpc: console/udp adapters (`server`, `snd_port`, `rcv_port`, `bufsize` 1450,
-  `multicast_if`; console `name`+`prompt`), actions open/close/query/receive,
-  version default "1.0", `rand` id prefix, mute.
-- parallel: `sync` all/any, `wait_for` (condition, timeout 30, 0.1 s polling,
-  timeout→branch FAIL).
-- Dialogs: `auto_result`/`auto_value` semantics for image/message/note/
-  question/value; `cs_<name>` structure `{name, checked, choices}`;
-  `tested_items` list-of-`{reference, revision, serial}` with `/` pre-fill.
-- Templates/includes: main file always jinja-processed, config+built-in
-  variables, include args passed as declared, `expand()` load-time resolution,
-  `!include` with/without `file:` mapping, root `config_file` key (string or list).
+**Confirmed.** `api/console_sync.py`: `DIALECTS = ("sh", "cmd", "powershell")`;
+all three `wrap_command` variants append the marker **on the same line** using
+shell features (`;`+`printf`, `&`+`echo`, `;`+string concatenation) — none
+works on the Zephyr shell (no `;`, no `printf`). The per-call unique marker
+(`new_marker_id`, 12 hex chars) and the line-start anchor already exist and can
+be reused unchanged.
 
----
+Proposal (additive, mirrors the existing contract):
+- `open` gains `dialect: custom` plus two templates, both expanding `{id}` per
+  call (required when `dialect: custom`):
+  - `marker_cmd: "sync {id}"` — sent as a **second line** after the command;
+  - `marker: "@SYNC:{id}@"` — `re.escape`d, anchored at line start (same
+    `(?:^|[\r\n])` anchor as `completion_regex`).
+- `exec` with `custom`: `writeln(cmd)`; `writeln(marker_cmd_fmt)`;
+  `read_until` with the anchored escaped marker; strip the marker line from the
+  result. Result contract unchanged (`cn_<name>`, reported `data`).
+- Docs + schema: `open` PARAMS docstrings, `console_test_item.rst`, and
+  `schema/tum.json` regenerated (`testium schema > schema/tum.json` —
+  `test/validation/schema_check.py` enforces the sync).
 
-## 📋 Plan of action (prioritized)
+Caveats / questions:
+- **Missing trailing newline**: if the command's last output line has no `\n`,
+  the marker glues to it and the line-start anchor fails → timeout. The current
+  workaround evidently lives with this; I'd *document* "the marker must arrive
+  on its own line" (the firmware prints `@SYNC:id@\n`) rather than adding a
+  `marker_anchor` knob. OK?
+- The echoed `sync <id>` command line cannot false-match: the pattern is the
+  `@…@` marker, not the command text (same guarantee the current dialects have).
+- Should `dialect: custom` also be allowed on `terminal`/`ssh` consoles (harmless
+  generalization) or restricted to the device protocols? I'd allow it anywhere
+  — the dialect is a property of the shell on the far end, not of the transport.
 
-### P0 — Likely to mislead users in scripts
-- [x] **[3]** Report export `path` default: fixed the table — `$(report_path)`
-  (nonexistent global) → `/`, and documented the real behavior: when empty
-  (the default) the file is written from `file_name` as a relative path; no
-  `defaultReportPath` fallback for export entries (that fallback only exists
-  in `extractReportPath()` for the root `report:` element) — **done**
-  (`reports.rst`, 2026-11-11; PDF regenerated, p. 55).
-- [x] **[4]** plot `last_value`: correct `plv_<item_name>` → `plv_<plot_name>` in
-  the manual and example — **done** (`plot_test_item.rst`, 2026-11-11; PDF
-  regenerated, Listing 4.43).
-- [x] **[9]** Loop `loop_index_inverse`: fixed the code off-by-one — the manual
-  ("count-1 … 0") is the intended contract (mirror of `loop_index`, never
-  negative); `test_item_cycle.py` L158 `_niter - i - 1` → `_niter - i`; added
-  regression test (`items/cycle`: `iterator: 5`, asserts
-  `loop_index_inverse == 4 - loop_index` each cycle; failed on iteration 1
-  with the old code) — **done** (2026-11-11; full source validation suite:
-  post-execution SUCCESS).
-- [x] **[10]** Loop `exit_condition` function signature: corrected the false
-  "two parameters (loop value, report)" claim → single argument by default
-  (`$(loop_param)`); added the missing `param` attribute bullet — **done**
-  (`loop_test_item.rst`, 2026-11-11; PDF regenerated, pp. 35-36).
+### 3. read_until matching pre-buffered text — confirmed; I'd pick the `flush` action, not `from: now`
 
-### P1 — Contract mismatches
-- [x] **[11]** dialog_choices `auto_result`: removed from the manual (internal
-  validation-suite gate, not a user contract) — dropped the `auto_result`
-  bullet on **all 7 dialog pages** (choices, image, message, note, question,
-  references, value) plus the `auto_value` bullets on note/value, and fixed
-  "specific attribute:" → "attributes" in `dialog_value`; rewrote the 7
-  `auto_result`/`auto_value` PARAMS docstrings with the real contract
-  (unattended-run gate: text-mode per-dialog semantics + GUI `ok`/`yes`
-  auto-accept after 2 s / anything else auto-rejects); regenerated
-  `schema/tum.json` via `./run.sh schema` (diff = exactly the 7 descriptions)
-  — **done** (2026-11-11; PDF pp. 22-26 verified; full source validation
-  suite: schema check PASS, post-execution SUCCESS).
-- [x] **[12]** dialog_references: `reference` is documented as optional (single
-  empty row when absent), not mandatory — **done** (`dialog_reference_test_item.rst`,
-  2026-11-11; PDF p. 25 verified; full source validation suite: post-execution
-  SUCCESS).
-- [x] **[5]** console `write_delay`: moved out of the item-level attribute list
-  into the `open` action bullets, with a note that the `ssh` protocol does not
-  apply it (`SshConsole.__init__` takes no `write_delay`) — **done**
-  (`console_test_item.rst`, 2026-11-11).
-- [x] **[6]** console `open.log`: rewritten — accepted by every protocol, but
-  the log is only written for `telnet`/`serial` (the others print
-  "logging of <protocol> is not yet supported" and ignore it); a path ending
-  in `.log` names a file, otherwise it names a folder (created if missing)
-  holding `<folder>/<console_name>.log` — **done** (`console_test_item.rst`,
-  2026-11-11; PDF p. 23 verified).
-- [x] **[7]** console `terminal_path`: description fixed to "Working directory
-  for the local terminal protocol" — **done** (`console_test_item.rst`,
-  2026-11-11; PDF p. 23 verified).
+**Confirmed.** Buffered transports run a reader thread that decouples arrival
+from consumption — `SerialConsole` (bufferize, the default) and the
+`LoggedConsole` variants feed `rx_queue`, `TermConsole` feeds `self.q`
+(`enqueue_output`) — so the `read_until` loop drains whatever is already
+buffered, and a stale `OK` from the previous command satisfies the next
+`read_until "OK"` instantly.
 
-### P2 — Missing documentation (implemented but undocumented)
-- [x] **[19]** Built-in globals: added `testium_version`, `testium_path`,
-  `config_files`, `test_version`, `test_modifs`, `start_test_date` — **done**
-  (`tum_syntax.rst`, 2026-11-11; PDF p. 15 verified).
-- [x] **[20]** `!raw_include` — documented in `includes.rst` (verbatim splice,
-  no sub-sequence wrapper, no source-file attribution; verified by an isolated
-  loader experiment) — **done** (2026-11-11). **[21]** `include_directory`
-  jinja variable — subsection added to `templates.rst` (dir of the file being
-  rendered, main + included files) — **done** (2026-11-11; PDF p. 49 verified).
-- [x] **[6/23]** `overwrite_log` (bullet after `log`, `console_test_item.rst`);
-  loop `exit_condition.param` (already documented from **[10]**, nothing to do);
-  plot `periodic.param` (bullet between `func_name` and `eval`,
-  `plot_test_item.rst`) — **done** (2026-11-11).
-- [x] **[8]** json_rpc `timeout`: item-level `timeout` marked `required.`
-  (item-level `required=True`; the `query`/`receive` action timeouts stay
-  `default=None`) — **done** (`json-rpc_test_item.rst`, 2026-11-11).
+The two options in the entry are **not** equivalent:
+- **`flush` action — recommended.** Semantics: discard everything in the buffer
+  *before the next command is written*. Usage: `flush` → `writeln cmd` →
+  `read_until`. No race: bytes arriving after the flush are response data and
+  are kept.
+- **`read_until from: now` — race hazard.** It discards whatever is buffered at
+  action start, i.e. it must be used *after* the write. Any response bytes that
+  arrived in the gap between the write and the read start are thrown away — at
+  115200 baud the board can already have sent its whole `OK` in that gap →
+  guaranteed timeout. A `flush` action placed before the write has no such
+  window.
 
-### P3 — Manual-internal defects & stale docstrings
-- [x] **[1]** CLI: usage header `testium.pyw` → `testium` — **done**
-  (`cdl_interface.rst:6`, 2026-11-11).
-- [x] **[2]** CLI: usage block — replaced the whole stale block with the real
-  `testium --help` output (verified byte-identical: `-o` after `-b`,
-  `-t {sqlite,junit,json,html,text}` order, `options:` header, aligned `-c`,
-  `-g, --dev-debug, --debug` + dev-debug help) — **done** (`cdl_interface.rst`,
-  2026-11-11; PDF regenerated via `build_doc.sh`).
-- [x] Remove duplicate `home` bullet (`tum_syntax.rst`) — **done** (2026-11-11).
-- [x] Fix `Key` → `key` in common attributes table — **done** (2026-11-11).
-- [x] Fix lua `:ref:` anchor → `sec_lua_func_item` (`tum_syntax.rst`) — **done**
-  (2026-11-11).
-- [x] Mention `param.yml` for the default config file (the code loads **both**
-  `param.yaml` and `param.yml` that exist, in that order — `process.py` L92-99)
-  — **done** (2026-11-11).
-- [x] Fix dialog `name:` copy-paste artifacts (`dialog_message`/`dialog_note`/
-  `dialog_question` examples, 1 commit) and the json-rpc section title +
-  item-name references → `json_rpc` (protocol mentions like "jsonrpc
-  server/frame/action" left as-is) — **done** (2026-11-11).
-- [x] Update stale implementation docstrings: `api/testium.py` `text_mode()`
-  (dropped the nonexistent `-m` flag — only `-b` enables text mode) and
-  `test_item_choices_dialog.py` `choices` (a list of `{name: …}` mappings);
-  `schema/tum.json` regenerated (diff = exactly that one description) —
-  **done** (2026-11-11).
+**Regression test (stage A) is in place and RED.**
+`test/validation/items/console/test.tum`, the `Console stale OK *` items:
+dedicated terminal console, `writeln: echo OK` whose answer is left unread,
+a settle, then `writeln: echo STALE_SECOND_OUT; echo OK` +
+`read_until: {expected: OK, timeout: 5}`, and a `check` asserting the
+captured data contains `STALE_SECOND_OUT`. Today the `read_until` step
+itself PASSes (it matched the *stale* `OK`, with the wrong data) and the
+`check` is the single red item in the full suite — exactly the bug. Stage B
+(when the `flush` action lands, step 4): insert a `flush` step as the first
+step of the "second command" item, before the `writeln`; the `read_until`
+then has to wait for the new command's answer and the `check` turns green.
+Until the action exists it must not appear in any `.tum` (an unknown action
+is a load-time `ETUMSyntaxError` that kills the whole run).
+
+Implementation notes for the `flush` action (verified against the code,
+2026-11-18):
+- **Every concrete console already drains its receive buffer in
+  `read_nowait`** — the base `Console.read_nowait` is `pass` (console.py
+  L117-118), but it is never the one that runs:
+  - `TermConsole.read_nowait` (`api/termconsole.py` L136-153):
+    `self.q.getAll()` on the `BytesStore` fed by the reader thread; the last
+    incomplete line is pushed back. Complete drain — `TermConsole._push_back`
+    also goes to `self.q`, so nothing hides in `self._pending`.
+  - `SerialConsole.read_nowait` (`api/console.py` L612-629):
+    `rx_queue.getAll()` when bufferize; `_pending_text()` +
+    `port.read(in_waiting)` otherwise.
+  - `LoggedConsole.read_nowait` (L754-765): `_pending_text()` + `rx_queue`
+    drain.
+  - `TelnetConsole` (L406-410): `_pending_text()` + `read_very_eager()`;
+    `SshConsole` (`console_ssh.py` L574+): already-arrived data;
+    `RawTCPConsole` (`raw_tcp_console.py` L72+): timeout-0 recv.
+- **The one broken link: `SerialConsole.flush` is overridden to
+  `self.port.flush()`** (L609-610) — the OS input buffer only, which does
+  *not* touch `rx_queue` where the reader thread already parked the stale
+  bytes. Every other transport inherits `Console.flush()` =
+  `read_nowait(mute=True)`, which is correct. One-line fix: make
+  `SerialConsole.flush` call `self.read_nowait(mute=True)` (optionally after
+  `self.port.flush()`, to also clear the OS buffer).
+- **The action itself is then trivial**: new `TestItemConsoleFlush`
+  (modeled on `TestItemConsoleClose`, `test_item_console.py` L308-338):
+  resolve `console_name`, `cons = tm.console(cname)`, call
+  `cons.read_nowait(mute=True)` (or `cons.flush()` after the serial fix),
+  `SUCCESS`; register `"flush"` in `TestItemConsole.ACTIONS` (L608-615).
+  No caller of `Console.flush()` exists today (grep: the `.flush()` hits are
+  all file/stdout flushes) — the action is its first user. `mute=True` by
+  design: the discarded bytes are the stale noise, echoing them back to the
+  stream would defeat the point.
+- Docs + schema: `console_test_item.rst`, `testium schema > schema/tum.json`
+  (`schema_check.py` enforces the sync).
+- `flush` is also the right tool for the terminal-protocol ANSI noise in item
+  1 (discard the prompt garbage before reading).
+
+Question: should the action also flush the *write* side (`port.flushOutput`)?
+I'd say no — testium writes are synchronous and there is no pending output;
+keeping it input-only is simpler and matches the need.
+
+### 4. Log line timestamps — confirmed; one design decision to make
+
+**Confirmed, with a useful asymmetry.** The *file* log (`log:` parameter) already
+carries the **reception** time — `LoggedConsole.read_thread` stamps the first
+character of each line (`api/console.py` L711-713). Only the stream log
+(`[HH:MM:SS name]` in the GUI log, the per-step report `log` column and the
+HTML export) is stamped at **display** time, by `Console._emit_line` (L179-184)
+at the moment `read_until`/`read_nowait` consumes the line. So the goal is to
+make the stream log match the file log's existing contract.
+
+Mechanics — the timestamp must travel with the data:
+- Today the reader threads queue **raw bytes** (`rx_queue`), and line assembly
+  happens in the display path (`Console._display` splits on `\n`). A chunk can
+  hold many lines; a single `datetime.now()` per chunk is exactly today's bug
+  (one burst drained = one stamp for thirty seconds of output).
+- Sketch: reader threads queue `(timestamp, bytes)` items instead of bare bytes
+  (the thread already sees every arrival — `SerialConsole.read_thread` L551-555,
+  `LoggedConsole.read_thread` L695-703); the display path uses the timestamp of
+  the chunk holding the line's **first character** (same rule as the file log).
+  `BytesStore` (serial) and the `queue.Queue` (LoggedConsole) paths both need
+  the tuple; `readchar`/`read_available`/`read_nowait`/`_pending` adjust with
+  it. Non-threaded transports (telnet, rawtcp) have no reader thread: stamp at
+  `read_available` — there arrival ≈ read, which is accurate to the poll
+  interval.
+
+Questions:
+- Scope: stream log only, or also the `cn_<name>` data stored by `read_until`?
+  I'd keep `cn_<name>` raw (stamps in data would pollute `check` comparisons).
+  Confirm?
+- Granularity: per-line first-character time (file-log parity, my default)
+  or per-line last-character time (the time the line completed)? I'd take the
+  first character — it matches the existing file log.
+- `read_nowait`/`flush` display (L620-628, L762-764) and the telnet `open`
+  login banner (L387-391) also stamp at display time — bring them to reception
+  time as well, or leave them? (I'd bring them, for consistency.)
+
+**Regression test (stage A) is in place and RED (full suite, 2026-11-18).**
+`test/validation/items/console/test.tum`, the `Console timestamp *` items:
+dedicated terminal console, a shell loop emits `tsline_1/2/3` two seconds
+apart, the answers are left unread so they pile up in the console buffer
+(a 6 s settle), then ONE `read_until tsline_3` drains them in a burst. The
+cross-item check `Console log stamps keep the reception spacing`
+(`items/report.tum`, helper `items/console/tscheck.py`) asserts
+`tsline_3 - tsline_1 >= 3 s` on the `[HH:MM:SS name]` stamps of the drain
+step's log: RED today (the three stamps collapse onto the drain time —
+verified in the run: `19:11:39` on all three lines for output produced
+at ~33/35/37), GREEN once the stream log stamps at reception time.
+The check runs only for the `console` item (`condition` gate) and reads
+the per-item `console_PASS.junit` (the report items export it right after
+the console test, and `junit_xml` puts each step's full log in the
+`testcase` `log` attribute). Two design constraints locked by this run:
+- the campaign sqlite is **uncommitted mid-run** (commits only at
+  `open()`/`close()`), so a mid-run check cannot read it — the per-step
+  JUnit log is the source of truth; do not regress to the sqlite; the
+  per-item `*.txt` is a status table without logs, not a log source either;
+- the `Console timestamp *` console items themselves all PASS today — the
+  RED signal lives only in the cross-item check, like the point-3 check.
+
+### Cross-cutting
+
+- Manual + schema for items 2 and 3 (new `open` parameters `marker_cmd` /
+  `marker`, new `flush` action, optional `ansi_strip`): `console_test_item.rst`,
+  PARAMS docstrings, `testium schema > schema/tum.json` (`schema_check.py`
+  enforces), and the validation suite needs a `console` fixture per new action
+  (`test/validation/items/console/test.tum`).
+- Item 1 is independent and small; items 2-4 are console-side and could land
+  as one "device shell ergonomics" change or three separate ones. My
+  suggested order: **1** (bug fix, no behavior change) → **3** (flush, additive,
+  unblocks the campaign) → **2** (custom dialect) → **4** (timestamps, the
+  biggest refactor).

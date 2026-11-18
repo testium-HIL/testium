@@ -260,6 +260,112 @@
         - read_until: {expected: anything, timeout: 1}
 {% endif %}
 
+# --- read_until vs pre-buffered data (Zephyr "OK" scenario) ------------------
+# A device where every command is answered by "OK": the campaign writes a
+# command then read_until "OK". If the previous answer was never read it is
+# still buffered, and the next read_until matches that stale answer instead
+# of the new command's answer: the captured data misses the new command's
+# output (the campaign runs ahead of the board). The check below is RED as
+# long as read_until can match text received before the action started; when
+# the `flush` console action lands, a `flush` step is inserted in the "second
+# command" item (before the writeln) and the scenario turns GREEN.
+- console:
+    name: Console stale OK open
+    console_name: stale_ok
+    key: $(test)_PASS
+    steps:
+        - open:
+            protocol: terminal
+            terminal_path: $(test_directory)
+
+- console:
+    name: Console stale OK first answer left unread
+    console_name: stale_ok
+    key: $(test)_PASS
+    steps:
+        - writeln: echo OK
+
+- sleep:
+    name: Console stale OK settle
+    timeout: 1
+
+- console:
+    name: Console stale OK second command
+    doc: read_until OK must wait for THIS command's answer, so the captured data must contain its output.
+    console_name: stale_ok
+    key: $(test)_PASS
+    steps:
+{% if os == "Linux" %}
+        - writeln: echo STALE_SECOND_OUT; echo OK
+{% else %}
+        - writeln: 'echo STALE_SECOND_OUT& echo OK'
+{% endif %}
+        - read_until: {expected: OK, timeout: 5}
+
+- check:
+    name: Console stale OK captured data holds the second output
+    key: $(test)_PASS
+    values:
+        - <| 'STALE_SECOND_OUT' in r'''$(cn_Console stale OK second command)''' |>
+
+- console:
+    name: Console stale OK closure
+    execute_on_stop: true
+    console_name: stale_ok
+    key: $(test)_PASS
+    steps:
+        - close: stale_ok
+
+# --- console log line timestamps (reception time vs drain time) --------------
+# A shell loop emits tsline_1/2/3 two seconds apart; the answers are left to
+# accumulate in the console buffer (the settle), then ONE read_until drains
+# them in a burst. The [HH:MM:SS name] stamps in the step log must keep the
+# 2 s spacing between the lines — the reception time, the contract the file
+# log already honours. Today the stream log stamps lines when the step
+# displays them, so the three lines collapse onto the drain time; the
+# cross-item check in items/report.tum (on the per-step JUnit log) is RED
+# until the stamps carry the reception time.
+- console:
+    name: Console timestamp open
+    console_name: tslog
+    key: $(test)_PASS
+    steps:
+        - open:
+            protocol: terminal
+            terminal_path: $(test_directory)
+
+- console:
+    name: Console timestamp slow output
+    doc: The loop runs in the shell; its answers are left unread so they pile up in the console buffer.
+    console_name: tslog
+    key: $(test)_PASS
+    steps:
+{% if os == "Linux" %}
+        - writeln: for i in 1 2 3; do echo tsline_$i; sleep 2; done
+{% else %}
+        - writeln: for /l %i in (1,1,3) do (echo tsline_%i & timeout /t 2 /nobreak >nul)
+{% endif %}
+
+- sleep:
+    name: Console timestamp settle
+    timeout: 6
+
+- console:
+    name: Console timestamp buffered drain
+    doc: All three answers are already buffered; one read_until drains them in a burst, and the report check verifies their stamps kept the 2 s spacing.
+    console_name: tslog
+    key: $(test)_PASS
+    steps:
+        - read_until: {expected: tsline_3, timeout: 10}
+
+- console:
+    name: Console timestamp closure
+    execute_on_stop: true
+    console_name: tslog
+    key: $(test)_PASS
+    steps:
+        - close: tslog
+
 - console:
     name: Console closure
     execute_on_stop: true
