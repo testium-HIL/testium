@@ -338,6 +338,41 @@ class TestItemConsoleClose(TestItemConsoleAction):
         self.result.set(result=TestValue.SUCCESS)
 
 
+class TestItemConsoleFlush(TestItemConsoleAction):
+    def __init__(
+        self, action_name, dict_item, parent=None, status_queue=None, filename=""
+    ):
+        super().__init__(
+            action_name,
+            cst.TYPE_CONSOLE_ACTION,
+            dict_item,
+            parent,
+            status_queue,
+            filename=filename,
+        )
+
+    @test_run
+    def execute(self):
+        try:
+            # Discard everything already received (muted: the stale bytes
+            # are noise, echoing them to the stream would defeat the point)
+            # so the next read cannot match a leftover answer.
+            cons = self.get_console()
+            cons.flush()
+            self.result.set(result=TestValue.SUCCESS)
+        except ETUMRuntimeError as e:
+            # Expected console error (e.g. console not open): clear one-liner.
+            m = f"Console '{self.token['console_name']}': impossible to flush ({e._message})"
+            self.result.set(result=TestValue.FAILURE, message=m)
+            print(m)
+        except Exception as e:
+            print(traceback.format_exc())
+            self.result.set(
+                result=TestValue.FAILURE,
+                message=f"Console '{self.token['console_name']}': impossible to flush ({e})",
+            )
+
+
 class TestItemConsoleWrite(TestItemConsoleAction):
     def __init__(
         self, action_name, dict_item, parent=None, status_queue=None, filename=""
@@ -608,6 +643,7 @@ class TestItemConsole(TestItemActions):
     ACTIONS = {
         "open": TestItemConsoleOpen,
         "close": TestItemConsoleClose,
+        "flush": TestItemConsoleFlush,
         "write": TestItemConsoleWrite,
         "writeln": TestItemConsoleWriteLn,
         "read_until": TestItemConsoleReadUntil,

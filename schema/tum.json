@@ -259,6 +259,9 @@
     "console_close": {
       "description": "close"
     },
+    "console_flush": {
+      "description": "flush"
+    },
     "console_write": {
       "description": "write"
     },
@@ -464,6 +467,9 @@
               },
               "close": {
                 "$ref": "#/$defs/console_close"
+              },
+              "flush": {
+                "$ref": "#/$defs/console_flush"
               },
               "write": {
                 "$ref": "#/$defs/console_write"

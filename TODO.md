@@ -156,7 +156,7 @@ Caveats / questions:
 
 ### 3. read_until matching pre-buffered text — confirmed; I'd pick the `flush` action, not `from: now`
 
-**Confirmed.** Buffered transports run a reader thread that decouples arrival
+**Confirmed, now executed (2026-11-18).** Buffered transports run a reader thread that decouples arrival
 from consumption — `SerialConsole` (bufferize, the default) and the
 `LoggedConsole` variants feed `rx_queue`, `TermConsole` feeds `self.q`
 (`enqueue_output`) — so the `read_until` loop drains whatever is already
@@ -175,19 +175,23 @@ The two options in the entry are **not** equivalent:
   guaranteed timeout. A `flush` action placed before the write has no such
   window.
 
-**Regression test (stage A) is in place and RED.**
+**Regression tests (stage A + stage B) are in place; GREEN since the
+action landed (full-suite runs of 2026-11-18).**
 `test/validation/items/console/test.tum`, the `Console stale OK *` items:
 dedicated terminal console, `writeln: echo OK` whose answer is left unread,
-a settle, then `writeln: echo STALE_SECOND_OUT; echo OK` +
+a settle, then the "second command" item: `flush`,
+`writeln: echo STALE_SECOND_OUT; echo OK` +
 `read_until: {expected: OK, timeout: 5}`, and a `check` asserting the
-captured data contains `STALE_SECOND_OUT`. Today the `read_until` step
-itself PASSes (it matched the *stale* `OK`, with the wrong data) and the
-`check` is the single red item in the full suite — exactly the bug. Stage B
-(when the `flush` action lands, step 4): insert a `flush` step as the first
-step of the "second command" item, before the `writeln`; the `read_until`
-then has to wait for the new command's answer and the `check` turns green.
-Until the action exists it must not appear in any `.tum` (an unknown action
-is a load-time `ETUMSyntaxError` that kills the whole run).
+captured data contains `STALE_SECOND_OUT`. Stage A (action not yet
+implemented, committed `046bc687`): the `read_until` step itself PASSed
+(it matched the *stale* `OK`, with the wrong data) and the `check` was
+the red item of the full suite — exactly the bug. Stage B (the `flush`
+step, first step of the "second command" item, before the `writeln`): the
+flush discards the stale answer, the `read_until` matches the new
+command's own answer (captured data = `STALE_SECOND_OUT` + `OK`), and the
+`check` is GREEN — the full-suite verdict now carries only the point-4 red
+row. (While the action was missing it must not appear in any `.tum`: an
+unknown action is a load-time `ETUMSyntaxError` that kills the whole run.)
 
 Implementation notes for the `flush` action (verified against the code,
 2026-11-18):

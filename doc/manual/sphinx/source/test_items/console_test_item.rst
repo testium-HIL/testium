@@ -123,6 +123,25 @@ the ``console_instances`` list accessible in the global variables
 
 No parameters required for this action.
 
+``flush`` action
+---------------------------
+
+The ``flush`` action discards everything already received on the console
+(the bytes buffered by the reader thread), without logging them. Use it
+before a ``writeln`` / ``read_until`` pair when the previous answer may
+still sit unread in the buffer: without it, the ``read_until`` can match
+that stale answer instead of the one produced by the command just written
+(the campaign then runs ahead of the device).
+
+.. code-block:: yaml
+    :caption: discard the leftover answer, then wait for the new one
+
+    - flush:
+    - writeln: reboot
+    - read_until: {expected: OK, timeout: 30}
+
+No parameters required for this action.
+
 ``write`` action
 ---------------------------
 

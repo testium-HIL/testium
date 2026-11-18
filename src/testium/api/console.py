@@ -607,7 +607,11 @@ class SerialConsole(Console):
             super()._push_back(data)
 
     def flush(self):
-        self.port.flush()
+        # Base-class contract: discard everything already received. The
+        # previous port.flush() only cleared the OS buffers — with
+        # bufferize (the default) the reader thread has already moved the
+        # stale bytes into rx_queue, where an OS-level flush never reaches.
+        self.read_nowait(mute=True)
 
     def read_nowait(self, mute=False):
         if not self.isOpened:

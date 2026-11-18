@@ -265,10 +265,10 @@
 # command then read_until "OK". If the previous answer was never read it is
 # still buffered, and the next read_until matches that stale answer instead
 # of the new command's answer: the captured data misses the new command's
-# output (the campaign runs ahead of the board). The check below is RED as
-# long as read_until can match text received before the action started; when
-# the `flush` console action lands, a `flush` step is inserted in the "second
-# command" item (before the writeln) and the scenario turns GREEN.
+# output (the campaign runs ahead of the board). The `flush` step of the
+# "second command" item discards the stale answer before the command is
+# written, so the read_until matches this command's own answer and the check
+# below is GREEN.
 - console:
     name: Console stale OK open
     console_name: stale_ok
@@ -291,10 +291,11 @@
 
 - console:
     name: Console stale OK second command
-    doc: read_until OK must wait for THIS command's answer, so the captured data must contain its output.
+    doc: the flush step discards the stale answer of the first command, so read_until OK must wait for THIS command's answer and the captured data must contain its output.
     console_name: stale_ok
     key: $(test)_PASS
     steps:
+        - flush:
 {% if os == "Linux" %}
         - writeln: echo STALE_SECOND_OUT; echo OK
 {% else %}
