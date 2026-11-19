@@ -320,6 +320,9 @@ class TestProcess(Process):
                                 for engine in tm.gd("_lua_func_contexts", {}).values():
                                     engine.stop()
                                     engine.join()
+                                for engine in tm.gd("_tcl_func_contexts", {}).values():
+                                    engine.stop()
+                                    engine.join()
                                 # Sends signal to the GUI
                                 self.send_finished(success=test_set.success())
                                 globdict.set_update_queue(None)
@@ -336,6 +339,9 @@ class TestProcess(Process):
                         engine.stop()
                         engine.join()
                     for engine in tm.gd("_lua_func_contexts", {}).values():
+                        engine.stop()
+                        engine.join()
+                    for engine in tm.gd("_tcl_func_contexts", {}).values():
                         engine.stop()
                         engine.join()
 

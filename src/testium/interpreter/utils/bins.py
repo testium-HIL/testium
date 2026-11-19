@@ -1,7 +1,7 @@
-"""Centralised resolution of external interpreter paths (Python, Lua).
+"""Centralised resolution of external interpreter paths (Python, Lua, Tcl).
 
 The user can override the path through the global dict via the keys
-``python_bin`` and ``lua_bin`` (typically populated from a YAML config).
+``python_bin``, ``lua_bin`` and ``tcl_bin`` (typically populated from a YAML config).
 When unset, the system PATH is searched for known candidates.
 
 Resolution is cached in memory: each interpreter is resolved at most
@@ -11,6 +11,7 @@ Public API
 ----------
 ``python_bin()``        : resolved python3 path (or "" if missing)
 ``lua_bin()``           : resolved lua >= 5.1 path (or "" if missing)
+``tcl_bin()``           : resolved tclsh >= 8.6 path (or "" if missing)
 ``ensure(*names)``      : resolve every name and raise a clear error if
                           any is missing — meant for early validation at
                           test load time
@@ -19,6 +20,7 @@ Public API
 
 import atexit
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -33,6 +35,7 @@ from runtime.tum_except import ETUMRuntimeError
 
 _PYTHON_CANDIDATES = ["python3", "python"]
 _LUA_CANDIDATES = ["lua", "lua5.5", "lua5.4", "lua5.3", "lua5.2", "lua5.1"]
+_TCL_CANDIDATES = ["tclsh", "tclsh9.0", "tclsh8.6", "tclsh90", "tclsh86", "tclsh86t"]
 
 # Inside an AppImage, AppRun prepends $APPDIR/usr/bin to PATH and exports a
 # bundle-local PYTHONHOME / PYTHONPATH / LD_LIBRARY_PATH. We want py_func and
@@ -329,12 +332,31 @@ def _is_lua51(path):
     return v is not None and v >= (5, 1)
 
 
+def _tcl_version(path):
+    # tclsh has no version option: run a script printing the patch level.
+    from interpreter.utils.paths import subproc_path
+    root = _get_host_testium_path() if _in_flatpak() else subproc_path()
+    out = _run_probe([path, os.path.join(root, "tcl_func", "version.tcl")])
+    if out is None:
+        return None
+    m = re.match(r"(\d+)\.(\d+)", out[0].strip())
+    if m is None:
+        return None
+    return (int(m.group(1)), int(m.group(2)))
+
+
+def _is_tcl86(path):
+    v = _tcl_version(path)
+    return v is not None and v >= (8, 6)
+
+
 # ---------- Resolver ---------------------------------------------------------
 
 # (display name, globdict override key, candidate list, validator)
 _SPECS = {
     "python": ("Python 3", "python_bin", _PYTHON_CANDIDATES, _is_python3),
     "lua":    ("Lua 5.1+",  "lua_bin",    _LUA_CANDIDATES,    _is_lua51),
+    "tcl":    ("Tcl 8.6+",  "tcl_bin",    _TCL_CANDIDATES,    _is_tcl86),
 }
 
 # Cached per (name, override) so that runtime changes to gd[gd_key] —
@@ -395,6 +417,10 @@ def python_bin():
 
 def lua_bin():
     return _resolve("lua")
+
+
+def tcl_bin():
+    return _resolve("tcl")
 
 
 def ensure(*names):

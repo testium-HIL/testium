@@ -120,12 +120,15 @@ class TestSet:
         """Resolve external interpreters needed by this test tree and fail
         early with a clear message if any is missing.
 
-        Python is always required (the eval engine always runs). Lua is
-        only required when at least one ``lua_func`` item is present.
+        Python is always required (the eval engine always runs). Lua and
+        Tcl are only required when at least one ``lua_func`` or
+        ``tcl_func`` item is present.
         """
         needed = ["python"]
         if self.__has_item_type(self._rootItem, cst_type.TYPE_LUA_FUNCTION):
             needed.append("lua")
+        if self.__has_item_type(self._rootItem, cst_type.TYPE_TCL_FUNCTION):
+            needed.append("tcl")
         bins.ensure(*needed)
 
     def __has_item_type(self, parent, item_type):

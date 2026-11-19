@@ -17,6 +17,7 @@ class TestItemType(Enum):
     TYPE_CYCLE              = TestItemEnum("loop", "Cycle")
     TYPE_PY_FUNCTION        = TestItemEnum("py_func", "python Function")
     TYPE_LUA_FUNCTION       = TestItemEnum("lua_func", "lua Function")
+    TYPE_TCL_FUNCTION       = TestItemEnum("tcl_func", "tcl Function")
     TYPE_REPORT             = TestItemEnum("report", "Report")
     TYPE_GIT                = TestItemEnum("git", "git repository")
     TYPE_GRAPH              = TestItemEnum("plot", "Runtime plot")
