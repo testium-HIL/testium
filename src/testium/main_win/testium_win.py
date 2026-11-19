@@ -31,7 +31,8 @@ from PySide6.QtWidgets import (
 )
 from main_win.expression_info import expression_info_button
 from main_win.drawn_icons import (follow_icon, search_icon,
-                                  expression_icon, sandbox_icon,
+                                  expression_icon, panels_icon,
+                                  sandbox_icon,
                                   variables_icon)
 
 ourPath = os.path.dirname(__file__)
@@ -447,14 +448,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionExpression.setToolTip("Show the Expression panel")
         self.actionExpression.triggered.connect(
             self.on_actionExpression_triggered)
+        self.actionSandbox = QAction("Sandbox", self)
+        self.actionSandbox.setIcon(sandbox_icon())
+        self.actionSandbox.setToolTip("Show the Sandbox panel")
+        self.actionSandbox.triggered.connect(
+            lambda: self._show_panel(self.sandboxDock))
         self.actionTestInformation.setToolTip("Show the Step info panel")
         self.panelsBar = QToolBar("Panels", self)
         self.panelsBar.setObjectName("panelsBar")
         self.panelsBar.setIconSize(self.toolBar.iconSize())
         self.panelsBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.panelsBar.addAction(self.actionTestInformation)
-        self.panelsBar.addAction(self.actionVariables)
-        self.panelsBar.addAction(self.actionExpression)
+        menu = QMenu(self)
+        menu.setToolTipsVisible(True)
+        for action in (self.actionTestInformation, self.actionVariables,
+                       self.actionExpression, self.actionSandbox):
+            menu.addAction(action)
+        self.buttPanels = QToolButton(self.panelsBar)
+        self.buttPanels.setText("Panels")
+        self.buttPanels.setIcon(panels_icon())
+        self.buttPanels.setToolTip("Show a panel")
+        self.buttPanels.setMenu(menu)
+        self.buttPanels.setPopupMode(QToolButton.InstantPopup)
+        self.buttPanels.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.panelsBar.addWidget(self.buttPanels)
         # First launch: between the main bar and the Run bar.
         self.insertToolBar(self.stepBar, self.panelsBar)
 

@@ -21,6 +21,8 @@ version 0.6.2
   paused. Script files can be opened and saved. Syntax highlighting
   and completion.
 - GUI: "Send to sandbox" in the context menu of the function items.
+- GUI: the panel buttons of the toolbar are grouped under one Panels
+  button, with the Sandbox panel added.
 
 
 version 0.6.1
