@@ -60,12 +60,13 @@ For existing files, keep the header that is already there.
 | `api/` | main process | runtime API implementation; subprocesses reach it only through the JSON-RPC bridge |
 | `lsp/` | main process | `testium lsp` / `testium schema` |
 | `runtime/` | **both sides** | shared floor: RPC link, exceptions, report helper, export worker; loaded by the main process *and* by the host-Python subprocesses |
-| `py_func/`, `lua_func/` | host interpreter | subprocess-side bridges |
+| `py_func/`, `lua_func/`, `tcl_func/` | host interpreter | subprocess-side bridges |
 
 Rules:
 
 - `py_func/` and `lua_func/` import only `runtime/` and themselves, never
-  `interpreter`, `main_win` or `api`. Enforced by
+  `interpreter`, `main_win` or `api`. `tcl_func/` loads only its own files
+  and requires no Tcl package. Enforced by
   `test/validation/items/isolation/`.
 - `runtime/` stays standard-library only: the host interpreter does not
   have testium's dependencies.

@@ -4,7 +4,7 @@
 
 testium is a YAML-driven test sequencer for hardware-in-the-loop and
 integration testing. A test campaign is described in a `.tum` file as a tree
-of items (checks, console interactions, Python/Lua functions, parallel blocks,
+of items (checks, console interactions, Python/Lua/Tcl functions, parallel blocks,
 dialogs, …); testium executes the tree, captures results, and produces
 reports in several formats. It runs on Linux and Windows.
 
@@ -127,6 +127,13 @@ For tests using `lua_func` items, install Lua (>= 5.1) plus the `socket` and
 sudo apt install lua5.4 lua-socket lua-cjson
 ```
 
+For tests using `tcl_func` items, install Tcl (>= 8.6). No Tcl package is
+needed. On Debian/Ubuntu:
+
+```sh
+sudo apt install tcl
+```
+
 Run testium:
 
 ```sh
@@ -146,7 +153,7 @@ that job.
 | **VeriStand** (NI) | Proprietary | GUI configuration | Python, C, .NET, ASAM XIL | Windows |
 | **OpenTAP** (Keysight) | Open source | C# test steps, compiled plugins | C# / .NET | Windows, Linux |
 | **Robot Framework** | Apache-2.0 | Keyword tables | Python | Any |
-| **testium** | EUPL-1.2 | `.tum` YAML files | Python, Lua | Linux, Windows |
+| **testium** | EUPL-1.2 | `.tum` YAML files | Python, Lua, Tcl | Linux, Windows |
 
 ### Where testium is a good fit
 
@@ -155,7 +162,7 @@ that job.
 - **No licence cost, no per-seat counting.** Every bench, every CI runner,
   every engineer's laptop can run it. EUPL-1.2 is an OSI-approved copyleft
   licence, compatible with the usual European procurement constraints.
-- **Python and Lua are first-class**, not an extension point bolted onto a
+- **Python, Lua and Tcl are first-class**, not an extension point bolted onto a
   proprietary core. Test logic is ordinary code your team already writes.
 - **Runs headless.** The same campaign runs in the GUI on a bench and in
   batch mode in CI, producing JUnit XML among other report formats.
@@ -168,7 +175,7 @@ that job.
   constraints. If you need model-in-the-loop execution on deterministic
   hardware, VeriStand or dSPACE solve a different problem than this one.
 - **No instrument driver ecosystem.** TestStand and OpenTAP inherit large
-  catalogues of vendor drivers. testium gives you Python and Lua, and you
+  catalogues of vendor drivers. testium gives you Python, Lua and Tcl, and you
   write the glue.
 - **No built-in requirements traceability or test-management back end.**
   If your process mandates a qualified toolchain with requirement linking,

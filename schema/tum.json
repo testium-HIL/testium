@@ -692,6 +692,73 @@
         "func_name"
       ]
     },
+    "tcl_func": {
+      "type": "object",
+      "description": "tcl Function",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Display name shown in the GUI tree and reports."
+        },
+        "doc": {
+          "description": "Free-form documentation; surfaced in tooltips."
+        },
+        "skipped": {
+          "description": "Boolean or <| |> expression; if true the step is skipped. Static: evaluated at load time."
+        },
+        "key": {
+          "description": "Report key used to classify the result (typically <test>_PASS or <test>_FAIL)."
+        },
+        "stop_on_failure": {
+          "description": "Boolean or <| |> expression; if true, abort the surrounding container on failure."
+        },
+        "execute_on_stop": {
+          "description": "Boolean or <| |> expression; if true, run this step even when its container is being stopped (cleanup)."
+        },
+        "process_result": {
+          "description": "<| |> expression containing $(result), applied to the test result."
+        },
+        "store_result": {
+          "description": "Global-dict key in which to store the test result."
+        },
+        "expected_result": {
+          "description": "Expected outcome, compared literally; a <| |> expression is evaluated first."
+        },
+        "no_fail": {
+          "description": "Boolean or <| |> expression; if true, never report a FAILURE for this step."
+        },
+        "report": {
+          "description": "Per-step reporting override."
+        },
+        "condition": {
+          "description": "Boolean or <| |> expression gating each run; false \u21d2 the step is skipped."
+        },
+        "steps": {
+          "description": "Children (for container items).",
+          "type": "array"
+        },
+        "seq_filename": {
+          "description": "(internal) source .tum file of this step; injected by the loader."
+        },
+        "file": {
+          "description": "Path to the .tcl file containing the function."
+        },
+        "func_name": {
+          "description": "Name of the proc to call, namespace allowed."
+        },
+        "param": {
+          "description": "Arguments passed to the function. Each entry is expanded before the call. Special tokens $(loop_param) / $(loop_index) resolve from the surrounding cycle.",
+          "type": "array"
+        },
+        "context_id": {
+          "description": "If set, the tcl_func subprocess is kept alive and reused by every other tcl_func item with the same context_id. Global Tcl variables are then shared between successive calls."
+        }
+      },
+      "required": [
+        "file",
+        "func_name"
+      ]
+    },
     "report": {
       "type": "object",
       "description": "Report",
@@ -2239,6 +2306,9 @@
         },
         "lua_func": {
           "$ref": "#/$defs/lua_func"
+        },
+        "tcl_func": {
+          "$ref": "#/$defs/tcl_func"
         },
         "report": {
           "$ref": "#/$defs/report"
