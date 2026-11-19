@@ -58,3 +58,9 @@ main:
             func_name: get_state
             context_id: tclctx
             expected_result: fresh
+        - tcl_func:
+            name: unresolved
+            skipped: true
+            file: $(sandbox_undefined_dir)/ctx.tcl
+            func_name: get_state
+            param: [$(sandbox_undefined_value)]

@@ -303,6 +303,12 @@ class SandboxPresenter:
         if call.get("session"):
             self._session = call["session"]
             self.refresh_sessions()
+        if call.get("unresolved"):
+            names = ", ".join(f"$({n})" for n in call["unresolved"])
+            self._view.append_output(
+                f"Not defined yet: {names}. These variables are set while "
+                "the test runs: pause the run on this item, then send it "
+                "again.\n", "error")
         return True
 
     # ----- completion -----

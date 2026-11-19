@@ -14,6 +14,7 @@ from interpreter.utils.constants import TestItemType as cst
 from interpreter.utils.lua_func_exec import LuaFuncExecEngine
 from interpreter.utils.py_func_exec import PyFuncExecEngine
 from interpreter.utils.tcl_func_exec import TclFuncExecEngine
+from interpreter.utils.params import unresolved_names
 from runtime.tum_except import ETUMError, ETUMRuntimeError
 
 # language -> (engine class, global holding the context engines, item type)
@@ -287,12 +288,16 @@ class Sandbox:
             raise ETUMRuntimeError("This item is not a function item.")
         prms = item._prms
         try:
-            path = _absolute(str(prms.expanse(item.file_name)))
+            path = str(prms.expanse(item.file_name))
             func_name = str(prms.expanse(item.func_name))
             params = prms.expanse(prms.getParamFromList(item.params))
         except ETUMError as e:
             raise ETUMRuntimeError(
                 f"Cannot expand the parameters of this item: {e}")
+        # Variables set by earlier items do not exist before they run.
+        unresolved = unresolved_names([path, func_name, params])
+        if not unresolved_names(path):
+            path = _absolute(path)
         session = None
         if item._context_id is not None:
             ctx = str(prms.expanse(item._context_id))
@@ -303,6 +308,7 @@ class Sandbox:
             "session": session,
             "file": path,
             "code": call_code(lang, path, func_name, params or []),
+            "unresolved": unresolved,
         }
 
     def scripts(self):

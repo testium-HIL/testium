@@ -195,6 +195,7 @@ class FakeSandboxService:
         self.contexts = {"tcl": ["bench"]}
         self.scripts = {}
         self.refuse = None
+        self.unresolved = []
 
     def sandbox_run(self, lang, code, session=None):
         if self.refuse:
@@ -217,7 +218,8 @@ class FakeSandboxService:
 
     def sandbox_item_call(self, item_id):
         return {"lang": "tcl", "session": "bench", "file": "/x/b.tcl",
-                "code": "source /x/b.tcl\nread 1\n"}
+                "code": "source /x/b.tcl\nread 1\n",
+                "unresolved": self.unresolved}
 
     def sandbox_scripts(self):
         return self.scripts
@@ -382,6 +384,14 @@ def check_sandbox():
             or view.text != "source /x/b.tcl\nread 1\n" \
             or p.session() != "bench" or view.file != ("", ""):
         fail(f"send item: {view.lang} {view.text!r} {p.session()}")
+
+    # Variables not defined yet are named in the output.
+    service.unresolved = ["test_path"]
+    p.send_item(7)
+    if view.output[-1][0] != "error" \
+            or "$(test_path)" not in view.output[-1][1]:
+        fail(f"unresolved variables not reported: {view.output[-1]}")
+    service.unresolved = []
 
     # Completion: test variables inside tm::gd, else static and live names.
     p.complete("set v [tm::gd be")

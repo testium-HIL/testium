@@ -245,12 +245,17 @@ def main():
     for lang, item in (("python", "py set"), ("lua", "lua set"),
                        ("tcl", "tcl set")):
         call = ctrl.control("sandbox_item_call", item_id=ids[item])
-        if call["lang"] != lang or call["session"] is not None:
+        if call["lang"] != lang or call["session"] is not None \
+                or call["unresolved"]:
             fail(f"item call of '{item}': {call}")
         out, res, err = run(lang, call["code"], ctx="item call")
         if res != 5:
             fail(f"item call of '{item}' gave {res!r} {err!r}:\n"
                  f"{call['code']}")
+    call = ctrl.control("sandbox_item_call", item_id=ids["unresolved"])
+    if call["unresolved"] != ["sandbox_undefined_dir",
+                              "sandbox_undefined_value"]:
+        fail(f"unresolved variables of an item call: {call['unresolved']}")
     try:
         ctrl.control("sandbox_item_call", item_id=ids["slow"])
     except ETUMRuntimeError:
