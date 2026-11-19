@@ -82,7 +82,8 @@ Script sandbox
 ^^^^^^^^^^^^^^
 
 The **Sandbox** panel runs a Python, Lua or Tcl script against the loaded
-test, without adding an item to the sequence. Open it from the View menu.
+test, without adding an item to the sequence. Open it from the View menu
+or from the **Panels** button of the toolbar.
 
 .. code-block:: tcl
     :caption: a Tcl script typed in the sandbox

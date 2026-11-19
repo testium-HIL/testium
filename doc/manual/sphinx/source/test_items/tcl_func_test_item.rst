@@ -32,9 +32,9 @@ input parameters. Tcl 8.6 or later is required. No Tcl package is needed.
 **Attributes**
 
 Besides the common test item attributes, the ``tcl_func`` item has specific
-attributes. ``file`` and ``func_name`` are mandatory. Both are resolved on
-every execution: in a loop, a ``$( )`` value can select a different function
-per iteration.
+attributes. ``file`` and ``func_name`` are mandatory. Both are resolved on every
+execution. For example, in a loop, a ``$( )`` value can select a different
+function per iteration.
 
 * ``file``: the Tcl script that contains the function. A relative path is
   resolved from the test directory. The script is loaded with ``source``
