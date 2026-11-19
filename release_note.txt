@@ -1,3 +1,17 @@
+version 0.7
+==============
+- New tcl_func item: calls a proc of a Tcl script (Tcl 8.6 or later,
+  no Tcl package needed). Result in tfn_<name>.
+- Preferences: Tcl interpreter path.
+- GUI: Sandbox panel. Runs Python, Lua or Tcl scripts against the
+  loaded test, also in the process of a context_id while the run is
+  paused. Script files can be opened and saved. Syntax highlighting
+  and completion.
+- GUI: "Send to sandbox" in the context menu of the function items.
+- GUI: the panel buttons of the toolbar are grouped under one Panels
+  button, with the Sandbox panel added. Moved to a side or to the
+  bottom, the bar shows one button per panel.
+
 version 0.6.2
 ==============
 - process_result: a boolean result sets the verdict, PASS if True.
@@ -13,18 +27,6 @@ version 0.6.2
 - Python 3.12 or later is required (PySide6 6.12 aborts on 3.11).
 - AppImage: bundled Python 3.13 (Debian trixie base), fixes a crash
   of the GUI.
-- New tcl_func item: calls a proc of a Tcl script (Tcl 8.6 or later,
-  no Tcl package needed). Result in tfn_<name>.
-- Preferences: Tcl interpreter path.
-- GUI: Sandbox panel. Runs Python, Lua or Tcl scripts against the
-  loaded test, also in the process of a context_id while the run is
-  paused. Script files can be opened and saved. Syntax highlighting
-  and completion.
-- GUI: "Send to sandbox" in the context menu of the function items.
-- GUI: the panel buttons of the toolbar are grouped under one Panels
-  button, with the Sandbox panel added. Moved to a side or to the
-  bottom, the bar shows one button per panel.
-
 
 version 0.6.1
 ==============
