@@ -22,7 +22,8 @@ version 0.6.2
   and completion.
 - GUI: "Send to sandbox" in the context menu of the function items.
 - GUI: the panel buttons of the toolbar are grouped under one Panels
-  button, with the Sandbox panel added.
+  button, with the Sandbox panel added. Moved to a side or to the
+  bottom, the bar shows one button per panel.
 
 
 version 0.6.1

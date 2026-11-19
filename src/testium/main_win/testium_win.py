@@ -174,6 +174,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.stepBar.setVisible(True)
         self._update_step_bar_style()
+        self._update_panels_bar_style()
         self._build_view_menu()
 
         self.actionStart_test.setDisabled(True)
@@ -470,7 +471,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttPanels.setMenu(menu)
         self.buttPanels.setPopupMode(QToolButton.InstantPopup)
         self.buttPanels.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.panelsBar.addWidget(self.buttPanels)
+        self._panels_menu_action = self.panelsBar.addWidget(self.buttPanels)
+        self._panel_actions = list(menu.actions())
+        self.panelsBar.topLevelChanged.connect(
+            lambda _: self._update_panels_bar_style())
         # First launch: between the main bar and the Run bar.
         self.insertToolBar(self.stepBar, self.panelsBar)
 
@@ -738,6 +742,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.stepBar.setIconSize(QSize(16, 16))
             self.stepBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
+
+    def _update_panels_bar_style(self):
+        """Top area: one drop-down button. Left/right/bottom or floating:
+        one compact button per panel."""
+        top = (not self.panelsBar.isFloating()
+               and self.toolBarArea(self.panelsBar) == Qt.TopToolBarArea)
+        self._panels_menu_action.setVisible(top)
+        # The actions also belong to the drop-down menu: they are taken
+        # out of the bar instead of being hidden.
+        for action in self._panel_actions:
+            self.panelsBar.removeAction(action)
+        if top:
+            self.panelsBar.setIconSize(self.toolBar.iconSize())
+        else:
+            self.panelsBar.addActions(self._panel_actions)
+            self.panelsBar.setIconSize(QSize(16, 16))
+            self.panelsBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
 
     def _search_fields(self):
         fields = set()
