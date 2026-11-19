@@ -1,0 +1,7 @@
+main:
+    name: tcl missing
+    steps:
+        - tcl_func:
+            name: needs tcl
+            file: any.tcl
+            func_name: any

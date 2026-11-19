@@ -203,6 +203,9 @@ if ($mode.ToLower() -eq 'source') {
     Write-Host "-- eval expr check ($mode)"
     Invoke-Checked "eval expr check ($mode)" $devPython @((Join-Path $scriptDir 'eval_expr_check.py'))
 
+    Write-Host "-- Tcl missing check ($mode)"
+    Invoke-Checked "Tcl missing check ($mode)" $devPython @((Join-Path $scriptDir 'tcl_missing_check.py'))
+
     Write-Host "-- GUI reload check ($mode)"
     Invoke-Checked "GUI reload check ($mode)" $devPython @((Join-Path $scriptDir 'gui_reload_check.py'))
 
