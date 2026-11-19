@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:testium:tum-schema:0.6.2",
+  "$id": "urn:testium:tum-schema:0.7",
   "title": "testium TUM file",
   "type": "object",
   "additionalProperties": false,
@@ -744,7 +744,7 @@
           "description": "Path to the .tcl file containing the function."
         },
         "func_name": {
-          "description": "Name of the proc to call, namespace allowed."
+          "description": "Name of the function to call, namespace allowed."
         },
         "param": {
           "description": "Arguments passed to the function. Each entry is expanded before the call. Special tokens $(loop_param) / $(loop_index) resolve from the surrounding cycle.",
