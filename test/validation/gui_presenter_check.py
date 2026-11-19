@@ -218,7 +218,7 @@ class FakeSandboxService:
 
     def sandbox_item_call(self, item_id):
         return {"lang": "tcl", "session": "bench", "file": "/x/b.tcl",
-                "code": "source /x/b.tcl\nread 1\n",
+                "code": "proc read {n} {}\n\nread 1\n",
                 "unresolved": self.unresolved}
 
     def sandbox_scripts(self):
@@ -381,7 +381,7 @@ def check_sandbox():
     # Item of the tree: language, context and code come from the item.
     service.contexts = {"tcl": ["bench"]}
     if not p.send_item(7) or view.lang != "tcl" \
-            or view.text != "source /x/b.tcl\nread 1\n" \
+            or view.text != "proc read {n} {}\n\nread 1\n" \
             or p.session() != "bench" or view.file != ("", ""):
         fail(f"send item: {view.lang} {view.text!r} {p.session()}")
 

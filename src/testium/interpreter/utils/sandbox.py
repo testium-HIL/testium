@@ -96,18 +96,30 @@ def tcl_literal(value):
     return _tcl_word(str(value))
 
 
-def call_code(lang, path, func_name, params):
-    """Code loading the script file and calling the function."""
+def call_code(lang, path, text, func_name, params):
+    """Code made of the script text followed by the call of the function."""
+    body = text if text.endswith("\n") else text + "\n"
     if lang == "python":
         args = ", ".join(python_literal(p) for p in params)
-        return (f"mod = load_file({python_literal(path)})\n"
-                f"mod.{func_name}({args})\n")
+        # The script may import modules stored next to it.
+        folder = python_literal(os.path.dirname(path))
+        return (f"import sys; sys.path.append({folder})\n\n"
+                f"{body}\n{func_name}({args})\n")
     if lang == "lua":
+        # A Lua script ends with a return: it is wrapped in a function.
         args = ", ".join(lua_literal(p) for p in params)
-        return (f"local mod = dofile({_lua_string(path)})\n"
+        return (f"local mod = (function(...)\n{body}end)()\n\n"
                 f"return mod.{func_name}({args})\n")
     args = "".join(" " + tcl_literal(p) for p in params)
-    return f"source {_tcl_word(path)}\n{func_name}{args}\n"
+    return f"{body}\n{func_name}{args}\n"
+
+
+def _read_script(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except (OSError, UnicodeDecodeError) as e:
+        raise ETUMRuntimeError(f"Cannot read the script '{path}': {e}")
 
 
 def _absolute(path):
@@ -296,8 +308,10 @@ class Sandbox:
                 f"Cannot expand the parameters of this item: {e}")
         # Variables set by earlier items do not exist before they run.
         unresolved = unresolved_names([path, func_name, params])
+        text = ""
         if not unresolved_names(path):
             path = _absolute(path)
+            text = _read_script(path)
         session = None
         if item._context_id is not None:
             ctx = str(prms.expanse(item._context_id))
@@ -307,7 +321,7 @@ class Sandbox:
             "lang": lang,
             "session": session,
             "file": path,
-            "code": call_code(lang, path, func_name, params or []),
+            "code": call_code(lang, path, text, func_name, params or []),
             "unresolved": unresolved,
         }
 

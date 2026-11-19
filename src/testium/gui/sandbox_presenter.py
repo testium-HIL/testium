@@ -280,8 +280,8 @@ class SandboxPresenter:
     # ----- item of the tree -----
 
     def send_item(self, item_id):
-        """Fill the editor with the call of a function item. Returns
-        True when the panel has something to show."""
+        """Fill the editor with the script of a function item and its
+        call. Returns True when the panel has something to show."""
         service = self._service()
         if service is None:
             return False
