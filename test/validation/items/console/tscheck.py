@@ -25,7 +25,8 @@ def check_log_timestamps(report_dir, item, step, min_gap):
             "step {!r} not found in {}: it did not PASS, so its log "
             "cannot be inspected".format(step, path))
     stamps = {}
-    for m in re.finditer(r"\[(\d{2}:\d{2}:\d{2}) \w+\](tsline_\d)\s*$",
+    # The shell prompt may precede tsline_1 on its line.
+    for m in re.finditer(r"\[(\d{2}:\d{2}:\d{2}) \w+\].*?\b(tsline_\d)\s*$",
                          log, re.M):
         h, mn, s = m.group(1).split(":")
         stamps[m.group(2)] = int(h) * 3600 + int(mn) * 60 + int(s)
