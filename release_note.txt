@@ -11,6 +11,10 @@ version 0.7
 - GUI: the panel buttons of the toolbar are grouped under one Panels
   button, with the Sandbox panel added. Moved to a side or to the
   bottom, the bar shows one button per panel.
+- run: the sub-test path is passed as an absolute path. A relative path
+  is resolved from the test directory first.
+- Batch: a test file that cannot be found ends with its error message
+  only.
 
 version 0.6.2
 ==============

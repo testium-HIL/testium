@@ -133,8 +133,13 @@ class TestItemRun(TestItem):
         try:
             raw = self.tum_file
             file_path = self._prms.expanse(raw)
-            if not os.path.exists(file_path) and not os.path.isabs(file_path):
-                file_path = os.path.join(tm.gd('test_directory'), file_path)
+            if not os.path.isabs(file_path):
+                in_test_dir = os.path.join(tm.gd('test_directory'), file_path)
+                # Absolute: the sub-instance may start in another directory.
+                if os.path.isfile(in_test_dir) or not os.path.isfile(file_path):
+                    file_path = in_test_dir
+                else:
+                    file_path = os.path.abspath(file_path)
             if not os.path.isfile(file_path):
                 declared = ('"{}"'.format(raw) if raw == file_path
                             else '"{}" (resolved to "{}" in test directory "{}")'

@@ -31,7 +31,7 @@ Attributes
 
 run test item has the following specific attributes:
 
-* ``tum``: mandatory, the path of the file to execute. Can be relative to the current execution folder.
+* ``tum``: mandatory, the path of the file to execute. A relative path is resolved from the test directory, then from the current execution folder.
 * ``param_file`` (optional): the path of the parameter file to use; otherwise the default parameter file is used.
 * ``batch`` (optional): ``true`` to run the sub-instance headless (``-b``) and capture its output even in GUI mode (see above).
 * ``log_file`` (optional): the path of the log file. In GUI mode, if not provided, a file is created with a timestamp next to the ``.tum`` file. Not used in batch mode (the output is captured instead).

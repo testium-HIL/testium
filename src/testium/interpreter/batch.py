@@ -25,6 +25,7 @@ class Batch:
         no_color,
         text_mode=False,
     ):
+        self._success = False
         try:
             try:
                 file_name = os.path.abspath(test_file)
