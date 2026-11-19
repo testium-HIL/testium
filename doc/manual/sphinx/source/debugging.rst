@@ -150,7 +150,9 @@ process.
 * **Send to sandbox**, in the context menu of a ``py_func``, ``lua_func``
   or ``tcl_func`` item, fills the editor with the call of the item: the
   script file is loaded and the function is called with the expanded
-  parameters.
+  parameters. When a parameter uses a variable that is set later by the
+  test, the editor is not changed and the missing variables are listed:
+  pause the run on the item, then send it again.
 
 **Editor**
 

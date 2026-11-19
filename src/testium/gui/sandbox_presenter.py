@@ -280,7 +280,8 @@ class SandboxPresenter:
     # ----- item of the tree -----
 
     def send_item(self, item_id):
-        """Fill the editor with the call of a function item."""
+        """Fill the editor with the call of a function item. Returns
+        True when the panel has something to show."""
         service = self._service()
         if service is None:
             return False
@@ -289,6 +290,14 @@ class SandboxPresenter:
         except ETUMError as e:
             self._view.append_output(error_text(e) + "\n", "error")
             return False
+        if call.get("unresolved"):
+            # The call cannot run: the editor is left as it is.
+            names = ", ".join(f"$({n})" for n in call["unresolved"])
+            self._view.append_output(
+                f"Not sent, not defined yet: {names}. These variables are "
+                "set while the test runs: pause the run on this item, then "
+                "send it again.\n", "error")
+            return True
         if not self._may_replace():
             return False
         self._keep_buffer()
@@ -303,12 +312,6 @@ class SandboxPresenter:
         if call.get("session"):
             self._session = call["session"]
             self.refresh_sessions()
-        if call.get("unresolved"):
-            names = ", ".join(f"$({n})" for n in call["unresolved"])
-            self._view.append_output(
-                f"Not defined yet: {names}. These variables are set while "
-                "the test runs: pause the run on this item, then send it "
-                "again.\n", "error")
         return True
 
     # ----- completion -----

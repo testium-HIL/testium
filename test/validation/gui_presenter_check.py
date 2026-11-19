@@ -387,10 +387,13 @@ def check_sandbox():
 
     # Variables not defined yet are named in the output.
     service.unresolved = ["test_path"]
+    view.text = "keep me"
     p.send_item(7)
     if view.output[-1][0] != "error" \
             or "$(test_path)" not in view.output[-1][1]:
         fail(f"unresolved variables not reported: {view.output[-1]}")
+    if view.text != "keep me":
+        fail("editor replaced by a call with unresolved variables")
     service.unresolved = []
 
     # Completion: test variables inside tm::gd, else static and live names.
