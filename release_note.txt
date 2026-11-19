@@ -16,6 +16,11 @@ version 0.6.2
 - New tcl_func item: calls a proc of a Tcl script (Tcl 8.6 or later,
   no Tcl package needed). Result in tfn_<name>.
 - Preferences: Tcl interpreter path.
+- GUI: Sandbox panel. Runs Python, Lua or Tcl scripts against the
+  loaded test, also in the process of a context_id while the run is
+  paused. Script files can be opened and saved. Syntax highlighting
+  and completion.
+- GUI: "Send to sandbox" in the context menu of the function items.
 
 
 version 0.6.1
