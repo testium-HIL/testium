@@ -555,18 +555,24 @@ class SshConsole(Console):
         """Read a single character from the SSH session"""
         self._ensure_open()
         try:
-            return self.session.read_nonblocking(size=1, timeout=timeout)
+            data = self.session.read_nonblocking(size=1, timeout=timeout)
         except pexpect.exceptions.TIMEOUT:
             return None
+        if not data:
+            return None
+        return data, [time.time()]
 
     def read_available(self, timeout):
         """Read every available byte from the SSH session"""
         self._ensure_open()
         try:
-            return self.session.read_nonblocking(size=self.session.maxread,
+            data = self.session.read_nonblocking(size=self.session.maxread,
                                                  timeout=timeout)
         except pexpect.exceptions.TIMEOUT:
             return None
+        if not data:
+            return None
+        return data, [time.time()] * len(data)
 
     def readline(self):
         """Read until a \r\n is found."""
@@ -578,11 +584,10 @@ class SshConsole(Console):
         self._ensure_open()
         try:
             st = self.session.read_nonblocking(size=self.session.maxread, timeout=0)
-        except pexpect.TIMEOUT:
+        except pexpect.exceptions.TIMEOUT:
             st = b""
 
-        s = self._pending_text() + st.decode("utf-8", errors="replace")
-        if not mute:
-            date_str = str(datetime.now()).split(".")[0].split(" ")[1]
-            self.stream.write("[{} {}]".format(date_str, self.name) + s)
+        pend_text, pend_ts = self._pending_text()
+        s = pend_text + st.decode("utf-8", errors="replace")
+        self._display_raw(s, pend_ts + [time.time()] * len(st), mute)
         return s

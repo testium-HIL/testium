@@ -63,21 +63,27 @@ class RawTCPConsole(Console):
                     self.name, self.address, self.port, e)) from None
 
     def readchar(self, timeout):
-        return self._recv(1)
+        data = self._recv(1)
+        if not data:
+            return None
+        return data, [time.time()]
 
     def read_available(self, timeout):
         self.set_read_timeout(timeout)
-        return self._recv(4096)
+        data = self._recv(4096)
+        if not data:
+            return None
+        return data, [time.time()] * len(data)
 
     def read_nowait(self, mute=False):
         self._ensure_open()
         self.sock.settimeout(0)
         self.stimeout = 0
-        st = self._pending_text() + self._recv(4096).decode(
-            self.encoding, errors='replace')
-        if not mute:
-            date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-            self.stream.write('[{} {}]'.format(date_str, self.name)+st)
+        pend_text, pend_ts = self._pending_text()
+        now = time.time()
+        data = self._recv(4096)
+        st = pend_text + data.decode(self.encoding, errors='replace')
+        self._display_raw(st, pend_ts + [now] * len(data), mute)
         return st
 
     def write(self, s, mute=False):

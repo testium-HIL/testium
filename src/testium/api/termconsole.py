@@ -1,4 +1,3 @@
-from datetime import datetime
 import sys
 import locale
 if sys.platform.startswith('win'):
@@ -7,10 +6,12 @@ else:
     import pexpect
 import threading
 import os
+import time
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(ourPath)
-from api.console import (Console, BytesStore, TIMEOUT_NULL)
+from api.console import (Console, BytesStore, TIMEOUT_NULL, _char_ts,
+                         _byte_ts)
 from runtime.tum_except import ETUMRuntimeError
 
 class TermConsole(Console):
@@ -50,7 +51,7 @@ class TermConsole(Console):
                 except (ValueError, OSError):
                     break
                 if c is not None:
-                    self.q.put(c)
+                    self.q.put(time.time(), c)
         else:
             while not self.stop.is_set():
                 try:
@@ -60,7 +61,10 @@ class TermConsole(Console):
                 except (pexpect.EOF, OSError):
                     break
                 if c is not None:
-                    self.q.put(c)
+                    # Stamp the byte at reception: the display path stamps
+                    # each log line with the time its first character
+                    # arrived, not the time it is drained.
+                    self.q.put(time.time(), c)
 
     def open(self):
 
@@ -119,37 +123,42 @@ class TermConsole(Console):
         self.isOpened = False
 
     def readchar(self, timeout):
-        if timeout < TIMEOUT_NULL:
-            c = self.q.get(block=False)
-            return c
-        else:
-            c = self.q.get(block=True, timeout=timeout)
-            return c
+        item = self.q.get(block=timeout >= TIMEOUT_NULL, timeout=timeout)
+        if item is None:
+            return None
+        data, ts = item
+        return data, [ts]
 
     def read_available(self, timeout):
         return self.q.get_available(block=timeout >= TIMEOUT_NULL,
                                     timeout=timeout)
 
-    def _push_back(self, data):
-        self.q.pushBack(data)
+    def _push_back(self, data, ts=None):
+        self.q.pushBack(data, ts)
 
     def read_nowait(self, mute=False):
         self._ensure_open()
-        s = ''.encode()
-
-        s += self.q.getAll()
-
-        st = s.decode(self.encoding, errors='replace')
-
-        ls = st.splitlines()
-        if (len(st) > 0) and (st[-1] != '\r') and (st[-1] !='\n'):
-            self.q.pushBack(ls[-1].encode())
-            ls = ls[0:-1]
-
-        st = '\n'.join(ls)
-        if not mute:
-            date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-            self.stream.write('[{} {}]'.format(date_str, self.name)+st)
+        data, ts = self.q.getAll()
+        st = data.decode(self.encoding, errors='replace')
+        if st == '':
+            return st
+        # ts[i] is the reception time of data[i] (one per byte); a line stamp
+        # is the time of its first character (the first byte of a multi-byte
+        # sequence).
+        char_ts = _char_ts(data, ts, len(st))
+        if st[-1] not in '\r\n':
+            # Incomplete last line: push it back — with its reception times —
+            # so the next read serves it with the same stamps. The store keeps
+            # bytes, so the per-character times are expanded over the
+            # re-encoded bytes.
+            i = st.rfind('\n')
+            back = st[i + 1:]  # nonempty: st ends without a newline
+            self.q.pushBack(back.encode(self.encoding),
+                            _byte_ts(back, char_ts[i + 1:], self.encoding))
+            st, char_ts = st[:i + 1], char_ts[:i + 1]
+            if st == '':
+                return st
+        self._display_raw(st, char_ts, mute)
         return st
 
     def write(self, s, mute=False):

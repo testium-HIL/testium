@@ -237,7 +237,7 @@ keeping it input-only is simpler and matches the need.
 
 ### 4. Log line timestamps — confirmed; one design decision to make
 
-**Confirmed, with a useful asymmetry.** The *file* log (`log:` parameter) already
+**Confirmed, now executed (2026-11-19).** The *file* log (`log:` parameter) already
 carries the **reception** time — `LoggedConsole.read_thread` stamps the first
 character of each line (`api/console.py` L711-713). Only the stream log
 (`[HH:MM:SS name]` in the GUI log, the per-step report `log` column and the
@@ -260,18 +260,32 @@ Mechanics — the timestamp must travel with the data:
   `read_available` — there arrival ≈ read, which is accurate to the poll
   interval.
 
-Questions:
-- Scope: stream log only, or also the `cn_<name>` data stored by `read_until`?
-  I'd keep `cn_<name>` raw (stamps in data would pollute `check` comparisons).
-  Confirm?
-- Granularity: per-line first-character time (file-log parity, my default)
-  or per-line last-character time (the time the line completed)? I'd take the
-  first character — it matches the existing file log.
-- `read_nowait`/`flush` display (L620-628, L762-764) and the telnet `open`
-  login banner (L387-391) also stamp at display time — bring them to reception
-  time as well, or leave them? (I'd bring them, for consistency.)
+Decisions (executed, 2026-11-19):
+- Scope: **stream log only.** `cn_<name>` data stays RAW — stamps in the data
+  would pollute `check` comparisons.
+- Granularity: **per-line first-character reception time** (file-log parity) —
+  the time the line's first character arrived, not when it completed.
+- **All display paths** brought to reception time: GUI stream log, per-step
+  report `log` column, HTML export, `read_nowait`/`flush` display, and the
+  telnet `open` login banner.
 
-**Regression test (stage A) is in place and RED (full suite, 2026-11-18).**
+Implementation (verified GREEN, full-suite run of 2026-11-19):
+- Reader threads queue `(timestamp, bytes)`; `BytesStore` (serial/term) keeps
+  per-byte timestamps in `(ts_list, data)` segments; `LoggedConsole` queues
+  `(data, ts)`. Non-threaded transports (telnet, rawtcp, ssh) stamp at
+  `readchar`/`read_available` — there arrival ≈ read.
+- The per-byte timestamps ride through `readchar`/`read_available`/`_pending`
+  (push-back). `read_until` maps them to decoded characters with `_char_ts`
+  (a multi-byte sequence keeps its first byte's time; a `replace` error
+  reuses the last group's time) and back to bytes for push-back with
+  `_byte_ts` (each character's time is expanded over its re-encoded bytes,
+  so a held multi-byte sequence never desyncs the per-byte lists — the
+  `read_until` held-byte state `_ts_hold` resets each call, as the decoder
+  is fresh per call).
+- `_display`/`_display_raw`/`_emit_line` stamp each complete line with the
+  reception time of its first character — the file-log contract.
+
+**Regression test is GREEN since the change landed (full-suite runs of 2026-11-19).**
 `test/validation/items/console/test.tum`, the `Console timestamp *` items:
 dedicated terminal console, a shell loop emits `tsline_1/2/3` two seconds
 apart, the answers are left unread so they pile up in the console buffer
@@ -279,9 +293,12 @@ apart, the answers are left unread so they pile up in the console buffer
 cross-item check `Console log stamps keep the reception spacing`
 (`items/report.tum`, helper `items/console/tscheck.py`) asserts
 `tsline_3 - tsline_1 >= 3 s` on the `[HH:MM:SS name]` stamps of the drain
-step's log: RED today (the three stamps collapse onto the drain time —
-verified in the run: `19:11:39` on all three lines for output produced
-at ~33/35/37), GREEN once the stream log stamps at reception time.
+step's log. Stage A (before the fix, full suite of 2026-11-18): RED — the
+three stamps collapsed onto the drain time (`19:11:39` on all three lines for
+output produced at ~33/35/37). Stage B (after the fix, full suite of
+2026-11-19): GREEN — the drain step's log keeps the 2 s reception spacing
+(`09:52:14` / `09:52:16` / `09:52:18`), and the full-suite verdict carries no
+red row.
 The check runs only for the `console` item (`condition` gate) and reads
 the per-item `console_PASS.junit` (the report items export it right after
 the console test, and `junit_xml` puts each step's full log in the
@@ -290,8 +307,9 @@ the console test, and `junit_xml` puts each step's full log in the
   `open()`/`close()`), so a mid-run check cannot read it — the per-step
   JUnit log is the source of truth; do not regress to the sqlite; the
   per-item `*.txt` is a status table without logs, not a log source either;
-- the `Console timestamp *` console items themselves all PASS today — the
-  RED signal lives only in the cross-item check, like the point-3 check.
+- the `Console timestamp *` console items themselves all PASS in both stages —
+  the bug (and now the fix) is only observable in the cross-item check, like
+  the point-3 check.
 
 ### Cross-cutting
 

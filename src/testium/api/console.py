@@ -1,4 +1,3 @@
-from datetime import datetime
 import sys
 import os
 import re
@@ -18,51 +17,118 @@ TIMEOUT_NULL = 0.000001
 STOP_POLL_INTERVAL = 0.2
 
 
+def _stamp_str(ts=None):
+    """'HH:MM:SS' local time of a time.time() reception stamp
+    (the display time when ts is None)."""
+    if ts is None:
+        ts = time.time()
+    return time.strftime('%H:%M:%S', time.localtime(ts))
+
+
+def _char_ts(consumed_bytes, ts, n_chars):
+    """Reception time of the first byte of each of the *n_chars* characters
+    decoded out of *consumed_bytes* (ts[i]: time of consumed_bytes[i]).
+
+    A multi-byte sequence keeps the time of its first byte; with a
+    single-byte encoding this is the per-character time. When the decoder
+    emitted fewer characters than byte groups (a 'replace' error on a
+    sequence that the decoder consumed whole), the time of the first byte of
+    the group is reused for the missing characters.
+    """
+    out = []
+    i = 0
+    while i < len(consumed_bytes) and len(out) < n_chars:
+        b = consumed_bytes[i]
+        if b < 0x80:
+            n = 1
+        elif b < 0xC0:
+            n = 1  # stray continuation byte: the decoder replaces it alone
+        elif b < 0xE0:
+            n = 2
+        elif b < 0xF0:
+            n = 3
+        else:
+            n = 4
+        out.append(ts[i])
+        i += n
+    if out:
+        # The decoder emitted fewer characters than byte groups (a 'replace'
+        # error on a malformed sequence): reuse the last group's time.
+        return out + [out[-1]] * (n_chars - len(out))
+    return [None] * n_chars
+
+
+def _byte_ts(text, char_ts, encoding):
+    """Per-byte reception times of *text* once re-encoded: each character's
+    time is repeated over the bytes of its encoding (so a pushed-back byte
+    stream always carries one time per byte)."""
+    out = []
+    for ch, ts in zip(text, char_ts):
+        out.extend([ts] * len(ch.encode(encoding)))
+    return out
+
+
 class BytesStore(object):
     """ Class used to store the buffered consoles data:
          - SerialConsole
          - TermConsole
+    Each item carries the reception time (time.time()) of its bytes, so the
+    display path can stamp a log line with the time its first character
+    arrived instead of the time it is displayed.
     """
 
     def __init__(self):
         self.cond = threading.Condition()
-        self.items = b''
+        # list of (ts_list, data) segments: ts_list[i] is the reception
+        # time of data[i]
+        self.items = []
 
-    def put(self, item):
+    def put(self, ts, data):
         with self.cond:
-            self.items += item
+            self.items.append(([ts] * len(data), data))
             self.cond.notify()  # Wake 1 thread waiting on cond (if any)
 
     def get(self, block=False, timeout=None):
         with self.cond:
             # If blocking is true, always return at least 1 item
-            if block and len(self.items) == 0:
+            if block and not self.items:
                 self.cond.wait(timeout)
-            if len(self.items) != 0:
-                c = bytes([self.items[0]])
-                self.items = self.items[1:]
-                return c
+            if self.items:
+                ts_list, data = self.items[0]
+                if len(data) == 1:
+                    self.items.pop(0)
+                else:
+                    self.items[0] = (ts_list[1:], data[1:])
+                return data[:1], ts_list[0]
             else:
                 return None
 
     def get_available(self, block=False, timeout=None):
-        """Every buffered byte at once; b'' when nothing arrived in time."""
+        """Every buffered byte at once, with reception times;
+        (b'', []) when nothing arrived in time."""
         with self.cond:
-            if block and len(self.items) == 0:
+            if block and not self.items:
                 self.cond.wait(timeout)
-            items = self.items
-            self.items = b''
-            return items
+            self.items, items = [], self.items
+        if not items:
+            return b'', []
+        return (b''.join(seg[1] for seg in items),
+                [ts for seg in items for ts in seg[0]])
 
     def getAll(self):
+        """Every buffered byte, with reception times; (b'', []) when empty."""
         with self.cond:
-            items = self.items
-            self.items = b''
-        return items
+            self.items, items = [], self.items
+        if not items:
+            return b'', []
+        return (b''.join(seg[1] for seg in items),
+                [ts for seg in items for ts in seg[0]])
 
-    def pushBack(self, data):
+    def pushBack(self, data, ts=None):
         with self.cond:
-            self.items = data + self.items
+            if ts is None:
+                ts = [time.time()] * len(data)
+            self.items.insert(0, (ts, data))
 
 
 class Console(object):
@@ -77,13 +143,20 @@ class Console(object):
         self.encoding = "utf-8"
         self.echo_on = echoOn
         self.write_delay = write_delay
-        # Bytes read past a read_until match, served before the transport.
-        self._pending = b''
+        # Bytes read past a read_until match (with their reception times),
+        # served before the transport.
+        self._pending = (b'', [])
         # Line ending appended by writeln.
         self.newline = '\n'
         # Shell dialect used by the exec action ('none': not a shell).
         self.dialect = 'none'
-        self.string_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+' '+self.name+']'
+        # In-progress line of the display buffer: its text, and the reception
+        # time of its first character (the stamp used when the line is emitted).
+        self._line = ''
+        self._line_ts = None
+        # Reception times of the bytes currently held inside the read_until
+        # decoder (a multi-byte sequence split across chunks).
+        self._ts_hold = []
 
     def __del__(self):
         """ This is a safeguard that tries to close the telnet connection, in case it was not done,
@@ -156,44 +229,72 @@ class Console(object):
     REGEX_WINDOW = 65536
 
     def read_available(self, timeout):
-        """One chunk of available bytes; None or b'' when nothing arrived.
+        """One stamped chunk of available bytes: (data, ts), ts[i] the
+        reception time of data[i]; None or (b'', []) when nothing arrived.
         Default: a single readchar, so external subclasses keep working."""
         return self.readchar(timeout)
 
     def _next_chunk(self, timeout):
-        """Bytes pushed back by a previous read, else a transport chunk."""
-        if self._pending:
-            data, self._pending = self._pending, b''
-            return data
+        """Stamped bytes pushed back by a previous read, else a transport chunk."""
+        if self._pending[0]:
+            pair, self._pending = self._pending, (b'', [])
+            return pair
         return self.read_available(timeout)
 
-    def _push_back(self, data):
-        """Return bytes read past a match; served first by the next read."""
-        self._pending = data + self._pending
+    def _push_back(self, data, ts=None):
+        """Return bytes read past a match (with their reception times);
+        served first by the next read."""
+        if ts is None:
+            ts = [time.time()] * len(data)
+        self._pending = (data + self._pending[0], ts + self._pending[1])
 
     def _pending_text(self):
-        """Drain the pushed-back bytes as text (for read_nowait)."""
-        data, self._pending = self._pending, b''
-        return data.decode(self.encoding, errors='replace')
+        """Drain the pushed-back bytes as (text, ts): ts[i] is the reception
+        time of the i-th byte (for read_nowait)."""
+        (data, ts), self._pending = self._pending, (b'', [])
+        return data.decode(self.encoding, errors='replace'), ts
 
     def _emit_line(self):
-        self.string_buffer = self.string_buffer.replace('\r\n', '\n')
-        self.string_buffer = self.string_buffer.replace('\r', '')
-        self.stream.write(self.string_buffer)
-        date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-        self.string_buffer = '[{} {}]'.format(date_str, self.name)
+        """Flush the in-progress line, stamped with the reception time of
+        its first character (the display time when it has none)."""
+        line = self._line.replace('\r\n', '\n').replace('\r', '')
+        self.stream.write('[{} {}]'.format(_stamp_str(self._line_ts),
+                                           self.name) + line + '\n')
+        self._line = ''
+        self._line_ts = None
 
-    def _display(self, text, final=False):
-        """Append *text* to the dated line buffer, flushing complete lines
-        (one dated header per line, as the GUI log expects)."""
+    def _display(self, text, ts, final=False):
+        """Append *text* (ts[i]: reception time of text[i]) to the display
+        buffer, flushing complete lines — each stamped with the reception
+        time of its first character, as the file log does."""
+        offset = 0
         parts = text.split('\n')
         for part in parts[:-1]:
-            self.string_buffer += part + '\n'
+            if self._line == '':
+                self._line_ts = ts[offset]
+            self._line += part
             self._emit_line()
-        self.string_buffer += parts[-1]
+            offset += len(part) + 1
+        if parts[-1] != '':
+            if self._line == '':
+                self._line_ts = ts[offset]
+            self._line += parts[-1]
         if final and parts[-1] != '':
-            self.string_buffer += '\n'
             self._emit_line()
+
+    def _display_raw(self, text, ts, mute):
+        """Display a decoded (text, ts) pair (ts per byte) for read_nowait:
+        each line is stamped with the reception time of its first character.
+        With a single-byte encoding ts is also the per-character time; when
+        the lengths differ (multi-byte sequences, 'replace' errors) the first
+        stamp is reused for the whole text."""
+        if mute or text == '':
+            return
+        if len(ts) == len(text):
+            char_ts = ts
+        else:
+            char_ts = [ts[0] if ts else None] * len(text)
+        self._display(text, char_ts, final=True)
 
     def _find_match(self, read_data, prev_len, matches, compiled):
         """Earliest match end in *read_data*, or None. Sets self._matched."""
@@ -262,7 +363,11 @@ class Console(object):
         self._matched = None
 
         # A multi-byte sequence split across chunks decodes once complete.
+        # The decoder is fresh for each call, so the held timestamps start
+        # empty too (bytes held by a previous call were pushed back with
+        # theirs, and are re-decoded here from scratch).
         decoder = codecs.getincrementaldecoder(self.encoding)('replace')
+        self._ts_hold = []
 
         # timeout == 0: return what is buffered now; otherwise wait for the
         # match up to the deadline (forever when timeout is None), polling in
@@ -280,37 +385,55 @@ class Console(object):
             if should_stop is not None and should_stop():
                 break
             if drain:
-                raw = self._next_chunk(0)
-                if raw is None or raw == b'':
-                    break
+                pair = self._next_chunk(0)
             else:
                 if deadline is not None and time.monotonic() >= deadline:
                     break
-                raw = self._next_chunk(STOP_POLL_INTERVAL)
-                if raw is None or raw == b'':
-                    continue
+                pair = self._next_chunk(STOP_POLL_INTERVAL)
+            if pair is None or pair[0] in (None, b''):
+                if drain:
+                    break
+                continue
 
+            raw, raw_ts = pair
+            held = decoder.getstate()[0]
             chunk = decoder.decode(raw)
             if chunk == '':
+                # A multi-byte sequence split across chunks: its bytes (and
+                # their reception times) stay with the decoder state until
+                # the sequence completes.
+                self._ts_hold = self._ts_hold + raw_ts
                 continue
+            consumed = held + raw
+            new_held = decoder.getstate()[0]
+            # The line stamps need the time of the first byte of each
+            # decoded character (a multi-byte sequence keeps its first byte).
+            chunk_ts = _char_ts(consumed[:len(consumed) - len(new_held)],
+                                self._ts_hold + raw_ts, len(chunk))
+            self._ts_hold = (self._ts_hold + raw_ts)[len(consumed) - len(new_held):]
             prev_len = len(read_data)
             read_data += chunk
 
             end = self._find_match(read_data, prev_len, matches, compiled)
             if end is None:
                 if not mute:
-                    self._display(chunk)
+                    self._display(chunk, chunk_ts)
                 continue
             status = 0
             # The stream stays positioned right after the match: bytes read
-            # past it are pushed back for the next read.
+            # past it are pushed back for the next read, with their stamps.
             extra = read_data[end:]
-            if extra or decoder.getstate()[0]:
-                self._push_back(extra.encode(self.encoding)
-                                + decoder.getstate()[0])
+            # The push-back stores bytes, so the per-character times of
+            # 'extra' are expanded over its re-encoded bytes (a multi-byte
+            # character re-encodes to more bytes than characters).
+            extra_ts = _byte_ts(extra, chunk_ts[end - prev_len:],
+                                self.encoding) + self._ts_hold
+            if extra or new_held:
+                self._push_back(extra.encode(self.encoding) + new_held, extra_ts)
             read_data = read_data[:end]
             if not mute:
-                self._display(chunk[:end - prev_len], final=True)
+                self._display(chunk[:end - prev_len], chunk_ts[:end - prev_len],
+                              final=True)
 
         if return_data:
             return status, read_data
@@ -384,34 +507,41 @@ class TelnetConsole(Console):
 
         if not user:
             return
-        self.stream.write(self.port.read_until("login: "))
+        # The login banner is displayed as it arrives: each line is stamped
+        # with the reception time (here arrival ≈ read, no reader thread).
+        self._display_raw(self.port.read_until("login: ").decode(
+            self.encoding, errors='replace'), None, mute=False)
         self.port.write(user + "\n")
-
-        self.stream.write(self.port.read_until("assword"))
-        self.stream.write(self.port.read_until(":"))
+        self._display_raw(self.port.read_until("assword").decode(
+            self.encoding, errors='replace'), None, mute=False)
+        self._display_raw(self.port.read_until(":").decode(
+            self.encoding, errors='replace'), None, mute=False)
         self.port.write(pwd + "\n")
 
     def readchar(self, timeout):
-        return self.port.expect([re.compile(b'.{1}', re.DOTALL), ], timeout)[2]
+        data = self.port.expect([re.compile(b'.{1}', re.DOTALL), ], timeout)[2]
+        if not data:
+            return None
+        return data, [time.time()]
 
     def read_available(self, timeout):
         # First byte through expect (drives the telnet negotiation), then
         # whatever else already arrived.
         first = self.readchar(timeout)
-        if first is None or first == b'':
-            return first
-        return first + self.port.read_very_eager()
+        if first is None:
+            return None
+        rest = self.port.read_very_eager()
+        return first[0] + rest, [first[1][0]] + [time.time()] * len(rest)
 
     def readline(self):
         return self.read_until('\n', return_data=True)[1]
 
     def read_nowait(self, mute=False):
         self._ensure_open()
-        st = self._pending_text() + self.port.read_very_eager().decode(
-            self.encoding, errors='replace')
-        if not mute:
-            date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-            self.stream.write('[{} {}]'.format(date_str, self.name)+st)
+        pend_text, pend_ts = self._pending_text()
+        rest = self.port.read_very_eager()
+        st = pend_text + rest.decode(self.encoding, errors='replace')
+        self._display_raw(st, pend_ts + [time.time()] * len(rest), mute)
         return st
 
     def close(self):
@@ -552,7 +682,10 @@ class SerialConsole(Console):
         while not self.stop.is_set():
             c = self.port.read(1)
             if c:
-                self.rx_queue.put(c)
+                # Stamp the byte with its reception time: the display path
+                # stamps each log line with the time its first character hit
+                # the port, not the time read_until drains it.
+                self.rx_queue.put(time.time(), c)
 
     def close(self):
         if self.bufferize and self._thd is not None:
@@ -578,12 +711,17 @@ class SerialConsole(Console):
                 "serial console '{}' ({}) is not open".format(self.name, self.port_id))
         if self.bufferize:
             self._check_reader()
-            if timeout < TIMEOUT_NULL:
-                return self.rx_queue.get(block=False)
-            else:
-                return self.rx_queue.get(block=True, timeout=timeout)
+            item = self.rx_queue.get(block=timeout >= TIMEOUT_NULL,
+                                     timeout=timeout)
+            if item is None:
+                return None
+            data, ts = item
+            return data, [ts]
 
-        return self.port.read(1)
+        data = self.port.read(1)
+        if not data:
+            return None
+        return data, [time.time()]
 
     def read_available(self, timeout):
         if not self.isOpened:
@@ -596,15 +734,16 @@ class SerialConsole(Console):
         self.port.timeout = timeout
         first = self.port.read(1)
         if first == b'':
-            return first
+            return None
         waiting = self.port.in_waiting
-        return first + (self.port.read(waiting) if waiting else b'')
+        data = first + (self.port.read(waiting) if waiting else b'')
+        return data, [time.time()] * len(data)
 
-    def _push_back(self, data):
+    def _push_back(self, data, ts=None):
         if self.bufferize:
-            self.rx_queue.pushBack(data)
+            self.rx_queue.pushBack(data, ts)
         else:
-            super()._push_back(data)
+            super()._push_back(data, ts)
 
     def flush(self):
         # Base-class contract: discard everything already received. The
@@ -619,17 +758,16 @@ class SerialConsole(Console):
                 "serial console '{}' ({}) is not open".format(self.name, self.port_id))
         if self.bufferize:
             self._check_reader()
-            st = self.rx_queue.getAll().decode(self.encoding, errors='replace')
-            if not mute:
-                date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-                self.stream.write('[{} {}]'.format(date_str, self.name)+st)
+            data, ts = self.rx_queue.getAll()
+            st = data.decode(self.encoding, errors='replace')
+            self._display_raw(st, ts, mute)
             return st
 
-        st = self._pending_text() + self.port.read(
-            self.port.in_waiting).decode(self.encoding, errors='replace')
-        if not mute:
-            date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-            self.stream.write('[{} {}]'.format(date_str, self.name)+st)
+        pend_text, pend_ts = self._pending_text()
+        now = time.time()
+        data = self.port.read(self.port.in_waiting)
+        st = pend_text + data.decode(self.encoding, errors='replace')
+        self._display_raw(st, pend_ts + [now] * len(data), mute)
         return st
 
 
@@ -649,13 +787,18 @@ class TelnetSerialConsole(TelnetConsole):
         self.isOpened = True
         if not user:
             return
-        self.stream.write(self.port.read_until("login: "))
+        # The login banner is displayed as it arrives (arrival ≈ read).
+        self._display_raw(self.port.read_until("login: ").decode(
+            self.encoding, errors='replace'), None, mute=False)
         self.port.write(user + "\n")
-        self.stream.write(self.port.read_until("assword"))
-        self.stream.write(self.port.read_until(":"))
+        self._display_raw(self.port.read_until("assword").decode(
+            self.encoding, errors='replace'), None, mute=False)
+        self._display_raw(self.port.read_until(":").decode(
+            self.encoding, errors='replace'), None, mute=False)
         self.port.write(pwd + "\n")
         # then connect to the serial port using miniterm console
-        self.stream.write(self.port.read_until("~]$"))
+        self._display_raw(self.port.read_until("~]$" ).decode(
+            self.encoding, errors='replace'), None, mute=False)
         self.stream.write("miniterm.py -p " + str(self.serial_port) +
                           " -b " + str(self.baudrate) + " --parity=N --lf\n")
         if (self.read_until("--- Miniterm on", 5) == -1):
@@ -701,10 +844,12 @@ class LoggedConsole(Console):
         while not self.stop.is_set():
             data = self._readPort()
 
-            if data:
-                self.rx_queue.put(data)
-            else:
+            if not data:
                 continue
+            # One reception time per byte: the file log and the stream log
+            # stamp a line with the time its first character arrived.
+            ts = time.time()
+            self.rx_queue.put((data, ts))
             data = data.decode(self.encoding, errors='replace')
             # if valid char, write into the file
             if self._is_valid_character(data):
@@ -714,7 +859,7 @@ class LoggedConsole(Console):
                     continue
                  # date at reception of first new char of the line
                 if line_buffer is None:
-                    line_buffer = '['+str(datetime.now()).split('.')[0].split(' ')[1]+']'
+                    line_buffer = '[' + _stamp_str(ts) + ']'
                 line_buffer += data
                 if data == '\n':
                     # the datas are written line by line
@@ -740,32 +885,34 @@ class LoggedConsole(Console):
             raise ConnectionAbortedError(
                 "console '{}' closed while reading".format(self.name))
         try:
-            return self.rx_queue.get(timeout=timeout)
+            data, ts = self.rx_queue.get(timeout=timeout)
         except Empty:
             return None
+        return data, [ts]
 
     def read_available(self, timeout):
         first = self.readchar(timeout)
         if first is None:
             return None
-        data = first
+        data, ts = first[0], list(first[1])
         try:
             while True:
-                data += self.rx_queue.get_nowait()
+                d, t = self.rx_queue.get_nowait()
+                data += d
+                ts.append(t)
         except Empty:
-            return data
+            return data, ts
 
     def read_nowait(self, mute=False):
         if self.log_fd is None:
             raise ConnectionAbortedError(
                 "console '{}' closed while reading".format(self.name))
-        chars = self._pending_text()
+        chars, ts = self._pending_text()
         for _ in range(self.rx_queue.qsize()):
-            chars = chars + self.rx_queue.get().decode(self.encoding, errors='replace')
-
-        if not mute:
-            date_str = str(datetime.now()).split('.')[0].split(' ')[1]
-            self.stream.write('[{} {}]'.format(date_str, self.name)+chars)
+            d, t = self.rx_queue.get()
+            chars += d.decode(self.encoding, errors='replace')
+            ts += [t] * len(d)
+        self._display_raw(chars, ts, mute)
         return chars
 
 
