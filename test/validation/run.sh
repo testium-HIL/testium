@@ -90,7 +90,9 @@ done
 # Prints the verdict of one run from its log: "OK", or the reason on the
 # first line and the details below.
 all_verdict() {
-    local log="$1"
+    # The batch output is colored: the escape sequences are removed first.
+    local log="$1.plain"
+    sed 's/\x1b\[[0-9;]*m//g' "$1" > "$log"
     if grep -q "Post execution finished : SUCCESS" "$log"; then
         echo "OK"
     elif grep -q "Post execution finished" "$log"; then
