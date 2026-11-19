@@ -1,3 +1,4 @@
+local json = require("cjson")
 local utils = require("utils")
 local tm = require("tm")
 
@@ -65,7 +66,7 @@ function handle.func_call(params)
         err_res = {xpcall(function() return func(unpack(prms)) end,
                           function(e)
                               local tb = debug.traceback(tostring(e), 2)
-                              local cut = tb:find("\n[^\n]*in function 'xpcall'")
+                              local cut = tb:find("\n[^\n]*in %a+ 'xpcall'")
                               if cut then tb = tb:sub(1, cut - 1) end
                               return tb
                           end)}
@@ -86,6 +87,81 @@ function handle.func_call(params)
 
     -- 4. Returns result
     return res, err
+end
+
+-- Value that cjson can encode: functions and userdata as text.
+local function _plain(v, depth, seen)
+    local t = type(v)
+    if t == "table" then
+        if seen[v] or depth > 20 then return tostring(v) end
+        seen[v] = true
+        local out = {}
+        for k, e in pairs(v) do
+            local key = k
+            if type(key) ~= "number" then key = tostring(key) end
+            out[key] = _plain(e, depth + 1, seen)
+        end
+        seen[v] = nil
+        return out
+    elseif t == "nil" or t == "boolean" or t == "number" or t == "string" then
+        return v
+    end
+    return tostring(v)
+end
+
+local load_chunk = loadstring or load
+
+-- Run a code snippet at global level. An expression gives its value.
+function handle.run_code(params)
+    local code = params.code
+    local chunk, err = load_chunk("return " .. code, "=sandbox")
+    if not chunk then
+        chunk, err = load_chunk(code, "=sandbox")
+    end
+    if not chunk then
+        return nil, tostring(err)
+    end
+    local res = {xpcall(chunk, function(e)
+        local tb = debug.traceback(tostring(e), 2)
+        local cut = tb:find("\n[^\n]*in %a+ 'xpcall'")
+        if cut then tb = tb:sub(1, cut - 1) end
+        return tb
+    end)}
+    local succ = table.remove(res, 1)
+    if not succ then
+        return nil, res[1]
+    end
+    if #res > 1 then
+        return _plain(res, 0, {})
+    end
+    return _plain(res[1], 0, {})
+end
+
+-- Names completing prefix, each one a replacement of the whole prefix.
+function handle.complete(params)
+    local prefix = params.prefix or ""
+    local head, sep, tail = prefix:match("^(.*)([%.:])([%w_]*)$")
+    local scope = _G
+    if head then
+        for name in head:gmatch("[^%.:]+") do
+            local ok, sub = pcall(function() return scope[name] end)
+            if not ok or type(sub) ~= "table" then return {} end
+            scope = sub
+        end
+    else
+        head, sep, tail = "", "", prefix
+    end
+    local names = {}
+    for k in pairs(scope) do
+        if type(k) == "string" and k:sub(1, #tail) == tail then
+            names[#names + 1] = head .. sep .. k
+        end
+    end
+    table.sort(names)
+    if #names == 0 then
+        return setmetatable({}, json.empty_array_mt)
+    end
+    return names
 end
 
 return handle

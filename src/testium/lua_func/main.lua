@@ -100,6 +100,8 @@ tm._init_api(rpc)
 utils.setup_remote_print(rpc)
 
 rpc:register("func_call", handle.func_call)
+rpc:register("run_code", handle.run_code)
+rpc:register("complete", handle.complete)
 
 -- Communication Loop for this client
 rpc:loop()

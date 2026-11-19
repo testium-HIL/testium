@@ -77,6 +77,8 @@ if {$::client eq "timeout"} {
 ::tmutils::log "Client connected"
 ::tmrpc::attach $::client
 ::tmrpc::register func_call ::tmhandle::func_call
+::tmrpc::register run_code ::tmhandle::run_code
+::tmrpc::register complete ::tmhandle::complete
 ::tmrpc::loop
 
 catch {close $::client}

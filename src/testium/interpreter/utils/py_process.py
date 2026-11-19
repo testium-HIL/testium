@@ -6,10 +6,11 @@ import api.testium as tm
 from runtime.tum_except import ETUMRuntimeError
 from interpreter.utils.paths import testium_path, subproc_path, no_window_kwargs
 from interpreter.utils import bins
+from interpreter.utils.rpc_engine import RpcEngineMixin
 from interpreter.utils.proc_drain import drain_and_read_port, wait_for_port
 
 
-class PyProcessBase:
+class PyProcessBase(RpcEngineMixin):
     CUST_ENV = {
         "PATH": {"replace": False},
         "PYTHONPATH": {"replace": True},

@@ -49,3 +49,60 @@ proc ::tmhandle::func_call {params} {
         }
     }
 }
+
+# Run a code snippet at global level.
+proc ::tmhandle::run_code {params} {
+    set code [dict get $params code]
+    set rc [catch {uplevel #0 $code} ret opts]
+    switch -exact -- $rc {
+        0 - 2 { return $ret }
+        1 {
+            set info [UserTrace [dict get $opts -errorinfo] \
+                "invoked from within\n\"uplevel #0 \$code\""]
+            error [string map {"(\"uplevel\" body line" "(sandbox line"} $info]
+        }
+        default {
+            error "'break' or 'continue' outside a loop"
+        }
+    }
+}
+
+# Names completing prefix, each one a replacement of the whole prefix.
+# A prefix starting with $ completes a variable, any other a command.
+proc ::tmhandle::complete {params} {
+    set prefix [dict get $params prefix]
+    set names [list]
+    if {[string index $prefix 0] eq "\$"} {
+        set stem [string range $prefix 1 end]
+        foreach v [uplevel #0 [list info vars $stem*]] {
+            lappend names "\$$v"
+        }
+    } else {
+        foreach c [uplevel #0 [list info commands $prefix*]] {
+            if {![string match ::* $prefix]} {
+                set c [string trimleft $c :]
+            }
+            lappend names $c
+        }
+        set parent [namespace qualifiers $prefix]
+        if {$parent eq "" && ![string match ::* $prefix]} {
+            set children [namespace children ::]
+            set strip 2
+        } else {
+            set children [expr {[namespace exists ::[string trimleft $parent :]]
+                ? [namespace children ::[string trimleft $parent :]] : [list]}]
+            set strip [expr {[string match ::* $prefix] ? 0 : 2}]
+        }
+        foreach ns $children {
+            set name [string range $ns $strip end]
+            if {[string match $prefix* $name]} {
+                lappend names ${name}::
+            }
+        }
+    }
+    set out [list]
+    foreach n [lsort -unique $names] {
+        lappend out [::tm::str $n]
+    }
+    return [::tm::list $out]
+}

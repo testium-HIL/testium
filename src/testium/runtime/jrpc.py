@@ -301,9 +301,9 @@ class JsonRpcBase(threading.Thread):
 
         self.print_info("No handler defined for the calls")
 
-    def call(self, method, params):
+    def call(self, method, params, timeout=3600.0):
         if (self._rpc is not None) and self._rpc.running:
-            return self._rpc.call(method, params)
+            return self._rpc.call(method, params, timeout)
         else:
             raise ETUMRuntimeError(
                 f"Cannot send the '{method}' call: the RPC link "
