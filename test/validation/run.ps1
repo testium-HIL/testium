@@ -206,6 +206,9 @@ if ($mode.ToLower() -eq 'source') {
     Write-Host "-- Tcl missing check ($mode)"
     Invoke-Checked "Tcl missing check ($mode)" $devPython @((Join-Path $scriptDir 'tcl_missing_check.py'))
 
+    Write-Host "-- sandbox check ($mode)"
+    Invoke-Checked "sandbox check ($mode)" $devPython @((Join-Path $scriptDir 'sandbox_check.py'))
+
     Write-Host "-- GUI reload check ($mode)"
     Invoke-Checked "GUI reload check ($mode)" $devPython @((Join-Path $scriptDir 'gui_reload_check.py'))
 
