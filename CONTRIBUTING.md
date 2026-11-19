@@ -214,6 +214,7 @@ Useful variants:
 ./test/validation/run.sh clean            # recreate the venv first (after a Python upgrade)
 ./test/validation/run.sh --gui            # load the suite in the GUI, run it manually
 ./test/validation/run.sh -d "items=['parallel','common']"   # subset run
+./test/validation/run.sh --all            # every mode, batch then GUI, with a summary of the failures
 ```
 
 Extra arguments are forwarded to testium. The report file is suffixed

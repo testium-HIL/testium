@@ -4,6 +4,7 @@
 #
 # Usage:
 #   ./test/validation/run.sh [clean] [--mode MODE] [--gui] [extra testium args]
+#   ./test/validation/run.sh [clean] --all [extra testium args]
 #
 #   clean           remove the validation venv before recreating it
 #                   (must be the first argument; useful after a Python upgrade)
@@ -19,6 +20,13 @@
 #                       pyinstaller  dist/testium-<v>
 #                       flatpak      installed org.testium.Testium
 #                       appimage     dist/Testium-<v>-*.AppImage
+#
+#   --all           run every mode one after the other, in batch then
+#                   through the GUI, and print a summary: one line per
+#                   run, with what failed. Exit code 0 only if every run
+#                   succeeded. The logs are kept in
+#                   /tmp/testium-validation-all. VALIDATION_MODES restricts
+#                   the modes, for example VALIDATION_MODES="source wheel".
 #
 # Every test-execution subprocess (inline <| ... |>, py_func, cycle,
 # post_execution, ...) runs in a dedicated host venv under
@@ -51,8 +59,13 @@ fi
 
 EXTRA=()
 GUI=0
+ALL=0
 while [ $# -gt 0 ]; do
     case "$1" in
+        --all)
+            ALL=1
+            shift
+            ;;
         --mode)
             MODE="$2"
             shift 2
@@ -71,6 +84,66 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+# ---------- --all: every mode, batch then GUI ---------------------------------
+
+# Prints the verdict of one run from its log: "OK", or the reason on the
+# first line and the details below.
+all_verdict() {
+    local log="$1"
+    if grep -q "Post execution finished : SUCCESS" "$log"; then
+        echo "OK"
+    elif grep -q "Post execution finished" "$log"; then
+        grep "Post execution finished" "$log" | tail -1 | sed 's/^\* *//'
+        grep "^Item \[.*\] Failing on" "$log" | head -20
+    elif ! grep -q "^-- validation mode:" "$log"; then
+        echo "not run"
+        grep "ERROR" "$log" | head -3
+    else
+        # Stopped before the suite ended: name the last step started.
+        echo "stopped during: $(grep "^-- " "$log" | tail -1 | sed 's/^-- //')"
+        grep -v "^[[:space:]]*$" "$log" | tail -5
+    fi
+}
+
+if [ "$ALL" -eq 1 ]; then
+    ALL_DIR="${TMPDIR:-/tmp}/testium-validation-all"
+    rm -rf "$ALL_DIR"
+    mkdir -p "$ALL_DIR"
+    FIRST=(); [ "$CLEAN" -eq 1 ] && FIRST=(clean)
+    NAMES=()
+    FAILED=0
+    for m in ${VALIDATION_MODES:-source wheel pyinstaller flatpak appimage}; do
+        for ui in batch gui; do
+            UI_FLAG=(); [ "$ui" = gui ] && UI_FLAG=(--gui)
+            echo
+            echo "================ $m / $ui ================"
+            bash "$SCRIPT_PATH" "${FIRST[@]}" --mode "$m" "${UI_FLAG[@]}" \
+                "${EXTRA[@]}" 2>&1 | tee "$ALL_DIR/$m-$ui.log" || true
+            FIRST=()
+            NAMES+=("$m-$ui")
+        done
+    done
+    echo
+    echo "================ validation summary ================"
+    for n in "${NAMES[@]}"; do
+        VERDICT="$(all_verdict "$ALL_DIR/$n.log")"
+        if [ "$VERDICT" = "OK" ]; then
+            printf "  %-20s OK\n" "${n/-/ / }"
+        else
+            FAILED=$((FAILED + 1))
+            printf "  %-20s FAILED: %s\n" "${n/-/ / }" "$(echo "$VERDICT" | head -1)"
+            echo "$VERDICT" | tail -n +2 | sed 's/^/      /'
+            echo "      log: $ALL_DIR/$n.log"
+        fi
+    done
+    if [ "$FAILED" -eq 0 ]; then
+        echo "All ${#NAMES[@]} runs succeeded."
+        exit 0
+    fi
+    echo "$FAILED of ${#NAMES[@]} runs failed."
+    exit 1
+fi
 
 # batch by default; --gui runs through the GUI with -r (run and close) and
 # logs to a temp file, echoed back after the run.
