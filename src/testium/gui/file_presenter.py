@@ -213,6 +213,9 @@ class FilePresenter:
         pp = prefs.settings.lua_bin
         if pp != "":
             d["lua_bin"] = pp
+        pp = prefs.settings.tcl_bin
+        if pp != "":
+            d["tcl_bin"] = pp
         # Set only when true, so config files and -d keep priority.
         if prefs.settings.debug_output:
             d["test_debug"] = True

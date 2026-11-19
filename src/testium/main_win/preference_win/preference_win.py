@@ -1,5 +1,6 @@
 from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QDialog, QFileDialog, QLabel, QLineEdit
+from PySide6.QtWidgets import (
+    QDialog, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QToolButton)
 from PySide6.QtGui import QFont
 
 from main_win.preference_win.preference_core_win import Ui_preferenceWindow
@@ -50,6 +51,17 @@ class PrefWindow(QDialog):
         self.editEditorCmd.setPlaceholderText("ex: code -g {file}:{line}")
         self.ui.formLayout.addRow(QLabel("Open log line in editor"), self.editEditorCmd)
 
+        # Tcl path row, added in code like the editor command field.
+        self.editTclPath = QLineEdit(self.ui.scrollAreaWidgetContents_2)
+        self.butTclPath = QToolButton(self.ui.scrollAreaWidgetContents_2)
+        self.butTclPath.setText("...")
+        self.butTclPath.clicked.connect(
+            lambda: self._pick_file(self.editTclPath, "Select the tclsh interpreter"))
+        tcl_row = QHBoxLayout()
+        tcl_row.addWidget(self.editTclPath)
+        tcl_row.addWidget(self.butTclPath)
+        self.ui.formLayout_2.addRow(QLabel("Tcl Path"), tcl_row)
+
         # Field list and store/restore logic in gui/preferences_presenter.py.
         s = prefs.settings
         self._widgets = {
@@ -65,6 +77,7 @@ class PrefWindow(QDialog):
             s.SettingsGitSupported.name:    self.ui.checkGitSupported,
             s.SettingsPythonPath.name:      self.ui.editPythonPath,
             s.SettingsLuaPath.name:         self.ui.editLuaPath,
+            s.SettingsTclPath.name:         self.editTclPath,
         }
         self.presenter = PreferencesPresenter(self)
         self.restore_prefs()

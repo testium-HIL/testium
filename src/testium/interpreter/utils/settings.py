@@ -55,6 +55,7 @@ class TestiumSettings():
     SettingsGitSupported = SettingsItem('logGitSupported', bool, True)
     SettingsPythonPath = SettingsItem('pythonPath', str, '')
     SettingsLuaPath = SettingsItem('luaPath', str, '')
+    SettingsTclPath = SettingsItem('tclPath', str, '')
     SettingsDebugOutput = SettingsItem('debugOutput', bool, False)
 
     recent_files = _pref(SettingsRecentFiles)
@@ -74,6 +75,7 @@ class TestiumSettings():
     git_supported = _pref(SettingsGitSupported)
     python_bin = _pref(SettingsPythonPath)
     lua_bin = _pref(SettingsLuaPath)
+    tcl_bin = _pref(SettingsTclPath)
     debug_output = _pref(SettingsDebugOutput)
 
     def __init__(self):
