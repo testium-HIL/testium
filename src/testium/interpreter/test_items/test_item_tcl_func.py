@@ -29,7 +29,7 @@ class TestItemTclFunc(TestItem):
         Param("file", required=True,
               doc="Path to the .tcl file containing the function."),
         Param("func_name", required=True,
-              doc="Name of the proc to call, namespace allowed."),
+              doc="Name of the function to call, namespace allowed."),
         Param("param", kind=LIST,
               doc="Arguments passed to the function. Each entry is expanded "
                   "before the call. Special tokens $(loop_param) / $(loop_index) "

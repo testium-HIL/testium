@@ -1,5 +1,5 @@
 # Example Tcl script for the tcl_func test item (see example_tcl.tum).
-# The tm:: procedures are always available: the testium Tcl worker loads
+# The tm:: functions are always available: the testium Tcl worker loads
 # them before sourcing this file.
 
 # Basic call: adds its parameters. testium numbers arrive as text, so

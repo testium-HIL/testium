@@ -3,11 +3,11 @@
 **tcl_func** test item
 ============================================================
 
-The ``tcl_func`` test item executes a proc of a Tcl script with the given
+The ``tcl_func`` test item executes a function of a Tcl script with the given
 input parameters. Tcl 8.6 or later is required. No Tcl package is needed.
 
 .. code-block:: tcl
-    :caption: ``tcl_func`` Tcl proc example
+    :caption: ``tcl_func`` Tcl function example
     :name: script_file.tcl
 
     proc dummy_func {param1 param2 param3 param4} {
@@ -33,24 +33,24 @@ input parameters. Tcl 8.6 or later is required. No Tcl package is needed.
 
 Besides the common test item attributes, the ``tcl_func`` item has specific
 attributes. ``file`` and ``func_name`` are mandatory. Both are resolved on
-every execution: in a loop, a ``$( )`` value can select a different proc
+every execution: in a loop, a ``$( )`` value can select a different function
 per iteration.
 
-* ``file``: the Tcl script that contains the proc. A relative path is
+* ``file``: the Tcl script that contains the function. A relative path is
   resolved from the test directory. The script is loaded with ``source``
   before each call.
-* ``func_name``: the name of the proc to call. A namespace is allowed,
+* ``func_name``: the name of the function to call. A namespace is allowed,
   for example ``bench::read_voltage``.
-* ``param``: the list of arguments passed to the proc, in order.
+* ``param``: the list of arguments passed to the function, in order.
 * ``context_id``: optional. All ``tcl_func`` items with the same
   ``context_id`` run in the same persistent Tcl process. See
   :ref:`tcl_func context<sec_tcl_func_context>`.
 
-The result of the proc (after optional post-processing) is stored in the
+The result of the function (after optional post-processing) is stored in the
 global variable named ``tfn_<item_name>``
 (see :ref:`global variables<sec_global_variables>`).
 
-The ``tcl_func`` result is always ``PASS``, unless the proc raises an error
+The ``tcl_func`` result is always ``PASS``, unless the function raises an error
 or the ``expected_result`` attribute is used. The error message and the Tcl
 call stack are written to the log.
 
@@ -99,7 +99,7 @@ The following commands force the type of a value. They can be nested.
         return [tm::dict $result]
     }
 
-This proc returns ``{'voltage': 3.3, 'serial': '0012', 'ok': True,
+This function returns ``{'voltage': 3.3, 'serial': '0012', 'ok': True,
 'samples': [1, 2, 3]}``.
 
 .. _sec_tcl_func_context:

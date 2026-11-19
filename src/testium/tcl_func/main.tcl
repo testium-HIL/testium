@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (c) 2026 François Dausseur
 
-# tcl_func worker: JSON-RPC server executing the procs of the test scripts.
+# tcl_func worker: JSON-RPC server executing the functions of the test scripts.
 
 if {[package vcompare [info patchlevel] 8.6] < 0} {
     puts stderr "tcl_func: Tcl 8.6 or later is required, found [info patchlevel]"

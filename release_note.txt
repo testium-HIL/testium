@@ -1,6 +1,6 @@
 version 0.7
 ==============
-- New tcl_func item: calls a proc of a Tcl script (Tcl 8.6 or later,
+- New tcl_func item: calls a function of a Tcl script (Tcl 8.6 or later,
   no Tcl package needed). Result in tfn_<name>.
 - Preferences: Tcl interpreter path.
 - GUI: Sandbox panel. Runs Python, Lua or Tcl scripts against the

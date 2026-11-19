@@ -33,11 +33,11 @@ proc ::tmhandle::func_call {params} {
     }
 
     if {[uplevel #0 [list namespace which -command $fname]] eq ""} {
-        error "Proc '$fname' not found in '$pfile'"
+        error "Function '$fname' not found in '$pfile'"
     }
 
     puts "Function executed from '$pfile'"
-    ::tmutils::log "func_call proc found '$file', '$fname'"
+    ::tmutils::log "func_call function found '$file', '$fname'"
 
     set code [catch {uplevel #0 [list $fname {*}$prms]} ret opts]
     ::tmutils::log "func_call returned code='$code', '$ret'"
@@ -45,7 +45,7 @@ proc ::tmhandle::func_call {params} {
         0 - 2 { return $ret }
         1 { error [UserTrace [dict get $opts -errorinfo] "(\"uplevel\" body line"] }
         default {
-            error "Proc '$fname' ended with 'break' or 'continue' outside a loop"
+            error "Function '$fname' ended with 'break' or 'continue' outside a loop"
         }
     }
 }
