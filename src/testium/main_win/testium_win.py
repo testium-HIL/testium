@@ -31,7 +31,9 @@ from PySide6.QtWidgets import (
 )
 from main_win.expression_info import expression_info_button
 from main_win.drawn_icons import (follow_icon, search_icon,
-                                  expression_icon, variables_icon)
+                                  expression_icon, panels_icon,
+                                  sandbox_icon,
+                                  variables_icon)
 
 ourPath = os.path.dirname(__file__)
 sys.path.append(os.path.join(ourPath, "resources"))
@@ -44,6 +46,7 @@ from main_win.preference_win.preference_win import PrefWindow
 from main_win.variables_dock import VariablesDock
 from main_win.item_dock import ItemDock
 from main_win.expression_dock import ExpressionDock
+from main_win.sandbox_dock import SandboxDock
 from main_win.test_tree import QTestTree
 
 from main_win.test_run.thread_output import ThreadTestOutput
@@ -154,9 +157,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.variablesDock = VariablesDock(self)
         self.itemDock = ItemDock(self)
         self.expressionDock = ExpressionDock(self)
+        self.sandboxDock = SandboxDock(self)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.itemDock)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.variablesDock)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.expressionDock)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.sandboxDock)
 
         self.session.restore_layout()
         # Nesting: panels can be stacked in both orientations inside an
@@ -169,6 +174,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.stepBar.setVisible(True)
         self._update_step_bar_style()
+        self._update_panels_bar_style()
         self._build_view_menu()
 
         self.actionStart_test.setDisabled(True)
@@ -284,6 +290,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadTestStatus.statusToBeUpdated.connect(self.treeTests.updateStatus)
         self.threadTestStatus.gdUpdated.connect(self.variablesDock.gd_var_updated)
         self.threadTestStatus.gdDeleted.connect(self.variablesDock.gd_var_deleted)
+        self.threadTestStatus.sandboxEvent.connect(self.sandboxDock.on_sandbox_event)
+        self.threadTestStatus.statusToBeUpdated.connect(self.sandboxDock.on_status)
+        self.threadTestStatus.testSetIsFinished.connect(self.sandboxDock.on_run_finished)
         self.reconnect_signals()
 
         if runandclose:
@@ -440,14 +449,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionExpression.setToolTip("Show the Expression panel")
         self.actionExpression.triggered.connect(
             self.on_actionExpression_triggered)
+        self.actionSandbox = QAction("Sandbox", self)
+        self.actionSandbox.setIcon(sandbox_icon())
+        self.actionSandbox.setToolTip("Show the Sandbox panel")
+        self.actionSandbox.triggered.connect(
+            lambda: self._show_panel(self.sandboxDock))
         self.actionTestInformation.setToolTip("Show the Step info panel")
         self.panelsBar = QToolBar("Panels", self)
         self.panelsBar.setObjectName("panelsBar")
         self.panelsBar.setIconSize(self.toolBar.iconSize())
         self.panelsBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.panelsBar.addAction(self.actionTestInformation)
-        self.panelsBar.addAction(self.actionVariables)
-        self.panelsBar.addAction(self.actionExpression)
+        menu = QMenu(self)
+        menu.setToolTipsVisible(True)
+        for action in (self.actionTestInformation, self.actionVariables,
+                       self.actionExpression, self.actionSandbox):
+            menu.addAction(action)
+        self.buttPanels = QToolButton(self.panelsBar)
+        self.buttPanels.setText("Panels")
+        self.buttPanels.setIcon(panels_icon())
+        self.buttPanels.setToolTip("Show a panel")
+        self.buttPanels.setMenu(menu)
+        self.buttPanels.setPopupMode(QToolButton.InstantPopup)
+        self.buttPanels.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self._panels_menu_action = self.panelsBar.addWidget(self.buttPanels)
+        self._panel_actions = list(menu.actions())
+        self.panelsBar.topLevelChanged.connect(
+            lambda _: self._update_panels_bar_style())
         # First launch: between the main bar and the Run bar.
         self.insertToolBar(self.stepBar, self.panelsBar)
 
@@ -466,6 +493,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         action = self.expressionDock.toggleViewAction()
         action.setIcon(expression_icon())
         self.menuView.addAction(action)
+        action = self.sandboxDock.toggleViewAction()
+        action.setIcon(sandbox_icon())
+        self.menuView.addAction(action)
         self.menuView.addSeparator()
         reset = self.menuView.addAction("Reset layout")
         reset.triggered.connect(self._apply_default_layout)
@@ -474,7 +504,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Default arrangement: log right (~38% width); doc, item and
         variables tabbed below it, doc on top."""
         docks = (self.logDockWidget, self.DocDockWidget,
-                 self.itemDock, self.variablesDock, self.expressionDock)
+                 self.itemDock, self.variablesDock, self.expressionDock,
+                 self.sandboxDock)
         for dock in docks:
             dock.setFloating(False)
             dock.show()
@@ -484,6 +515,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tabifyDockWidget(self.DocDockWidget, self.itemDock)
         self.tabifyDockWidget(self.itemDock, self.variablesDock)
         self.tabifyDockWidget(self.variablesDock, self.expressionDock)
+        self.tabifyDockWidget(self.expressionDock, self.sandboxDock)
         self.DocDockWidget.raise_()
         self.resizeDocks([self.logDockWidget],
                          [int(self.width() * 0.38)], Qt.Horizontal)
@@ -590,6 +622,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_variables_service(self, service):
         self.variablesDock.set_service(service)
         self.expressionDock.set_service(service)
+        self.sandboxDock.set_service(service)
 
     def snapshot_tree_states(self):
         return self.treeTests.getItemStates()
@@ -709,6 +742,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.stepBar.setIconSize(QSize(16, 16))
             self.stepBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
+
+    def _update_panels_bar_style(self):
+        """Top area: one drop-down button. Left/right/bottom or floating:
+        one compact button per panel."""
+        top = (not self.panelsBar.isFloating()
+               and self.toolBarArea(self.panelsBar) == Qt.TopToolBarArea)
+        self._panels_menu_action.setVisible(top)
+        # The actions also belong to the drop-down menu: they are taken
+        # out of the bar instead of being hidden.
+        for action in self._panel_actions:
+            self.panelsBar.removeAction(action)
+        if top:
+            self.panelsBar.setIconSize(self.toolBar.iconSize())
+        else:
+            self.panelsBar.addActions(self._panel_actions)
+            self.panelsBar.setIconSize(QSize(16, 16))
+            self.panelsBar.setToolButtonStyle(Qt.ToolButtonIconOnly)
 
     def _search_fields(self):
         fields = set()
@@ -849,6 +899,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def save_settings(self):
         self.session.save(self.testFile)
+        self.sandboxDock.persist()
 
     # --- SessionView implementation (driven by gui/session_presenter.py) --
 
@@ -1019,6 +1070,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         condition.setEnabled(state.condition_enabled)
         jump = menu.addAction("Jump to this item")
         jump.setEnabled(state.jump_enabled)
+        sandbox = menu.addAction("Send to sandbox")
+        sandbox.setEnabled(state.sandbox_enabled)
         chosen = menu.exec(self.treeTests.viewport().mapToGlobal(pos))
         if chosen is attach:
             enabled = attach.isChecked()
@@ -1028,6 +1081,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._edit_breakpoint_condition(item)
         elif chosen is jump:
             self.debugger.jump_to(item.id)
+        elif chosen is sandbox:
+            self.sandboxDock.send_item(item.id)
 
     def _edit_breakpoint_condition(self, item):
         dlg = QDialog(self)

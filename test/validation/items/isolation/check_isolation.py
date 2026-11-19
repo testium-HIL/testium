@@ -1,8 +1,9 @@
-"""Static check that py_func/ and lua_func/ subprocess code does not depend
-on testium internals. The contract is:
+"""Static check that py_func/, lua_func/ and tcl_func/ subprocess code does
+not depend on testium internals. The contract is:
 
     py_func/*.py  may import:  py_func.*, runtime.*, plus stdlib/3rd-party
     lua_func/*.lua may require: lua_func/<own files>, plus lua stdlib
+    tcl_func/*.tcl may source: tcl_func/<own files>, and require no package
 
 Forbidden top-level modules: interpreter, main_win, api, testium.
 """
@@ -57,6 +58,21 @@ def check_isolation(testium_dir):
             leaks = _collect_lua_requires(p) & FORBIDDEN_LUA
             if leaks:
                 failures.append(f"lua_func/{os.path.relpath(p, lua_dir)} leaks: {sorted(leaks)}")
+
+    tcl_dir = os.path.join(testium_dir, "tcl_func")
+    tcl_files = [f for f in os.listdir(tcl_dir) if f.endswith(".tcl")]
+    own = {f[:-4] for f in tcl_files}
+    for f in tcl_files:
+        with open(os.path.join(tcl_dir, f), "r", encoding="utf-8") as fd:
+            text = fd.read()
+        if re.search(r"^\s*package\s+require\b", text, re.M):
+            failures.append(f"tcl_func/{f} requires a package")
+        if f == "main.tcl":
+            loaded = set(re.search(r"foreach f \{([^}]*)\}", text).group(1).split())
+            if not loaded <= own:
+                failures.append(f"tcl_func/main.tcl sources: {sorted(loaded - own)}")
+        elif re.search(r"^\s*source\b", text, re.M):
+            failures.append(f"tcl_func/{f} sources a file")
 
     if failures:
         for line in failures:

@@ -16,6 +16,7 @@ ITEM_CONFIG = {
     "Cycle":                {"icon": "cycle.png",          "expanded": True},
     "python Function":      {"icon": "python.png"},
     "lua Function":         {"icon": "lua.png"},
+    "tcl Function":         {"icon": "tcl.png"},
     "Report":               {"icon": "report.png"},
     "git repository":       {"icon": "git.png"},
     "Runtime plot":         {"icon": "plot.png"},

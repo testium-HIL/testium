@@ -120,12 +120,15 @@ class TestSet:
         """Resolve external interpreters needed by this test tree and fail
         early with a clear message if any is missing.
 
-        Python is always required (the eval engine always runs). Lua is
-        only required when at least one ``lua_func`` item is present.
+        Python is always required (the eval engine always runs). Lua and
+        Tcl are only required when at least one ``lua_func`` or
+        ``tcl_func`` item is present.
         """
         needed = ["python"]
         if self.__has_item_type(self._rootItem, cst_type.TYPE_LUA_FUNCTION):
             needed.append("lua")
+        if self.__has_item_type(self._rootItem, cst_type.TYPE_TCL_FUNCTION):
+            needed.append("tcl")
         bins.ensure(*needed)
 
     def __has_item_type(self, parent, item_type):
@@ -458,6 +461,22 @@ class TestSet:
             i = i + 1
 
         return res
+
+    def findItem(self, item_id):
+        return self.__findItemById(item_id)
+
+    def items(self, parent=None):
+        """Every item of the tree, depth first."""
+        if parent is None:
+            parent = self._rootItem
+        for i in range(parent.childCount()):
+            child = parent.child(i)
+            yield child
+            yield from self.items(child)
+
+    def isPaused(self):
+        """True while an item waits in its pause loop."""
+        return self._step_ctrl.current() is not None
 
     def isTestTypePresent(self, test_type: cst_type, parent=None):
         if parent is None:

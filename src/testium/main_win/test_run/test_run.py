@@ -10,6 +10,7 @@ class ThreadTestStatus(QThread):
     testSetIsFinished = Signal()
     gdUpdated = Signal(str, object)
     gdDeleted = Signal(str)
+    sandboxEvent = Signal(dict)
 
     def __init__(self, status_queue, parent=None, debug=False):
         super().__init__(parent)
@@ -28,7 +29,8 @@ class ThreadTestStatus(QThread):
                     self.gdUpdated.emit,
                     self.gdDeleted.emit,
                     self.testSetIsFinished.emit,
-                    self.statusToBeUpdated.emit)
+                    self.statusToBeUpdated.emit,
+                    self.sandboxEvent.emit)
             if stopping:
                 break
             if self.__to_be_stopped:

@@ -1,0 +1,465 @@
+- let:
+    name: tcl_func test constants
+    values:
+      - func_test_parameter: test parameter
+
+- tcl_func:
+    name: pass tcl_func
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: assertparam
+    param: [true]
+
+- tcl_func:
+    name: fail tcl_func
+    key: $(test)_FAIL
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: assertparam
+    param: [false]
+
+- tcl_func:
+    name: fail tcl_func with expected result "FAIL"
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: assertparam
+    param: [false]
+    expected_result: FAIL
+
+- tcl_func:
+    name: pass tcl_func with expected result FAIL
+    key: $(test)_FAIL
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: assertparam
+    param: [true]
+    expected_result: FAIL
+
+- tcl_func:
+    name: expected -1
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: echo
+    param: [-1]
+    expected_result: -1
+
+- tcl_func:
+    name: expected eval
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: echo
+    param: [-1]
+    expected_result: <| 354848436 - 354848437 |>
+
+- tcl_func:
+    name: expected nested structure
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: echo_nested
+    param: [[-1, a, {toto: tata}]]
+    expected_result: "<| [-1, 'a', {'toto': 'tata'}] |>"
+
+- tcl_func:
+    name: global param tcl_func
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: checkglobal
+    param: [$(func_test_parameter)]
+
+- tcl_func:
+    name: global param int
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: gd_scalar
+    param: [0]
+    expected_result: <| ($(data_to_be_returned))[0] |>
+
+- tcl_func:
+    name: global param dict
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: gd_dict
+    param: [1]
+    expected_result: <| ($(data_to_be_returned))[1] |>
+
+- tcl_func:
+    name: global param list
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: gd_list
+    param: [2]
+    expected_result: <| ($(data_to_be_returned))[2] |>
+
+- tcl_func:
+    name: relative file path
+    key: $(test)_PASS
+    file: items/tcl_func/tcl_func.tcl
+    func_name: echo
+    param: [1]
+    expected_result: 1
+
+- tcl_func:
+    name: skipped_checkglobal
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: should_not_be_called
+    param: [$(func_test_parameter)]
+
+- tcl_func:
+    name: skipped true
+    key: $(test)_FAIL
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: echo
+    param: ["skipped"]
+    skipped: true
+
+- tcl_func:
+    name: skipped 1
+    key: $(test)_FAIL
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: echo
+    param: ["skipped"]
+    skipped: 1
+
+- group:
+    name: Function results check
+    steps:
+        - group:
+            name: Functions result
+            steps:
+                - tcl_func:
+                    name: int
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [-1]
+
+                - tcl_func:
+                    name: float
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [-20.3]
+
+                - tcl_func:
+                    name: string
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: ["FAIL"]
+
+                - tcl_func:
+                    name: pair int,str
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: pair_return
+                    param: [0, "OK"]
+
+                - tcl_func:
+                    name: nothing returned
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: return_nothing
+
+                - tcl_func:
+                    name: output lines
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: print_lines
+
+        - group:
+            name: Functions result expected
+            steps:
+                - tcl_func:
+                    name: int expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [18]
+                    expected_result: 18
+
+                - tcl_func:
+                    name: float expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [0.3]
+                    expected_result: 0.3
+
+                - tcl_func:
+                    name: string expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: ["Something"]
+                    expected_result: Something
+
+                - tcl_func:
+                    name: string with spaces expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: ["a b c"]
+                    expected_result: a b c
+
+                - tcl_func:
+                    name: unicode expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: ["é😀 \"q\""]
+                    expected_result: "<| 'é😀 \"q\"' |>"
+
+                - tcl_func:
+                    name: boolean expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [true]
+                    expected_result: <| True |>
+
+                - tcl_func:
+                    name: forced boolean expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: as_bool
+                    param: [1]
+                    expected_result: <| True |>
+
+                - tcl_func:
+                    name: forced string expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: as_string
+                    param: [12]
+                    expected_result: "<| '12' |>"
+
+                - tcl_func:
+                    name: null expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: as_null
+                    expected_result: <| None |>
+
+                - tcl_func:
+                    name: empty string is null
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [""]
+                    expected_result: <| None |>
+
+                - tcl_func:
+                    name: pair int,str expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: pair_return
+                    param: [0, "OK"]
+                    expected_result: [0, "OK"]
+
+                - tcl_func:
+                    name: small list expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo_list
+                    param: [[-23]]
+                    expected_result: [-23]
+
+                - tcl_func:
+                    name: big list expected
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo_list
+                    param: [[-23, 17, 67]]
+                    expected_result: [-23, 17, 67]
+
+                - tcl_func:
+                    name: dict parameter
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: dict_size
+                    param: [{a: 1, b: [1, 2], c: {d: 3}}]
+                    expected_result: 3
+
+                - tcl_func:
+                    name: namespace proc
+                    key: $(test)_PASS
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: bench::voltage
+                    expected_result: 3.3
+
+        - group:
+            name: Function result not expected
+            steps:
+                - tcl_func:
+                    name: int not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [18]
+                    expected_result: 17
+
+                - tcl_func:
+                    name: float not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [0.3]
+                    expected_result: 0.5
+
+                - tcl_func:
+                    name: string not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: ["Something"]
+                    expected_result: Nothing
+
+                - tcl_func:
+                    name: inferred number is not a string
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [12]
+                    expected_result: "<| '12' |>"
+
+                - tcl_func:
+                    name: list without tm::list is a string
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo
+                    param: [[-23, 17, 67]]
+                    expected_result: [-23, 17, 67]
+
+                - tcl_func:
+                    name: pair int,str not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: pair_return
+                    param: [0, "OK"]
+                    expected_result: [0, "OUPS"]
+
+                - tcl_func:
+                    name: big list not expected
+                    key: $(test)_FAIL
+                    file: $(test_path)$(psep)tcl_func.tcl
+                    func_name: echo_list
+                    param: [[-23, 17, 67]]
+                    expected_result: [-23, 16, 67]
+
+- group:
+    name: Errors
+    steps:
+        - tcl_func:
+            name: error in a nested proc
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: fail_deep
+            param: [5]
+
+        - tcl_func:
+            name: wrong number of arguments
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: echo
+            param: [1, 2]
+
+        - tcl_func:
+            name: unknown proc
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: no_such_proc
+
+        - tcl_func:
+            name: unknown file
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)no_such_file.tcl
+            func_name: echo
+            param: [1]
+
+        - tcl_func:
+            name: file with a syntax error
+            key: $(test)_FAIL
+            file: $(test_path)$(psep)bad_syntax.tcl
+            func_name: broken
+
+        - tcl_func:
+            name: call after errors
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: echo
+            param: [1]
+            expected_result: 1
+
+- tcl_func:
+    name: delgd test
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: test_delgd
+
+- tcl_func:
+    name: setgd typed values
+    key: $(test)_PASS
+    file: $(test_path)$(psep)tcl_func.tcl
+    func_name: setgd_types
+
+- check:
+    name: setgd typed values stored
+    key: $(test)_PASS
+    values:
+        - "<| $(_tcl_types) == {'i': 3, 'f': 2.5, 's': 'text', 'n': '12', 'b': True, 'z': None, 'l': [1, 'two']} |>"
+
+- group:
+    name: context_id tests
+    steps:
+        - tcl_func:
+            name: set serializable value
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: set_context_value
+            param: [hello context]
+            expected_result: hello context
+
+        - tcl_func:
+            name: get serializable value (same context_id)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: get_context_value
+            context_id: ctx_test
+            expected_result: hello context
+
+        - tcl_func:
+            name: get serializable value (no context_id, from main gd)
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: get_context_value
+            expected_result: hello context
+
+        - tcl_func:
+            name: first call in a context
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: count_calls
+            context_id: ctx_count
+            expected_result: 1
+
+        - tcl_func:
+            name: second call in the same context
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: count_calls
+            context_id: ctx_count
+            expected_result: 2
+
+        - tcl_func:
+            name: call in another context
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: count_calls
+            context_id: ctx_other
+            expected_result: 1
+
+        - tcl_func:
+            name: call without context
+            key: $(test)_PASS
+            file: $(test_path)$(psep)tcl_func.tcl
+            func_name: count_calls
+            expected_result: 1

@@ -1,0 +1,89 @@
+#This suite exercises the tcl_func test item: a basic call, a typed
+#return value, global variables shared with the test, and a persistent
+#process (context_id). Requires tclsh 8.6+ on the PATH, or tcl_bin in
+#a configuration file.
+
+main:
+    name: Test illustrating the tcl_func test item
+    version: 0.1
+    stop_on_failure: False
+    steps:
+
+      - let:
+          name: Set tcl input values
+          doc: Values passed to the tcl_func calls below.
+          values:
+              - tcl_input: demo
+              - tcl_number: 42
+
+      - tcl_func:
+          name: tcl basic call
+          doc: Adds its parameters; the result is stored in the global dict.
+          file: tcl_func.tcl
+          func_name: sum
+          param:
+              - 123
+              - 0.5
+              - $(tcl_number)
+          expected_result: 165.5
+
+      - check:
+          name: tcl basic result
+          doc: A tcl_func item stores its result as tfn_<item name>.
+          values:
+              - <| $(tfn_tcl basic call) - 42 == 123.5 |>
+
+      - tcl_func:
+          name: tcl typed return
+          doc: measure returns a typed dict; its puts goes to the test log.
+          file: tcl_func.tcl
+          func_name: measure
+
+      - check:
+          name: typed dict fields
+          doc: "Each tm:: tag is honoured — number, string, boolean, list."
+          values:
+              - <| $(tfn_tcl typed return)["voltage"] == 3.3 |>
+              - <| $(tfn_tcl typed return)["serial"] == "0012" |>
+              - <| $(tfn_tcl typed return)["ok"] is True |>
+              - <| $(tfn_tcl typed return)["samples"] == [1, 2, 3] |>
+
+      - tcl_func:
+          name: tcl produce
+          doc: tm::setgd writes the value in the test global dict.
+          file: tcl_func.tcl
+          func_name: produce
+          param:
+              - $(tcl_input)
+          expected_result: $(tcl_input)
+
+      - tcl_func:
+          name: tcl consume
+          doc: tm::gd reads the value back, from a fresh Tcl process.
+          file: tcl_func.tcl
+          func_name: consume
+          expected_result: $(tcl_input)
+
+      - check:
+          name: tcl global variable
+          doc: The value written from Tcl is readable from the .tum.
+          values:
+              # A $( ) inside <| |> substitutes as text: a string needs the
+              # quotes here (a dict, as its Python repr, does not).
+              - <| "$(tcl_shared_value)" == "demo" |>
+
+      - tcl_func:
+          name: tcl count first
+          doc: With a context_id, the Tcl process is shared with the next item.
+          file: tcl_func.tcl
+          func_name: count_calls
+          context_id: tcl_example
+          expected_result: 1
+
+      - tcl_func:
+          name: tcl count second
+          doc: The global Tcl variable set by the previous call is still there.
+          file: tcl_func.tcl
+          func_name: count_calls
+          context_id: tcl_example
+          expected_result: 2

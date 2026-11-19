@@ -57,6 +57,7 @@ APT_PACKAGES=(
     lua5.4
     lua-cjson
     lua-socket
+    tcl
     git
 )
 

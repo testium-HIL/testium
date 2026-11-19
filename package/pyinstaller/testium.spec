@@ -34,7 +34,7 @@ a = Analysis(
     # py_func subprocess is launched with the *host* Python (not the
     # frozen interpreter): it needs the source files on disk to find them
     # via cwd=subproc_path() and `python3 py_func` + `from runtime.*`.
-    # py_func/, lua_func/ and runtime/ are bundled at the _MEIPASS root
+    # py_func/, lua_func/, tcl_func/ and runtime/ are bundled at the _MEIPASS root
     # because the py_func subprocess is launched with the *host* Python
     # (not the frozen interpreter): it needs the source files on disk to
     # find them via cwd=subproc_path() and `python3 py_func` +
@@ -43,6 +43,7 @@ a = Analysis(
     # (JSON-RPC bridge) for any testium API call.
     datas=[('../../src/VERSION', '.'),
            ('../../src/testium/lua_func', 'lua_func'),
+           ('../../src/testium/tcl_func', 'tcl_func'),
            ('../../src/testium/py_func', 'py_func'),
            ('../../src/testium/runtime', 'runtime'),
            (JUNIT_XML_DIR, 'junit_xml')],

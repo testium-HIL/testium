@@ -165,3 +165,48 @@ def variables_icon():
         icon = QIcon(pixmap)
         _cache[key] = icon
     return icon
+
+
+def sandbox_icon():
+    """Prompt glyph: run a script snippet."""
+    key = "sandbox" + icon_prefix()
+    icon = _cache.get(key)
+    if icon is None:
+        pixmap = QPixmap(256, 256)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        pen = QPen(_ink(QColor(102, 187, 106)))
+        pen.setWidth(30)
+        pen.setCapStyle(Qt.RoundCap)
+        pen.setJoinStyle(Qt.RoundJoin)
+        painter.setPen(pen)
+        painter.drawPolyline([QPointF(40, 60), QPointF(120, 128),
+                              QPointF(40, 196)])
+        painter.drawLine(QPointF(140, 200), QPointF(220, 200))
+        painter.end()
+        icon = QIcon(pixmap)
+        _cache[key] = icon
+    return icon
+
+
+def panels_icon():
+    """Window split in panes: choose a panel."""
+    key = "panels" + icon_prefix()
+    icon = _cache.get(key)
+    if icon is None:
+        pixmap = QPixmap(256, 256)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        pen = QPen(_ink(QColor(84, 110, 122)))
+        pen.setWidth(22)
+        pen.setJoinStyle(Qt.RoundJoin)
+        painter.setPen(pen)
+        painter.drawRoundedRect(30, 40, 196, 176, 18, 18)
+        painter.drawLine(QPointF(30, 140), QPointF(226, 140))
+        painter.drawLine(QPointF(128, 140), QPointF(128, 216))
+        painter.end()
+        icon = QIcon(pixmap)
+        _cache[key] = icon
+    return icon

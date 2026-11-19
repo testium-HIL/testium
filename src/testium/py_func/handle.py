@@ -13,6 +13,7 @@ from runtime.jrpc import JsonRpcSrv
 from runtime.tum_except import ETUMRuntimeError, print_exception
 import py_func.tm as tm
 from py_func.func_call import func_exec, format_user_traceback
+from py_func import sandbox
 
 
 # Port debugpy is listening on, set once per process (debugpy.listen can
@@ -114,6 +115,18 @@ class FuncHandler(JsonRpcSrv):
                         "error": "Malformed 'func_call' request arguments.\n"
                         + tb + "Internal error, please report it."
                     }
+            if method == "run_code":
+                try:
+                    return {"result": {
+                        "returned_value": sandbox.run_code(params["code"])}}
+                except Exception:
+                    return {"error": sandbox.format_error()}
+            if method == "complete":
+                try:
+                    return {"result": {
+                        "returned_value": sandbox.complete(params["prefix"])}}
+                except Exception as e:
+                    return {"error": str(e)}
             if method == "eval":
                 try:
                     value = params["value"]

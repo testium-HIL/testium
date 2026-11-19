@@ -33,6 +33,7 @@ from interpreter.test_items.test_item_group import TestItemGroup
 from interpreter.test_items.test_item_git import TestItemGit
 from interpreter.test_items.test_item_py_func import TestItemPyFunc
 from interpreter.test_items.test_item_lua_func import TestItemLuaFunc
+from interpreter.test_items.test_item_tcl_func import TestItemTclFunc
 from interpreter.test_items.test_item_let import TestItemLet
 from interpreter.test_items.test_item_check import TestItemCheckValue
 from interpreter.test_items.test_item_json_rpc import TestItemJSON_RPC
@@ -54,6 +55,7 @@ def _constants_init():
     cst.TYPE_CYCLE.item_class = TestItemCycle
     cst.TYPE_PY_FUNCTION.item_class = TestItemPyFunc
     cst.TYPE_LUA_FUNCTION.item_class = TestItemLuaFunc
+    cst.TYPE_TCL_FUNCTION.item_class = TestItemTclFunc
     cst.TYPE_GIT.item_class = TestItemGit
     cst.TYPE_GRAPH.item_class = TestItemPlot
     cst.TYPE_GROUP.item_class = TestItemGroup

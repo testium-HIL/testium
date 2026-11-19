@@ -10,7 +10,7 @@ import interpreter.utils.settings as prefs
 
 # Window-state schema version: bump when docks or toolbars change shape;
 # an older blob is rejected and the default layout applies.
-STATE_VERSION = 1
+STATE_VERSION = 2
 
 _GEOMETRY = prefs.SettingsItem("geometry", bytearray)
 _STATE = prefs.SettingsItem("state", bytearray)

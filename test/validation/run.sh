@@ -258,6 +258,26 @@ if [ "$MODE" = "source" ]; then
     "$ATT_PY" "$SCRIPT_DIR/py_func_attach_check.py"
 fi
 
+# ---------- Tcl missing check (source only) -----------------------------------
+# Without tclsh on PATH, a test with a tcl_func item fails at load with a
+# clear message, and a test without one still runs.
+if [ "$MODE" = "source" ]; then
+    echo "-- Tcl missing check ($MODE)"
+    TCL_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$TCL_PY" ] || TCL_PY="$VENV_PYTHON"
+    "$TCL_PY" "$SCRIPT_DIR/tcl_missing_check.py"
+fi
+
+# ---------- sandbox check (source only) ---------------------------------------
+# Script sandbox through the control queue, for Python, Lua and Tcl: own
+# process, attachment to a context_id on a paused run, reset, stop.
+if [ "$MODE" = "source" ]; then
+    echo "-- sandbox check ($MODE)"
+    SBX_PY="$SCRIPT_DIR/../tmp/.venv/bin/python3"
+    [ -x "$SBX_PY" ] || SBX_PY="$VENV_PYTHON"
+    "$SBX_PY" "$SCRIPT_DIR/sandbox_check.py"
+fi
+
 # ---------- GUI reload check (source only) ------------------------------------
 # Repeated GUI reloads must not leak fds/threads/sys.path. Imports main_win, so
 # source mode only; the script skips itself if PySide6 is unavailable.

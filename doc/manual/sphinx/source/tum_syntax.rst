@@ -82,8 +82,8 @@ load time and stored as declared: ``$( )`` and ``<| |>`` in their
 values are resolved when the value is used. In the example above,
 ``parameter4`` follows a later redefinition of ``parameter1``. The
 variables are accessible from TUM test files and from
-:ref:`python<sec_py_func_item>` and :ref:`lua<sec_lua_func_item>`
-function test items.
+:ref:`python<sec_py_func_item>`, :ref:`lua<sec_lua_func_item>` and
+:ref:`tcl<sec_tcl_func_item>` function test items.
 
 The resolution rules are detailed in
 :ref:`when values are resolved<sec_resolution_time>`.
@@ -156,6 +156,7 @@ library API (see :ref:`helper library<sec_python_helper_library>`)
 * ``cn_<test_name>``: console test item result (see section :ref:`sec_console_test_item`),
 * ``pfn_<func_name>``: py_func test item result (see section :ref:`sec_py_func_item`),
 * ``lfn_<func_name>``: lua_func test item result (see section :ref:`sec_lua_func_item`),
+* ``tfn_<func_name>``: tcl_func test item result (see section :ref:`sec_tcl_func_item`),
 * ``cs_<test_name>``: dialog_choices test item result (see section :ref:`sec_dialog_choices_test_item`),
 * ``loop_param``: loop iterator (available from within a loop item,
   see :ref:`sec_loop_item`),
@@ -346,6 +347,7 @@ step-list attributes.
    test_items/report_test_item.rst
    test_items/run_test_item.rst
    test_items/sleep_test_item.rst
+   test_items/tcl_func_test_item.rst
    test_items/unittest_test_item.rst
 
 

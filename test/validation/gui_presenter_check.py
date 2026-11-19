@@ -140,6 +140,279 @@ class FakeService:
         return call
 
 
+class FakeSandboxView:
+    def __init__(self):
+        self.text = ""
+        self.lang = None
+        self.sessions = None
+        self.state = None
+        self.file = None
+        self.output = []
+        self.confirm_answer = True
+        self.confirm_calls = 0
+        self.open_path = None
+        self.save_path = None
+        self.completions = None
+
+    def code(self):
+        return self.text
+
+    def set_code(self, text):
+        self.text = text
+
+    def set_language(self, lang):
+        self.lang = lang
+
+    def set_sessions(self, names, current):
+        self.sessions = (names, current)
+
+    def set_sandbox_state(self, enabled, running):
+        self.state = (enabled, running)
+
+    def set_file_label(self, name, path):
+        self.file = (name, path)
+
+    def append_output(self, text, kind):
+        self.output.append((kind, text))
+
+    def confirm(self, question):
+        self.confirm_calls += 1
+        return self.confirm_answer
+
+    def ask_open_path(self, start_dir):
+        return self.open_path
+
+    def ask_save_path(self, start, extension):
+        return self.save_path
+
+    def show_completions(self, prefix, names):
+        self.completions = (prefix, names)
+
+
+class FakeSandboxService:
+    def __init__(self):
+        self.calls = []
+        self.contexts = {"tcl": ["bench"]}
+        self.scripts = {}
+        self.refuse = None
+        self.unresolved = []
+
+    def sandbox_run(self, lang, code, session=None):
+        if self.refuse:
+            from runtime.tum_except import ETUMRuntimeError
+            raise ETUMRuntimeError(self.refuse)
+        self.calls.append(("run", lang, code, session))
+
+    def sandbox_stop(self):
+        self.calls.append(("stop",))
+        return True
+
+    def sandbox_reset(self, lang, session=None):
+        self.calls.append(("reset", lang, session))
+
+    def sandbox_sessions(self, lang):
+        return list(self.contexts.get(lang, []))
+
+    def sandbox_complete(self, lang, prefix, session=None):
+        return [prefix + "_live"]
+
+    def sandbox_item_call(self, item_id):
+        return {"lang": "tcl", "session": "bench", "file": "/x/b.tcl",
+                "code": "proc read {n} {}\n\nread 1\n",
+                "unresolved": self.unresolved}
+
+    def sandbox_scripts(self):
+        return self.scripts
+
+    def get_gd_vars(self):
+        return {"bench_port": 1, "other": 2}
+
+
+def check_sandbox():
+    from gui import sandbox_syntax as syntax
+    from gui.sandbox_presenter import (OWN_SESSION, SandboxPresenter,
+                                       decode_state, encode_state)
+
+    # --- Highlighting rules.
+    def kinds(lang, line, state=syntax.NORMAL):
+        spans, state = syntax.highlight_line(lang, line, state)
+        return [(line[s:s + n], k) for s, n, k in spans], state
+
+    got, state = kinds("python", "def f(): # c")
+    if got != [("def", "keyword"), ("# c", "comment")]:
+        fail(f"python highlighting: {got}")
+    got, state = kinds("python", 'x = """a')
+    if state != syntax.PY_TRIPLE_DOUBLE:
+        fail("python multi-line string not carried to the next line")
+    got, state = kinds("python", 'b""" + 2', state)
+    if got != [('b"""', "string"), ("2", "number")] or state != syntax.NORMAL:
+        fail(f"python multi-line string end: {got} {state}")
+    got, state = kinds("lua", "--[[ note")
+    if state != syntax.LUA_LONG_COMMENT:
+        fail("lua long comment not carried to the next line")
+    got, state = kinds("lua", ']] return tm.gd("a")', state)
+    if got != [("]]", "comment"), ("return", "keyword"), ("tm.gd", "api"),
+               ('"a"', "string")]:
+        fail(f"lua highlighting: {got}")
+    got, state = kinds("tcl", 'set x "a $y"; # note')
+    if got != [("set", "keyword"), ('"a $y"', "string"),
+               (" # note", "comment")]:
+        fail(f"tcl highlighting: {got}")
+    got, state = kinds("tcl", "tm::setgd k $::ns::v")
+    if got != [("tm::setgd", "api"), ("$::ns::v", "variable")]:
+        fail(f"tcl api/variable highlighting: {got}")
+
+    # --- Completion helpers.
+    if syntax.completion_prefix("python", "x = os.pa") != "os.pa" \
+            or syntax.completion_prefix("tcl", "puts $::fo") != "$::fo" \
+            or syntax.completion_prefix("python", "f(") != "":
+        fail("completion prefix extraction broken")
+    if syntax.gd_prefix("python", "tm.gd('be") != "be" \
+            or syntax.gd_prefix("tcl", "[tm::gd be") != "be" \
+            or syntax.gd_prefix("lua", "tm.gd") is not None:
+        fail("tm.gd context detection broken")
+    if syntax.merge_completions("a", ["ab", "b", "a"], ["ac", "ab"]) \
+            != ["ab", "ac"]:
+        fail("completion merge broken")
+    if syntax.language_of("/x/y.LUA") != "lua" \
+            or syntax.language_of("/x/y.txt") is not None:
+        fail("language by extension broken")
+
+    # --- Persisted state.
+    lang, buffers = decode_state(encode_state("tcl", {"tcl": "puts %s\n"}))
+    if lang != "tcl" or buffers != {"tcl": "puts %s\n"}:
+        fail("sandbox state round trip broken")
+    if decode_state("garbage") != ("python", {}):
+        fail("invalid sandbox state not replaced by the defaults")
+
+    # --- Presenter.
+    view = FakeSandboxView()
+    service = FakeSandboxService()
+    saved = []
+    p = SandboxPresenter(
+        view, lambda: service,
+        load_state=lambda: encode_state("tcl", {"tcl": "set a 1"}),
+        save_state=saved.append)
+    p.start()
+    if view.lang != "tcl" or view.text != "set a 1" \
+            or view.state != (True, False):
+        fail(f"sandbox start: {view.lang} {view.text!r} {view.state}")
+
+    p.refresh_sessions()
+    if view.sessions != ([OWN_SESSION, "bench"], OWN_SESSION):
+        fail(f"sandbox sessions: {view.sessions}")
+    p.on_session_changed("bench")
+    p.run()
+    if service.calls[-1] != ("run", "tcl", "set a 1", "bench") \
+            or view.state != (True, True) or not saved:
+        fail(f"sandbox run: {service.calls} {view.state}")
+    p.run()
+    if len([c for c in service.calls if c[0] == "run"]) != 1:
+        fail("a second run was sent while a script is running")
+    p.on_event({"event": "output", "text": "hello\n"})
+    p.on_event({"event": "finished", "result": 4, "error": None})
+    if view.output[-2:] != [("output", "hello\n"), ("result", "4\n")] \
+            or view.state != (True, False):
+        fail(f"sandbox events: {view.output} {view.state}")
+    p.on_event({"event": "finished", "result": None, "error": "boom\n"})
+    if view.output[-1] != ("error", "boom\n"):
+        fail(f"sandbox error event: {view.output[-1]}")
+
+    # Reset of an attached context asks first.
+    view.confirm_answer = False
+    p.reset()
+    if ("reset", "tcl", "bench") in service.calls or view.confirm_calls != 1:
+        fail("context reset done without confirmation")
+    view.confirm_answer = True
+    p.reset()
+    if service.calls[-1] != ("reset", "tcl", "bench"):
+        fail(f"context reset not sent: {service.calls[-1]}")
+
+    # A context that disappeared falls back to the own session.
+    service.contexts = {}
+    p.refresh_sessions()
+    if p.session() is not None or view.sessions != ([OWN_SESSION],
+                                                    OWN_SESSION):
+        fail(f"vanished context kept: {p.session()} {view.sessions}")
+
+    # A refused run is reported, the panel stays ready.
+    service.refuse = "The sandbox is available when the run is stopped"
+    p.run()
+    if view.output[-1][0] != "error" or view.state != (True, False):
+        fail(f"refused run: {view.output[-1]} {view.state}")
+    service.refuse = None
+
+    # Language change keeps one text per language.
+    view.text = "set a 2"
+    p.on_language_changed("lua")
+    view.text = "x = 1"
+    p.on_language_changed("tcl")
+    if view.text != "set a 2":
+        fail(f"text of a language lost on switch: {view.text!r}")
+
+    # Files: open by extension, modified flag, save, export.
+    script = os.path.join(WORK, "bench.lua")
+    with open(script, "w", encoding="utf-8") as f:
+        f.write("return 1\n")
+    p.open_file(script)
+    if view.lang != "lua" or view.text != "return 1\n" \
+            or view.file != ("bench.lua", script) or p.is_modified():
+        fail(f"open file: {view.lang} {view.text!r} {view.file}")
+    view.text = "return 2\n"
+    if not p.is_modified():
+        fail("edited file not seen as modified")
+    calls = view.confirm_calls
+    view.confirm_answer = False
+    p.open_file(script)
+    if view.text != "return 2\n" or view.confirm_calls != calls + 1:
+        fail("unsaved changes discarded without confirmation")
+    view.confirm_answer = True
+    service.scripts = {"lua": [script]}
+    calls = view.confirm_calls
+    if not p.save() or view.confirm_calls != calls + 1:
+        fail("save of a test script did not ask for confirmation")
+    with open(script, encoding="utf-8") as f:
+        if f.read() != "return 2\n" or p.is_modified():
+            fail("save did not write the file")
+    view.save_path = os.path.join(WORK, "export")
+    if not p.save_as() or not os.path.isfile(view.save_path + ".lua"):
+        fail("save as did not add the language extension")
+
+    # Item of the tree: language, context and code come from the item.
+    service.contexts = {"tcl": ["bench"]}
+    if not p.send_item(7) or view.lang != "tcl" \
+            or view.text != "proc read {n} {}\n\nread 1\n" \
+            or p.session() != "bench" or view.file != ("", ""):
+        fail(f"send item: {view.lang} {view.text!r} {p.session()}")
+
+    # Variables not defined yet are named in the output.
+    service.unresolved = ["test_path"]
+    view.text = "keep me"
+    p.send_item(7)
+    if view.output[-1][0] != "error" \
+            or "$(test_path)" not in view.output[-1][1]:
+        fail(f"unresolved variables not reported: {view.output[-1]}")
+    if view.text != "keep me":
+        fail("editor replaced by a call with unresolved variables")
+    service.unresolved = []
+
+    # Completion: test variables inside tm::gd, else static and live names.
+    p.complete("set v [tm::gd be")
+    if view.completions != ("be", ["bench_port"]):
+        fail(f"gd completion: {view.completions}")
+    p.complete("tm::s")
+    if view.completions != ("tm::s", ["tm::s_live", "tm::setgd", "tm::str"]):
+        fail(f"name completion: {view.completions}")
+    p.complete("puts (")
+    if view.completions != ("", []):
+        fail(f"completion without prefix: {view.completions}")
+
+    # Unloaded test: panel disabled, back to the own session.
+    p.set_loaded(False)
+    if view.state != (False, False):
+        fail(f"panel state without test: {view.state}")
+
+
 def main():
     log_path = os.path.join(WORK, "logs", "run.log")
     view = FakeView(log_path)
@@ -704,6 +977,8 @@ def main():
     if fold_action("unchecked") != (False, "unchecked") \
             or fold_action("partial") != (True, "checked"):
         fail("fold transitions broken")
+
+    check_sandbox()
 
     # PySide must never have been imported by this chain.
     if any(m.startswith("PySide") for m in sys.modules):

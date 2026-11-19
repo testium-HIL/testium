@@ -1,0 +1,66 @@
+main:
+    name: sandbox
+    steps:
+        - sleep:
+            name: slow
+            timeout: 2
+        - py_func:
+            name: py set
+            file: ctx.py
+            func_name: set_state
+            param: [5]
+            context_id: pyctx
+        - lua_func:
+            name: lua set
+            file: ctx.lua
+            func_name: set_state
+            param: [5]
+            context_id: luactx
+        - tcl_func:
+            name: tcl set
+            file: ctx.tcl
+            func_name: set_state
+            param: [5]
+            context_id: tclctx
+        - sleep:
+            name: first stop
+            timeout: 0
+        - py_func:
+            name: py get
+            file: ctx.py
+            func_name: get_state
+            context_id: pyctx
+            expected_result: 6
+        - lua_func:
+            name: lua get
+            file: ctx.lua
+            func_name: get_state
+            context_id: luactx
+            expected_result: 6
+        - tcl_func:
+            name: tcl get
+            file: ctx.tcl
+            func_name: get_state
+            context_id: tclctx
+            expected_result: 6
+        - sleep:
+            name: second stop
+            timeout: 0
+        - lua_func:
+            name: lua fresh
+            file: ctx.lua
+            func_name: get_state
+            context_id: luactx
+            expected_result: fresh
+        - tcl_func:
+            name: tcl fresh
+            file: ctx.tcl
+            func_name: get_state
+            context_id: tclctx
+            expected_result: fresh
+        - tcl_func:
+            name: unresolved
+            skipped: true
+            file: $(sandbox_undefined_dir)/ctx.tcl
+            func_name: get_state
+            param: [$(sandbox_undefined_value)]

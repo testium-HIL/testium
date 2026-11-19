@@ -25,6 +25,7 @@ def pref_fields():
         (s.SettingsGitSupported,    "bool"),
         (s.SettingsPythonPath,      "text"),
         (s.SettingsLuaPath,         "text"),
+        (s.SettingsTclPath,         "text"),
     ]
 
 
