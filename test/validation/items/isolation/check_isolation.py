@@ -60,7 +60,11 @@ def check_isolation(testium_dir):
                 failures.append(f"lua_func/{os.path.relpath(p, lua_dir)} leaks: {sorted(leaks)}")
 
     tcl_dir = os.path.join(testium_dir, "tcl_func")
-    tcl_files = [f for f in os.listdir(tcl_dir) if f.endswith(".tcl")]
+    # Not visible from the host in a Flatpak run: nothing to check, as for
+    # the two walks above.
+    tcl_files = []
+    if os.path.isdir(tcl_dir):
+        tcl_files = [f for f in os.listdir(tcl_dir) if f.endswith(".tcl")]
     own = {f[:-4] for f in tcl_files}
     for f in tcl_files:
         with open(os.path.join(tcl_dir, f), "r", encoding="utf-8") as fd:
