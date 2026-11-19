@@ -70,6 +70,7 @@ py-modules = ["testium_report"]
 
 [tool.setuptools.package-data]
 "testium.lua_func" = ["*.lua"]
+"testium.tcl_func" = ["*.tcl"]
 
 [tool.setuptools.dynamic]
 version = {file = ["VERSION"]}
