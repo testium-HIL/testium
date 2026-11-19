@@ -104,3 +104,28 @@ class TestControllerService:
 
     def del_gd_var(self, name: str) -> None:
         self._ctrl.control("del_gd_var", name=name)
+
+    # --- Script sandbox ---
+
+    def sandbox_run(self, lang: str, code: str, session=None) -> None:
+        self._ctrl.control("sandbox_run", lang=lang, code=code,
+                           session=session)
+
+    def sandbox_stop(self) -> bool:
+        return self._ctrl.control("sandbox_stop")
+
+    def sandbox_reset(self, lang: str, session=None) -> None:
+        self._ctrl.control("sandbox_reset", lang=lang, session=session)
+
+    def sandbox_sessions(self, lang: str) -> list:
+        return self._ctrl.control("sandbox_sessions", lang=lang)
+
+    def sandbox_complete(self, lang: str, prefix: str, session=None) -> list:
+        return self._ctrl.control("sandbox_complete", lang=lang,
+                                  prefix=prefix, session=session, timeout=3)
+
+    def sandbox_item_call(self, item_id) -> dict:
+        return self._ctrl.control("sandbox_item_call", item_id=item_id)
+
+    def sandbox_scripts(self) -> dict:
+        return self._ctrl.control("sandbox_scripts")

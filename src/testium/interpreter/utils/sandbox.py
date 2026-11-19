@@ -286,9 +286,13 @@ class Sandbox:
         if lang is None:
             raise ETUMRuntimeError("This item is not a function item.")
         prms = item._prms
-        path = _absolute(str(prms.expanse(item.file_name)))
-        func_name = str(prms.expanse(item.func_name))
-        params = prms.expanse(prms.getParamFromList(item.params))
+        try:
+            path = _absolute(str(prms.expanse(item.file_name)))
+            func_name = str(prms.expanse(item.func_name))
+            params = prms.expanse(prms.getParamFromList(item.params))
+        except ETUMError as e:
+            raise ETUMRuntimeError(
+                f"Cannot expand the parameters of this item: {e}")
         session = None
         if item._context_id is not None:
             ctx = str(prms.expanse(item._context_id))

@@ -6,10 +6,13 @@ Pure Python; the toolkit side wraps these in its own threads/signals."""
 
 
 def dispatch_status(message, on_gd_update, on_gd_delete, on_finished,
-                    on_status):
+                    on_status, on_sandbox=None):
     """Route one status-queue message. id None = run finished."""
     msg_type = message.get("type")
-    if msg_type == "gd_update":
+    if msg_type == "sandbox":
+        if on_sandbox is not None:
+            on_sandbox(message)
+    elif msg_type == "gd_update":
         on_gd_update(message["key"], message["value"])
     elif msg_type == "gd_delete":
         on_gd_delete(message["key"])

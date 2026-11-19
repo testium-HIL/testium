@@ -21,19 +21,25 @@ class ItemMenuState:
     attach_checked: bool
     condition_enabled: bool
     jump_enabled: bool
+    sandbox_enabled: bool = False
 
 
 def item_menu_state(item_type, debug_attach, no_breakpoint, is_skipped,
                     is_paused, self_and_ancestor_types):
     """Attach only applies to py_func items. Jump needs a paused run, a
-    non-skipped item, and no Parallel/ParallelBranch in the ancestry."""
+    non-skipped item, and no Parallel/ParallelBranch in the ancestry.
+    Send to sandbox applies to the function items."""
     is_py_func = item_type == cst.TYPE_PY_FUNCTION.item_name
+    is_function = item_type in (cst.TYPE_PY_FUNCTION.item_name,
+                                cst.TYPE_LUA_FUNCTION.item_name,
+                                cst.TYPE_TCL_FUNCTION.item_name)
     in_parallel = any(t in _PARALLEL_TYPES for t in self_and_ancestor_types)
     return ItemMenuState(
         attach_enabled=is_py_func,
         attach_checked=is_py_func and debug_attach,
         condition_enabled=not no_breakpoint,
-        jump_enabled=is_paused and not is_skipped and not in_parallel)
+        jump_enabled=is_paused and not is_skipped and not in_parallel,
+        sandbox_enabled=is_function)
 
 
 def breakpoint_condition_change(is_breakpoint, text):

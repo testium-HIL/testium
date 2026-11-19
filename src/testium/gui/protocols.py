@@ -93,6 +93,34 @@ class PreferencesView(Protocol):
     def set_field_value(self, key, ftype: str, value) -> None: ...
 
 
+class SandboxView(Protocol):
+    """Script sandbox panel driven by the sandbox presenter."""
+
+    def code(self) -> str: ...
+
+    def set_code(self, text: str) -> None: ...
+
+    def set_language(self, lang: str) -> None: ...
+
+    def set_sessions(self, names: list, current: str) -> None: ...
+
+    def set_sandbox_state(self, enabled: bool, running: bool) -> None: ...
+
+    def set_file_label(self, name: str, path: str) -> None: ...
+
+    def append_output(self, text: str, kind: str) -> None:
+        """kind: output, result, error or info."""
+
+    def confirm(self, question: str) -> bool: ...
+
+    def ask_open_path(self, start_dir: str) -> str: ...
+
+    def ask_save_path(self, start: str, extension: str) -> str: ...
+
+    def show_completions(self, prefix: str, names: list) -> None:
+        """names replace prefix; an empty list hides the popup."""
+
+
 class DebugView(Protocol):
     """Interface surface driven by the debug presenter."""
 
