@@ -462,6 +462,22 @@ class TestSet:
 
         return res
 
+    def findItem(self, item_id):
+        return self.__findItemById(item_id)
+
+    def items(self, parent=None):
+        """Every item of the tree, depth first."""
+        if parent is None:
+            parent = self._rootItem
+        for i in range(parent.childCount()):
+            child = parent.child(i)
+            yield child
+            yield from self.items(child)
+
+    def isPaused(self):
+        """True while an item waits in its pause loop."""
+        return self._step_ctrl.current() is not None
+
     def isTestTypePresent(self, test_type: cst_type, parent=None):
         if parent is None:
             parent = self._rootItem

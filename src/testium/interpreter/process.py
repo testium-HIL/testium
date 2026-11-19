@@ -35,6 +35,7 @@ from interpreter.utils.template import template_to_test
 from interpreter.utils.yaml_load import yaml_load
 from interpreter.utils.py_eval import eval_process_init
 from interpreter.utils.api_srv import api_request
+from interpreter.utils.sandbox import Sandbox
 
 
 class TestProcess(Process):
@@ -276,6 +277,9 @@ class TestProcess(Process):
                     # Now create the test structure and objects
                     test_set = TestSet(self.__fname, test_dict, self.__squeue)
 
+                    self.__sandbox = Sandbox(
+                        self.__squeue, test_set, lambda: self.__exec)
+
                     # Thread for incoming control commands
                     self.init_commands(test_set)
                     self.cmd_th = Thread(
@@ -334,6 +338,8 @@ class TestProcess(Process):
                     # Stop python eval execution process
                     eval_proc.stop()
                     eval_proc.join()
+                    if getattr(self, "_TestProcess__sandbox", None) is not None:
+                        self.__sandbox.close()
                     # Stop shared func context engines (keep_context_id)
                     for engine in tm.gd("_py_func_contexts", {}).values():
                         engine.stop()
@@ -381,6 +387,13 @@ class TestProcess(Process):
             "jump_back": test_set.jumpBack,
             "get_folded": test_set.getFolded,
             "close": self.close,
+            "sandbox_run": self.__sandbox.run,
+            "sandbox_stop": self.__sandbox.stop,
+            "sandbox_reset": self.__sandbox.reset,
+            "sandbox_sessions": self.__sandbox.sessions,
+            "sandbox_complete": self.__sandbox.complete,
+            "sandbox_item_call": self.__sandbox.item_call,
+            "sandbox_scripts": self.__sandbox.scripts,
         }
 
     def exit(self):
