@@ -344,7 +344,9 @@
 {% if os == "Linux" %}
         - writeln: for i in 1 2 3; do echo tsline_$i; sleep 2; done
 {% else %}
-        - writeln: for /l %i in (1,1,3) do (echo tsline_%i & timeout /t 2 /nobreak >nul)
+        # ping, not timeout: timeout refuses a redirected stdin (the console
+        # shell is piped) and returns at once. 3 echo requests = 2 s.
+        - writeln: for /l %i in (1,1,3) do (echo tsline_%i & ping -n 3 127.0.0.1 >nul)
 {% endif %}
 
 - sleep:
