@@ -13,6 +13,8 @@ from PySide6.QtCore import Slot, QUrl, Qt, QTimer, QSize
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
+    QProxyStyle,
+    QStyle,
     QMessageBox,
     QDialog,
     QFileDialog,
@@ -75,6 +77,19 @@ from gui import open_target
 from gui.file_presenter import FilePresenter
 from gui.search_presenter import SearchNavigator
 from gui.tree_presenter import FileStateStore, FILE_STATES_MAX
+
+
+class _MenuIconStyle(QProxyStyle):
+    """Menu style with a given icon size."""
+
+    def __init__(self, size):
+        super().__init__()
+        self._size = size
+
+    def pixelMetric(self, metric, option=None, widget=None):
+        if metric == QStyle.PM_SmallIconSize:
+            return self._size
+        return super().pixelMetric(metric, option, widget)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -461,6 +476,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.panelsBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         menu = QMenu(self)
         menu.setToolTipsVisible(True)
+        self._panels_menu_style = _MenuIconStyle(
+            self.toolBar.iconSize().width())
+        menu.setStyle(self._panels_menu_style)
         for action in (self.actionTestInformation, self.actionVariables,
                        self.actionExpression, self.actionSandbox):
             menu.addAction(action)

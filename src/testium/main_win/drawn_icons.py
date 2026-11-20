@@ -126,18 +126,18 @@ def variables_icon():
         gap = 2
 
         def fonts(px):
-            # Full-height dollar; smaller parentheses and italic x keep
-            # the four glyphs inside the square.
+            # Full-height dollar; parentheses and italic x slightly
+            # smaller, to keep the four glyphs inside the square.
             f_dollar = QFont("sans")
             f_dollar.setWeight(QFont.Black)
             f_dollar.setStretch(88)
             f_dollar.setPixelSize(px)
             f_paren = QFont(f_dollar)
-            f_paren.setPixelSize(int(px * 0.52))
+            f_paren.setPixelSize(int(px * 0.80))
             f_x = QFont("serif")
             f_x.setBold(True)
             f_x.setItalic(True)
-            f_x.setPixelSize(int(px * 0.50))
+            f_x.setPixelSize(int(px * 0.78))
             return f_dollar, f_paren, f_x
 
         def tights(f_dollar, f_paren, f_x):
