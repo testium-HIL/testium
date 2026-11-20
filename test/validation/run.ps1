@@ -235,6 +235,22 @@ $cmdArgs = @($cmd | Select-Object -Skip 1) + $tail
 if ($gui) {
     # windowed exe (frozen build): piping stdout forces PowerShell to wait
     & $exe @cmdArgs | Out-Null
+} elseif ($mode.ToLower() -eq 'pyinstaller') {
+    # The frozen exe is windowed (console=False): called directly, PowerShell
+    # neither waits for it nor shows its output, and $LASTEXITCODE keeps the
+    # value of the last pre-check. Piping forces the wait and brings the batch
+    # output back. testium writes UTF-8; stderr lines must not become
+    # terminating errors under $ErrorActionPreference='Stop'.
+    $prevEap = $ErrorActionPreference
+    $prevEnc = [Console]::OutputEncoding
+    $ErrorActionPreference = 'Continue'
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    try {
+        & $exe @cmdArgs 2>&1 | ForEach-Object { Write-Host "$_" }
+    } finally {
+        [Console]::OutputEncoding = $prevEnc
+        $ErrorActionPreference = $prevEap
+    }
 } else {
     & $exe @cmdArgs
 }
